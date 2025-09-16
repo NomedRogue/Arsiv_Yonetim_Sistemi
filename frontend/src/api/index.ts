@@ -2,10 +2,12 @@
 import { Folder, Checkout, Disposal, Log, Settings, Department, StorageStructure, Location } from '@/types';
 
 // Dev'de Vite proxy: "/api", paketli Electron'da: "http://localhost:3001"
-const API: string =
-  (typeof process !== 'undefined' && process?.env && (process.env as any).API_BASE)
-    ? (process.env as any).API_BASE
-    : '/api';
+const API: string = 
+  // Production'da (Electron içinde) her zaman localhost:3001 kullan
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? 'http://localhost:3001/api'
+    : // Development'ta Vite proxy kullan
+      '/api';
 
 // Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {

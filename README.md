@@ -314,6 +314,7 @@ Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](
 
 ### Geliştirici
 - **Geliştirici**: Bekir Yıldız
+- **E-posta**: bekir.yildiz1@saglik.gov.tr
 - **Proje Sahibi**: Arşiv Yönetim Sistemi Team
 - **Lisans**: MIT
 - **Node.js Sürümü**: v18+

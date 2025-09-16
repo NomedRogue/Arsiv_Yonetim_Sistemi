@@ -12,6 +12,26 @@ const logger = require('./logger');
 
 const router = express.Router();
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  try {
+    // Database bağlantısını test et
+    const db = dbManager.getDbInstance();
+    const result = db.prepare("SELECT 1 as test").get();
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      database: result ? 'connected' : 'error'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // ---------- Helpers ----------
 function resolvePdfFolder() {
   let folderPath = '';

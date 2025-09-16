@@ -49,15 +49,48 @@ process.env.USER_DATA_PATH = userDataPath;
 process.env.NODE_ENV = isDev ? 'development' : 'production'; // For logger and other modules
 
 // --- Backend'i başlat ---
+let backendStarted = false;
 try {
   require('./backend/server.js');
-  logger.info('[BACKEND] server.js loaded');
+  backendStarted = true;
+  logger.info('[BACKEND] server.js loaded and starting...');
 } catch (e) {
   logger.error('[BACKEND LOAD ERROR]', { error: e });
 }
 
+// Backend'in başlaması için kısa bir bekleme
+async function waitForBackend() {
+  if (!backendStarted) return false;
+  
+  // En fazla 10 saniye bekle
+  for (let i = 0; i < 20; i++) {
+    try {
+      const http = require('http');
+      await new Promise((resolve, reject) => {
+        const req = http.get('http://localhost:3001/api/health', (res) => {
+          resolve(res);
+        });
+        req.on('error', reject);
+        req.setTimeout(250);
+      });
+      logger.info('[BACKEND] Server ready on port 3001');
+      return true;
+    } catch (e) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  logger.warn('[BACKEND] Server not responding after 10 seconds');
+  return false;
+}
+
 let win;
-function createWindow() {
+async function createWindow() {
+  // Backend'in hazır olmasını bekle
+  const backendReady = await waitForBackend();
+  if (!backendReady) {
+    logger.warn('[BACKEND] Starting window despite backend not responding');
+  }
+
   let iconPath;
   try {
     iconPath = path.join(__dirname, 'assets', 'icon.ico');
