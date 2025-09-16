@@ -21,13 +21,22 @@ try {
   dbPath = path.join(userDataPath, 'arsiv.db');
 }
 
-// İlk kurulumda resources'tan userData'ya kopyala
+// Production'da userData klasörünü oluştur ve database'i hazırla
 if (!isDev) {
   try {
-    const packagedDbPath = path.join(process.resourcesPath, 'arsiv.db');
-    if (fs.existsSync(packagedDbPath) && !fs.existsSync(dbPath)) {
-      fs.mkdirSync(userDataPath, { recursive: true });
-      fs.copyFileSync(packagedDbPath, dbPath);
+    // UserData klasörünü oluştur
+    fs.mkdirSync(userDataPath, { recursive: true });
+    
+    // Eğer veritabanı yoksa, resources'tan kopyalamaya çalış
+    if (!fs.existsSync(dbPath)) {
+      const packagedDbPath = path.join(process.resourcesPath, 'arsiv.db');
+      if (fs.existsSync(packagedDbPath)) {
+        fs.copyFileSync(packagedDbPath, dbPath);
+        logger.info('[DB COPY] Veritabanı resources\'tan kopyalandı');
+      } else {
+        // Resources'ta yoksa, boş dosya oluştur (db.js initialize edecek)
+        logger.info('[DB INIT] Veritabanı resources\'ta bulunamadı, yeni oluşturulacak');
+      }
     }
   } catch (e) {
     logger.error('[DB COPY ERROR]', { error: e });

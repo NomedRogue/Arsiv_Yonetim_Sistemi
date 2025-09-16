@@ -103,7 +103,10 @@ function ensureIndexes(db) {
 }
 
 function ensureTables(db) {
+  logger.info('[DB] Tablo yapısı kontrol ediliyor...');
   db.pragma('journal_mode = WAL');
+  
+  // Önce temel tabloları oluştur
   db.exec(`
     CREATE TABLE IF NOT EXISTS configs   ( key TEXT PRIMARY KEY, value TEXT );
     CREATE TABLE IF NOT EXISTS folders   ( 
@@ -116,6 +119,14 @@ function ensureTables(db) {
     CREATE TABLE IF NOT EXISTS disposals ( id  TEXT PRIMARY KEY, data  TEXT );
     CREATE TABLE IF NOT EXISTS logs      ( id  TEXT PRIMARY KEY, data  TEXT );
   `);
+  
+  // Sonra migration'ı çalıştır
+  migrate(db);
+  
+  // İndeksleri oluştur
+  ensureIndexes(db);
+  
+  logger.info('[DB] Veritabanı şeması başarıyla kontrol edildi/güncellendi');
 }
 
 function rowToFolder(row) {
@@ -159,11 +170,8 @@ function rowToFolder(row) {
 const dbManager = {
   migrate() {
     try {
-        const db = this.getDbInstance();
-        db.transaction(() => {
-          ensureTables(db);
-          migrate(db);
-        })();
+        const db = this.getDbInstance(); // Bu zaten ensureTables'ı çağırıyor
+        logger.info('[DB] Veritabanı başlatma işlemi tamamlandı');
     } catch (e) {
         logger.error('[MIGRATION FAILED]', { error: e });
         throw new Error('Veritabanı geçişi başarısız oldu. Uygulama başlatılamıyor.');
@@ -173,6 +181,15 @@ const dbManager = {
   getDbInstance() {
     if (!dbInstance || !dbInstance.open) {
       logger.info('Veritabanı bağlantısı kuruluyor...');
+      
+      // Database dosyasının bulunacağı klasörü oluştur
+      const dbDir = path.dirname(DB_FILE);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+        logger.info(`Database klasörü oluşturuldu: ${dbDir}`);
+      }
+      
+      logger.info(`Database dosya yolu: ${DB_FILE}`);
       dbInstance = new Database(DB_FILE);
       ensureTables(dbInstance);
       logger.info(`better-sqlite3 veritabanına bağlandı: ${DB_FILE}`);
