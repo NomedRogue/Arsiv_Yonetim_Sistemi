@@ -4,25 +4,28 @@
 
 **Arşiv Yönetim Sistemi Desktop**, modern web teknolojileri kullanılarak geliştirilmiş, güvenli ve kullanıcı dostu bir masaüstü arşiv yönetim uygulamasıdır. Electron framework'ü ile geliştirilmiş bu uygulama, PDF belgelerinin sistematik organizasyonu, kategorilendirmesi ve verimli arama özelliklerini sunar.
 
+### 🏥 Mevzuat Uyumluluğu
+Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı Yataklı ve Yataksız Tedavi Kurumlarında Yapılan Arşiv Malzemesi Tespit ve Değerlendirme Çalışmalarına** uygun olarak tasarlanmıştır. Sağlık kurumlarının arşiv yönetimi gereksinimlerini karşılamak üzere geliştirilmiştir.
+
 ## ✨ Özellikler
 
-### 📋 Ana Özellikler
-- **📂 Klasör Yönetimi**: Hiyerarşik klasör yapısı ile belge organizasyonu
-- **📄 PDF Yönetimi**: PDF belgelerinin upload, görüntüleme ve yönetimi
-- **🔍 Gelişmiş Arama**: İçerik bazlı arama ve filtreleme
+### 📋 Ana özellikler
+- **📂 Klasör yönetimi**: Hiyerarşik klasör yapısı ile belge organizasyonu
+- **📄 PDF yönetimi**: PDF belgelerinin upload, görüntüleme ve yönetimi
+- **🔍 Gelişmiş arama**: İçerik bazlı arama ve filtreleme
 - **📊 Dashboard**: Sistem durumu ve istatistikleri
 - **⚙️ Ayarlar**: Sistem konfigürasyonu ve kişiselleştirme
-- **💾 Otomatik Yedekleme**: Zamanlanmış veritabanı yedekleme sistemi
-- **🔒 Güvenli Saklama**: SQLite tabanlı güvenli veri saklama
+- **💾 Otomatik yedekleme**: Zamanlanmış veritabanı yedekleme sistemi
+- **🔒 Güvenli saklama**: SQLite tabanlı güvenli veri saklama
 
-### 🎨 Kullanıcı Deneyimi
-- **🌓 Tema Desteği**: Açık ve koyu tema seçenekleri
-- **📱 Responsive Tasarım**: Farklı ekran boyutlarına uyum
-- **⚡ Hızlı Performans**: Optimize edilmiş bundle ve lazy loading
+### 🎨 Kullanıcı deneyimi
+- **🌓 Tema desteği**: Açık ve koyu tema seçenekleri
+- **📱 Responsive tasarım**: Farklı ekran boyutlarına uyum
+- **⚡ Hızlı performans**: Optimize edilmiş bundle ve lazy loading
 - **🔔 Bildirimler**: Toast mesajları ile kullanıcı geri bildirimi
 - **🎯 Modern UI**: Tailwind CSS ile tasarlanmış modern arayüz
 
-## 🛠️ Teknoloji Stack
+## 🛠️ Teknoloji stack
 
 ### Frontend
 - **⚛️ React 18** - Modern komponent tabanlı UI framework
@@ -46,7 +49,7 @@
 - **🔧 Electron Builder** - Build ve packaging aracı
 - **🔄 Concurrently** - Çoklu process yönetimi
 
-### Test & Kalite
+### Test & kalite
 - **🧪 Jest** - Unit ve integration test framework
 - **🐙 Testing Library** - React component testing
 - **📊 Test Coverage** - %52+ kod kapsama oranı
@@ -98,20 +101,20 @@ arsiv-yonetim-sistemi-desktop/
 └── 📄 README.md                   # Proje dokümantasyonu
 ```
 
-## 🚀 Kurulum ve Çalıştırma
+## 🚀 Kurulum ve çalıştırma
 
-### Ön Gereksinimler
+### Ön gereksinimler
 - **Node.js** v18+ 
 - **npm** v8+
 - **Git** (opsiyonel)
 
-### 1️⃣ Projeyi İndirme
+### 1️⃣ Projeyi indirme
 ```bash
 git clone <repository-url>
 cd arsiv-yonetim-sistemi-desktop
 ```
 
-### 2️⃣ Dependencies Kurulumu
+### 2️⃣ Dependencies kurulumu
 ```bash
 # Ana dependencies
 npm install
@@ -122,7 +125,7 @@ npm install
 cd ..
 ```
 
-### 3️⃣ Geliştirme Modunda Çalıştırma
+### 3️⃣ Geliştirme modunda çalıştırma
 ```bash
 # Tüm uygulamayı çalıştır (Frontend + Electron)
 npm run dev
@@ -134,7 +137,7 @@ npm run frontend
 npm run electron
 ```
 
-### 4️⃣ Build ve Packaging
+### 4️⃣ Build ve packaging
 ```bash
 # Frontend build
 npm run build
@@ -309,6 +312,8 @@ Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](
 
 ## 👥 İletişim ve Destek
 
+### Geliştirici
+- **Geliştirici**: Bekir Yıldız
 - **Proje Sahibi**: Arşiv Yönetim Sistemi Team
 - **Lisans**: MIT
 - **Node.js Sürümü**: v18+
