@@ -1,0 +1,69 @@
+{
+  "name": "arsiv-yonetim-sistemi-desktop",
+  "version": "1.0.0",
+  "description": "Arşiv Yönetim Sistemi Masaüstü Uygulaması",
+  "author": "Arşiv Yönetim Sistemi",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm run rebuild && electron .",
+    "dev": "concurrently -k \"npm:frontend\" \"npm:electron\"",
+    "frontend": "npm run dev --prefix frontend",
+    "electron": "wait-on http://localhost:5173 && npm run rebuild && electron .",
+    "build": "npm run build --prefix frontend",
+    "package": "npm run build --prefix frontend && npm run rebuild && electron-builder",
+    "rebuild": "electron-builder install-app-deps",
+    "test": "jest",
+    "pretest:backend": "npm rebuild better-sqlite3",
+    "test:backend": "jest --config ./backend/jest.config.js"
+  },
+  "build": {
+    "appId": "com.arsivyonetim.sistemi",
+    "productName": "Arşiv Yönetim Sistemi",
+    "files": [
+      "main.js",
+      "preload.js",
+      "frontend/dist/**/*",
+      "backend/**/*",
+      "!backend/arsiv.db",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/arsiv.db",
+        "to": "arsiv.db"
+      }
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "asarUnpack": [
+      "**/*.node",
+      "**/node_modules/better-sqlite3/**/*"
+    ]
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/supertest": "^6.0.2",
+    "concurrently": "^8.2.2",
+    "electron": "^38.1.0",
+    "electron-builder": "^26.0.20",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "wait-on": "^7.2.0"
+  }
+}
