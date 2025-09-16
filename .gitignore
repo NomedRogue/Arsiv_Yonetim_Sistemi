@@ -84,6 +84,9 @@ dist_electron/
 *.deb
 *.rpm
 
+# Electron build output
+release/
+
 # Test files
 *.test.js.snap
 
