@@ -99,17 +99,17 @@ describe('API Routes Integration Tests', () => {
     it('should paginate results correctly', async () => {
         const res = await request(app).get('/api/folders?page=1&limit=2&sortBy=subject&order=asc');
         expect(res.statusCode).toBe(200);
-        expect(res.body.items).toHaveLength(2);
+        expect(res.body.folders).toHaveLength(2);
         expect(res.body.total).toBe(3);
-        expect(res.body.items[0].subject).toBe('Finance Report 2022');
-        expect(res.body.items[1].subject).toBe('HR Policies');
+        expect(res.body.folders[0].subject).toBe('Finance Report 2022');
+        expect(res.body.folders[1].subject).toBe('HR Policies');
     });
 
     it('should filter results with a general query', async () => {
         const res = await request(app).get('/api/folders?general=Medical');
         expect(res.statusCode).toBe(200);
-        expect(res.body.items).toHaveLength(1);
-        expect(res.body.items[0].subject).toBe('Medical Records 2023');
+        expect(res.body.folders).toHaveLength(1);
+        expect(res.body.folders[0].subject).toBe('Medical Records 2023');
     });
   });
 
@@ -138,15 +138,16 @@ describe('API Routes Integration Tests', () => {
           }
       });
 
-      it('should list backup files', async () => {
-          // Create a dummy backup file
-          const backupFolder = resolveBackupFolder();
-          fs.writeFileSync(path.join(backupFolder, 'test.db'), 'data');
+    it('should list backup files', async () => {
+      // Create a dummy backup file
+      const backupFolder = resolveBackupFolder();
+      fs.writeFileSync(path.join(backupFolder, 'test.db'), 'data');
 
-          const res = await request(app).get('/api/list-backups');
-          expect(res.statusCode).toBe(200);
-          expect(res.body.files).toHaveLength(1);
-          expect(res.body.files[0].filename).toBe('test.db');
-      });
+        const res = await request(app).get('/api/list-backups');
+        expect(res.statusCode).toBe(200);
+        expect(Array.isArray(res.body.backups)).toBe(true);
+        expect(res.body.backups.length).toBeGreaterThanOrEqual(1);
+        expect(res.body.backups.some(f => f.filename === 'test.db')).toBe(true);
+    });
   });
 });

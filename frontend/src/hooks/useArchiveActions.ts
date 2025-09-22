@@ -61,7 +61,7 @@ export const useArchiveActions = (
 
 
   const getFolderById = useCallback(
-    (id: number) => state.folders.find((f) => f.id === id),
+    (id: number) => (state.folders || []).find((f) => f.id === id),
     [state.folders]
   );
 
@@ -98,7 +98,7 @@ export const useArchiveActions = (
         status: FolderStatus.Arsivde,
       };
       
-      const previousFolders = state.folders;
+      const previousFolders = state.folders || [];
       dispatch({ type: 'SET_FOLDERS', payload: [newFolder, ...previousFolders] });
       
       try {
@@ -116,7 +116,7 @@ export const useArchiveActions = (
   const updateFolder = useCallback(
     async (updatedFolder: Folder) => {
       const folderWithTimestamp = { ...updatedFolder, updatedAt: new Date() };
-      const previousFolders = state.folders;
+      const previousFolders = state.folders || [];
       const nextFolders = previousFolders.map((f) => f.id === folderWithTimestamp.id ? folderWithTimestamp : f);
       dispatch({ type: 'SET_FOLDERS', payload: nextFolders });
 
@@ -134,7 +134,7 @@ export const useArchiveActions = (
 
   const deleteFolder = useCallback(
     async (folderId: number) => {
-      const folder = getFolderById(folderId) ?? state.folders.find(f => f.id === folderId);
+      const folder = getFolderById(folderId) ?? (state.folders || []).find(f => f.id === folderId);
       if (!folder) return;
       if (folder.status === FolderStatus.Cikista) {
         toast.error('Çıkışta olan bir klasör silinemez.');
@@ -142,9 +142,9 @@ export const useArchiveActions = (
       }
       
       const previousState = { folders: state.folders, checkouts: state.checkouts, disposals: state.disposals };
-      dispatch({ type: 'SET_FOLDERS', payload: state.folders.filter((f) => f.id !== folderId) });
-      dispatch({ type: 'SET_CHECKOUTS', payload: state.checkouts.filter((c) => c.folderId !== folderId) });
-      dispatch({ type: 'SET_DISPOSALS', payload: state.disposals.filter((d) => d.folderId !== folderId) });
+      dispatch({ type: 'SET_FOLDERS', payload: (state.folders || []).filter((f) => f.id !== folderId) });
+      dispatch({ type: 'SET_CHECKOUTS', payload: (state.checkouts || []).filter((c) => c.folderId !== folderId) });
+      dispatch({ type: 'SET_DISPOSALS', payload: (state.disposals || []).filter((d) => d.folderId !== folderId) });
 
       try {
         await api.removeFolder(folderId);
@@ -163,17 +163,17 @@ export const useArchiveActions = (
   const addCheckout = useCallback(
     async (checkoutData: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
       const newCheckout: Checkout = { ...checkoutData, id: Date.now(), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
-      const previousState = { folders: state.folders, checkouts: state.checkouts };
+      const previousState = { folders: state.folders || [], checkouts: state.checkouts || [] };
       
-      const folderToUpdate = state.folders.find(f => f.id === checkoutData.folderId);
+      const folderToUpdate = (state.folders || []).find(f => f.id === checkoutData.folderId);
       if (!folderToUpdate) {
         toast.error('Çıkış yapılacak klasör bulunamadı.');
         return;
       }
       const updatedFolder = { ...folderToUpdate, status: FolderStatus.Cikista };
 
-      dispatch({ type: 'SET_CHECKOUTS', payload: [newCheckout, ...state.checkouts] });
-      dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => f.id === checkoutData.folderId ? updatedFolder : f) });
+      dispatch({ type: 'SET_CHECKOUTS', payload: [newCheckout, ...(state.checkouts || [])] });
+      dispatch({ type: 'SET_FOLDERS', payload: (state.folders || []).map(f => f.id === checkoutData.folderId ? updatedFolder : f) });
       
       try {
         await api.createCheckout(newCheckout);
@@ -219,9 +219,9 @@ export const useArchiveActions = (
       if (!checkout) return;
       
       const updatedCheckout = { ...checkout, status: CheckoutStatus.IadeEdildi, actualReturnDate: new Date() };
-      const previousState = { folders: state.folders, checkouts: state.checkouts };
+      const previousState = { folders: state.folders || [], checkouts: state.checkouts || [] };
 
-      const folderToUpdate = state.folders.find(f => f.id === checkout.folderId);
+      const folderToUpdate = (state.folders || []).find(f => f.id === checkout.folderId);
       if (!folderToUpdate) {
         toast.error('İade edilecek klasör bulunamadı.');
         dispatch({ type: 'SET_CHECKOUTS', payload: previousState.checkouts });
@@ -229,8 +229,8 @@ export const useArchiveActions = (
       }
       const updatedFolder = { ...folderToUpdate, status: FolderStatus.Arsivde };
 
-      dispatch({ type: 'SET_CHECKOUTS', payload: state.checkouts.map(c => c.id === checkoutId ? updatedCheckout : c) });
-      dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => f.id === checkout.folderId ? updatedFolder : f) });
+      dispatch({ type: 'SET_CHECKOUTS', payload: (state.checkouts || []).map(c => c.id === checkoutId ? updatedCheckout : c) });
+      dispatch({ type: 'SET_FOLDERS', payload: (state.folders || []).map(f => f.id === checkout.folderId ? updatedFolder : f) });
       
       try {
         await api.updateCheckout(updatedCheckout);
@@ -248,7 +248,10 @@ export const useArchiveActions = (
   
   const disposeFolders = useCallback(
     async (folderIds: number[]) => {
-      const foldersToDispose = state.folders.filter((f) => folderIds.includes(f.id));
+      const foldersToDispose = (state.folders || []).filter((f) => 
+        folderIds.some(id => String(f.id) === String(id) || f.id === id || Number(f.id) === Number(id))
+      );
+      
       if (foldersToDispose.some((f) => f.status === FolderStatus.Cikista)) {
         toast.error('Çıkışta olan klasörler imha edilemez.');
         return;
@@ -257,19 +260,31 @@ export const useArchiveActions = (
       const previousState = { folders: state.folders, disposals: state.disposals };
       
       const foldersToUpdate = foldersToDispose.map(f => ({ ...f, status: FolderStatus.Imha }));
-      const newDisposals = foldersToDispose.map((f, i) => ({ id: Date.now() + i, folderId: f.id, disposalDate: new Date(), originalFolderData: f }));
+      const now = new Date();
+      const newDisposals = foldersToDispose.map((f, i) => ({ 
+        id: `disposal_${Date.now()}_${i}`, // TEXT olarak ID oluştur
+        folderId: f.id, 
+        disposalDate: now.toISOString(), // ISO string olarak tarih
+        originalFolderData: f 
+      }));
+      
+      console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
       
       dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => foldersToUpdate.find(u => u.id === f.id) || f) });
       dispatch({ type: 'SET_DISPOSALS', payload: [...newDisposals, ...state.disposals] });
       
       try {
+        console.log('[DISPOSE DEBUG] About to update folders...');
         await Promise.all(foldersToUpdate.map(api.updateFolder));
+        console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
         await Promise.all(newDisposals.map(api.createDisposal));
+        console.log('[DISPOSE DEBUG] All API calls successful!');
         toast.success(`${folderIds.length} klasör imha edildi.`);
         
         const details = `${folderIds.length} klasör imha edildi. Detaylar: ${foldersToDispose.map(f => getFolderLogDetails(f)).join(' | ')}`;
         addLog({ type: 'dispose', details });
       } catch (e: any) {
+        console.log('[DISPOSE ERROR] Error during disposal:', e);
         toast.error(`İmha işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousState.folders });
         dispatch({ type: 'SET_DISPOSALS', payload: previousState.disposals });
@@ -374,7 +389,7 @@ export const useArchiveActions = (
 
   const deleteDepartment = useCallback(
     async (departmentId: number) => {
-      if (state.folders.some((f) => f.departmentId === departmentId)) {
+      if ((state.folders || []).some((f) => f.departmentId === departmentId)) {
         toast.error('Bu birime ait klasörler varken birim silinemez.');
         return;
       }
@@ -439,7 +454,7 @@ export const useArchiveActions = (
 
   const isUnitDeletable = useCallback(
     (type: StorageType, id: number): boolean =>
-      !state.folders.some((f) => f.location.storageType === type && (f.location.unit === id || f.location.stand === id)),
+      !(state.folders || []).some((f) => f.location.storageType === type && (f.location.unit === id || f.location.stand === id)),
     [state.folders]
   );
 
@@ -509,7 +524,7 @@ export const useArchiveActions = (
   
   const getOccupancy = useCallback(
     (location: Location): OccupancyInfo => {
-      const foldersInLocation = state.folders.filter(f => f.status !== FolderStatus.Imha && f.location.storageType === location.storageType && f.location.unit === location.unit && f.location.face === location.face && f.location.section === location.section && f.location.shelf === location.shelf && f.location.stand === location.stand);
+      const foldersInLocation = (state.folders || []).filter(f => f.status !== FolderStatus.Imha && f.location.storageType === location.storageType && f.location.unit === location.unit && f.location.face === location.face && f.location.section === location.section && f.location.shelf === location.shelf && f.location.stand === location.stand);
       const total = location.storageType === StorageType.Kompakt ? state.settings.kompaktRafGenisligi : state.settings.standRafGenisligi;
       const used = foldersInLocation.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? state.settings.darKlasorGenisligi : state.settings.genisKlasorGenisligi), 0);
       return { total, used, percentage: total > 0 ? (used / total) * 100 : 0, folders: foldersInLocation };
@@ -521,13 +536,13 @@ export const useArchiveActions = (
     const kompakt: Record<string, number> = {};
     const stand: Record<string, number> = {};
     state.storageStructure.kompakt.forEach(u => {
-      const foldersInUnit = state.folders.filter(f => f.location.unit === u.unit && f.status !== FolderStatus.Imha);
+      const foldersInUnit = (state.folders || []).filter(f => f.location.unit === u.unit && f.status !== FolderStatus.Imha);
       const totalSpace = u.faces.reduce((sum, face) => sum + face.sections.length * face.sections[0].shelves.length * state.settings.kompaktRafGenisligi, 0);
       const usedSpace = foldersInUnit.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? state.settings.darKlasorGenisligi : state.settings.genisKlasorGenisligi), 0);
       kompakt[`Ünite ${u.unit}`] = totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0;
     });
     state.storageStructure.stand.forEach(s => {
-      const foldersInStand = state.folders.filter(f => f.location.stand === s.stand && f.status !== FolderStatus.Imha);
+      const foldersInStand = (state.folders || []).filter(f => f.location.stand === s.stand && f.status !== FolderStatus.Imha);
       const totalSpace = s.shelves.length * state.settings.standRafGenisligi;
       const usedSpace = foldersInStand.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? state.settings.darKlasorGenisligi : state.settings.genisKlasorGenisligi), 0);
       stand[`Stand ${s.stand}`] = totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0;
@@ -542,7 +557,7 @@ export const useArchiveActions = (
         if (!unit) return [];
         return unit.faces.flatMap(face => face.sections.map(section => {
           const totalSpace = section.shelves.length * state.settings.kompaktRafGenisligi;
-          const usedSpace = state.folders.filter(f => f.status !== FolderStatus.Imha && f.location.unit === id && f.location.face === face.name && f.location.section === section.section)
+          const usedSpace = (state.folders || []).filter(f => f.status !== FolderStatus.Imha && f.location.unit === id && f.location.face === face.name && f.location.section === section.section)
             .reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? state.settings.darKlasorGenisligi : state.settings.genisKlasorGenisligi), 0);
           return { name: `${face.name} - ${section.section}. Bölüm`, occupancy: totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0, faceName: face.name, sectionId: section.section };
         }));

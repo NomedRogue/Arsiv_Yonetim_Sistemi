@@ -372,7 +372,7 @@ export const FolderForm: React.FC<{
                 value={formData.specialInfo || ''}
                 onChange={handleInputChange}
                 rows={3}
-                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
               ></textarea>
             </div>
             
@@ -550,3 +550,5 @@ export const FolderForm: React.FC<{
     </div>
   );
 };
+
+export default FolderForm;

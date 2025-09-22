@@ -1,2 +1,0 @@
-// FIX: Removed reference to "vite/client" to resolve "Cannot find type definition file" error.
-// The root cause is likely in tsconfig.json, but removing this unused reference is a safe fix as no client-side Vite-specific APIs are used.

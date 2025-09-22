@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
+const Database = require('better-sqlite3'); // Used for backup operations only
 const dbManager = require('./db');
 const { sseBroadcast } = require('./sse');
 const { resolveBackupFolder, performBackupToFolder, getDbInfo } = require('./backup');
@@ -12,18 +12,27 @@ const logger = require('./logger');
 
 const router = express.Router();
 
+// Root health check endpoint for wait-on
+router.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Arşiv Yönetim Sistemi Backend',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
-router.get('/health', (req, res) => {
+router.get('/health', async (req, res) => {
   try {
     // Database bağlantısını test et
-    const db = dbManager.getDbInstance();
-    const result = db.prepare("SELECT 1 as test").get();
+    const db = await dbManager.getDbInstance();
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      database: result ? 'connected' : 'error'
+      database: 'connected'
     });
   } catch (error) {
+    logger.error('[HEALTH] Database connection failed:', error);
     res.status(500).json({ 
       status: 'error', 
       message: error.message,
@@ -33,10 +42,10 @@ router.get('/health', (req, res) => {
 });
 
 // ---------- Helpers ----------
-function resolvePdfFolder() {
+async function resolvePdfFolder() {
   let folderPath = '';
   // NOTE: Her çağrıldığında ayarları yeniden oku.
-  const settings = dbManager.getConfig('settings');
+  const settings = await dbManager.getConfig('settings');
   if (
     settings &&
     settings.pdfKayitKlasoru &&
@@ -53,28 +62,30 @@ function resolvePdfFolder() {
   return folderPath;
 }
 
-const validateDbSchema = (dbPath) => {
-  let testDb;
+const validateDbSchema = async (dbPath) => {
+  const Database = require('better-sqlite3');
+  
   try {
-    testDb = new Database(dbPath, { readonly: true });
+    const testDb = new Database(dbPath, { readonly: true });
+    
     const requiredTables = ['configs', 'folders', 'checkouts', 'disposals', 'logs'];
     const tables = testDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
     const tableNames = tables.map(t => t.name);
     const hasAllTables = requiredTables.every(t => tableNames.includes(t));
+    
+    testDb.close();
     return hasAllTables;
   } catch (e) {
-    logger.error('DB schema validation failed during open', { error: e });
+    logger.error('DB schema validation failed during open', { message: e.message, stack: e.stack });
     return false;
-  } finally {
-    if (testDb) testDb.close();
   }
 };
 
 // ---------- Multer: PDF depolama ----------
 const storage = multer.diskStorage({
-  destination(req, file, cb) {
+  destination: async (req, file, cb) => {
     try {
-      const uploadPath = resolvePdfFolder();
+      const uploadPath = await resolvePdfFolder();
       cb(null, uploadPath);
     } catch (error) {
       logger.error('Upload path error:', { error });
@@ -129,10 +140,10 @@ router.post('/upload-pdf', upload.single('pdf'), (req, res, next) => {
   }
 });
 
-router.get('/serve-pdf/:filename', (req, res, next) => {
+router.get('/serve-pdf/:filename', async (req, res, next) => {
   try {
     const filename = path.basename(req.params.filename);
-    const filePath = path.join(resolvePdfFolder(), filename);
+    const filePath = path.join(await resolvePdfFolder(), filename);
 
     if (fs.existsSync(filePath)) {
       res.contentType('application/pdf');
@@ -145,10 +156,10 @@ router.get('/serve-pdf/:filename', (req, res, next) => {
   }
 });
 
-router.delete('/delete-pdf/:filename', (req, res, next) => {
+router.delete('/delete-pdf/:filename', async (req, res, next) => {
   try {
     const filename = path.basename(req.params.filename);
-    const filePath = path.join(resolvePdfFolder(), filename);
+    const filePath = path.join(await resolvePdfFolder(), filename);
 
     if (fs.existsSync(filePath)) {
       fs.unlink(filePath, (err) => {
@@ -164,19 +175,34 @@ router.delete('/delete-pdf/:filename', (req, res, next) => {
 });
 
 // AYARLAR (Settings, Departments, StorageStructure)
-router.post('/save-configs', (req, res, next) => {
+router.post('/save-configs', async (req, res, next) => {
   try {
     const { settings, departments, storageStructure } = req.body;
-    dbManager.getDbInstance().transaction(() => {
-      if (settings)         dbManager.setConfig('settings', settings);
-      if (departments)      dbManager.setConfig('departments', departments);
-      if (storageStructure) dbManager.setConfig('storageStructure', storageStructure);
-    })();
+    
+    if (settings)         await dbManager.setConfig('settings', settings);
+    if (departments)      await dbManager.setConfig('departments', departments);
+    if (storageStructure) await dbManager.setConfig('storageStructure', storageStructure);
     
     if (settings) {
       // Ayarlar değiştiğinde otomatik yedekleme durumunu sıfırla ki
       // yeni zamanlamayı doğru uygulasın.
       clearAutoBackupState();
+    }
+
+    // Birim güncellendiğinde SSE broadcast ile client'ları bilgilendir
+    if (departments) {
+      sseBroadcast('departments_updated', { 
+        departments,
+        ts: new Date()
+      });
+    }
+
+    // Storage structure güncellendiğinde SSE broadcast
+    if (storageStructure) {
+      sseBroadcast('storage_structure_updated', { 
+        storageStructure,
+        ts: new Date()
+      });
     }
     
     res.json({ message: 'Konfigürasyon kaydedildi!' });
@@ -186,9 +212,9 @@ router.post('/save-configs', (req, res, next) => {
 });
 
 // LOGS
-router.post('/logs', (req, res, next) => {
+router.post('/logs', async (req, res, next) => {
   try {
-    dbManager.addLog(req.body);
+    await dbManager.addLog(req.body);
     res.status(201).json({ message: 'Log eklendi.' });
   } catch (err) {
     next(err);
@@ -198,7 +224,7 @@ router.post('/logs', (req, res, next) => {
 // FOLDERS
 // IMPORTANT: Specific routes must come before parameterized routes.
 // GET /folders (paginated, searchable, sortable)
-router.get('/folders', (req, res, next) => {
+router.get('/folders', async (req, res, next) => {
     try {
         const options = {
             page: req.query.page ? parseInt(String(req.query.page), 10) : 1,
@@ -219,18 +245,25 @@ router.get('/folders', (req, res, next) => {
         // filter out undefined/null options
         const cleanOptions = Object.fromEntries(Object.entries(options).filter(([_, v]) => v != null && v !== ''));
 
-        const result = dbManager.getFolders(cleanOptions);
-        res.json(result);
+        const result = await dbManager.getFolders(cleanOptions);
+        
+        // Frontend ile uyumlu format için 'items' → 'folders' 
+        res.json({
+            folders: result.items,
+            total: result.total,
+            page: result.page,
+            limit: result.limit
+        });
     } catch (err) {
         next(err);
     }
 });
 
 // GET disposable folders
-router.get('/folders/disposable', (req, res, next) => {
+router.get('/folders/disposable', async (req, res, next) => {
   try {
-    const { filter } = req.query; // thisYear, nextYear, pastYears
-    const folders = dbManager.getDisposableFolders(filter);
+    const { filter } = req.query; // thisYear, nextYear, overdue
+    const folders = await dbManager.getDisposableFolders(filter);
     res.json(folders);
   } catch (err) {
     next(err);
@@ -255,9 +288,9 @@ router.put('/folders/:id', (req, res, next) => {
   }
 });
 
-router.get('/folders/:id', (req, res, next) => {
+router.get('/folders/:id', async (req, res, next) => {
   try {
-    const folder = dbManager.getFolderById(req.params.id);
+    const folder = await dbManager.getFolderById(req.params.id);
     if (folder) {
       res.json(folder);
     } else {
@@ -297,9 +330,9 @@ router.put('/checkouts/:id', (req, res, next) => {
 });
 
 // GET active checkouts with folder data
-router.get('/checkouts/active', (req, res, next) => {
+router.get('/checkouts/active', async (req, res, next) => {
   try {
-    const data = dbManager.getActiveCheckoutsWithFolders();
+    const data = await dbManager.getActiveCheckoutsWithFolders();
     res.json(data);
   } catch (err) {
     next(err);
@@ -344,7 +377,7 @@ router.post('/restore-db', uploadDb.single('dbfile'), async (req, res, next) => 
   try {
     if (!req.file) return res.status(400).json({ error: 'No file' });
 
-    if (!validateDbSchema(req.file.path)) {
+    if (!(await validateDbSchema(req.file.path))) {
       fs.unlinkSync(req.file.path);
       const err = new Error('Geçersiz veritabanı dosyası. Şema uyumsuz.');
       err.statusCode = 400;
@@ -375,7 +408,7 @@ router.post('/restore-db', uploadDb.single('dbfile'), async (req, res, next) => 
 router.get('/list-backups', (req, res, next) => {
   try {
     const folder = resolveBackupFolder();
-    if (!folder || !fs.existsSync(folder)) return res.json({ files: [], folder: folder || '' });
+    if (!folder || !fs.existsSync(folder)) return res.json({ backups: [], folder: folder || '' });
 
     const files = fs
       .readdirSync(folder)
@@ -387,7 +420,7 @@ router.get('/list-backups', (req, res, next) => {
       })
       .sort((a, b) => b.mtimeMs - a.mtimeMs);
 
-    res.json({ files, folder });
+    res.json({ backups: files, folder });
   } catch (e) {
     next(e);
   }
@@ -409,7 +442,7 @@ router.post('/restore-db-from-backup', async (req, res, next) => {
       return next(err);
     }
 
-    if (!validateDbSchema(backupPath)) {
+    if (!(await validateDbSchema(backupPath))) {
       const err = new Error('Geçersiz yedek dosyası. Şema uyumsuz.');
       err.statusCode = 400;
       return next(err);
@@ -463,6 +496,13 @@ router.delete('/delete-backup/:filename', async (req, res, next) => {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
       dbManager.addLog({ type: 'backup_delete', details: `Yedek dosyası silindi: ${safeFilename}` });
+      
+      // SSE broadcast for deleted backup
+      sseBroadcast('backup_delete', { 
+        filename: safeFilename,
+        ts: new Date()
+      });
+      
       res.json({ ok: true, message: `Backup file '${safeFilename}' deleted.` });
     } else {
       res.status(404).json({ error: 'Backup file not found.' });
@@ -472,35 +512,66 @@ router.delete('/delete-backup/:filename', async (req, res, next) => {
   }
 });
 
-router.get('/dashboard-stats', (req, res, next) => {
+// Server-Sent Events for real-time updates
+router.get('/events', (req, res, next) => {
+  try {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+
+    // Send initial connection message
+    res.write('data: {"type":"connected","message":"SSE connection established"}\n\n');
+
+    // Keep connection alive with periodic heartbeat
+    const heartbeat = setInterval(() => {
+      res.write('data: {"type":"heartbeat","timestamp":"' + new Date().toISOString() + '"}\n\n');
+    }, 30000);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      clearInterval(heartbeat);
+    });
+
+    req.on('aborted', () => {
+      clearInterval(heartbeat);
+    });
+
+  } catch(err) {
+    next(err);
+  }
+});
+
+router.get('/dashboard-stats', async (req, res, next) => {
   try {
     const filters = {
       treemapFilter: req.query.treemapFilter || 'all',
       yearFilter: req.query.yearFilter || 'last12',
     };
-    const stats = dbManager.getDashboardStats(filters);
+    const stats = await dbManager.getDashboardStats(filters);
     res.json(stats);
   } catch(err) {
     next(err);
   }
 });
 
-router.get('/all-folders-for-analysis', (req, res, next) => {
+router.get('/all-folders-for-analysis', async (req, res, next) => {
   try {
-    const folders = dbManager.getAllFoldersForAnalysis();
+    const folders = await dbManager.getAllFoldersForAnalysis();
     res.json(folders);
   } catch (err) {
     next(err);
   }
 });
 
-router.post('/folders-by-location', (req, res, next) => {
+router.post('/folders-by-location', async (req, res, next) => {
   try {
     const location = req.body;
     if (!location || !location.storageType) {
       return res.status(400).json({ error: 'Location data is required.' });
     }
-    const folders = dbManager.getFoldersByLocation(location);
+    const folders = await dbManager.getFoldersByLocation(location);
     res.json(folders);
   } catch (err) {
     next(err);
@@ -508,13 +579,13 @@ router.post('/folders-by-location', (req, res, next) => {
 });
 
 // GET /all-data (Kept for settings/departments/etc but without folders)
-router.get('/all-data', (req, res) => {
-  const settings = dbManager.getConfig('settings');
-  const departments = dbManager.getConfig('departments');
-  const storageStructure = dbManager.getConfig('storageStructure');
-  const logs = dbManager.getList('logs');
-  const checkouts = dbManager.getList('checkouts');
-  const disposals = dbManager.getList('disposals');
+router.get('/all-data', async (req, res) => {
+  const settings = await dbManager.getConfig('settings');
+  const departments = await dbManager.getConfig('departments');
+  const storageStructure = await dbManager.getConfig('storageStructure');
+  const logs = await dbManager.getList('logs');
+  const checkouts = await dbManager.getList('checkouts');
+  const disposals = await dbManager.getList('disposals');
 
   res.json({
     settings: settings || undefined,

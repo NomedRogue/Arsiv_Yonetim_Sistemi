@@ -111,15 +111,17 @@ describe('dbManager with in-memory DB', () => {
           expect(stats.totalFolders).toBe(4);
           expect(stats.tibbiCount).toBe(1);
           expect(stats.idariCount).toBe(3);
-          expect(stats.cikisBekleyenCount).toBe(2); // Based on folder status (f2, f4)
+          expect(stats.arsivDisindaCount).toBe(2); // Based on folder status (f2, f4)
           expect(stats.iadeGecikenCount).toBe(1); // Based on checkouts table (c1)
           expect(stats.imhaEdilenCount).toBe(1);
-          // fileYear + retentionPeriod <= currentYear
-          // f1: 2022+5=2027 (no)
-          // f2: 2023+10=2033 (no)
-          // f3: 2023+5=2028 (no)
-          // f4: 2023+5=2028 (no)
-          expect(stats.imhaBekleyenCount).toBe(0);
+          // fileYear + retentionPeriod + 1 = currentYear
+          // f1: 2022+5+1=2028 (no)
+          // f2: 2023+10+1=2034 (no)
+          // f3: 2023+5+1=2029 (no)
+          // f4: 2023+5+1=2029 (no)
+          expect(stats.buYilImhaEdilenecekCount).toBe(0);
+          expect(stats.gelecekYilImhaEdilenecekCount).toBe(0); // currentYear + 1
+          expect(stats.imhaSuresiGecenCount).toBe(0); // < currentYear
       });
   });
 });

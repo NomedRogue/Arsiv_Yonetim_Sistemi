@@ -2,14 +2,19 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { StorageType, DetailedOccupancyItem, Folder, Settings, StorageStructure, Location, FolderType, FolderStatus, OccupancyInfo, Category } from '@/types';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { FolderDetailModal } from './FolderDetailModal';
+import { useTheme } from '@/hooks/useTheme';
 import * as api from '@/api';
 import { toast } from '@/lib/toast';
 import { useArchive } from '@/context/ArchiveContext';
 
-const getOccupancyColor = (percentage: number) => {
-  if (percentage > 80) return 'bg-status-red';
-  if (percentage > 50) return 'bg-status-yellow';
-  return 'bg-status-green';
+const getOccupancyColor = (percentage: number, isDark: boolean = false) => {
+  if (percentage > 80) {
+    return isDark ? 'bg-red-500' : 'bg-red-600';
+  }
+  if (percentage > 50) {
+    return isDark ? 'bg-yellow-400' : 'bg-yellow-500';
+  }
+  return isDark ? 'bg-green-400' : 'bg-green-500';
 };
 
 interface ViewState {
@@ -84,7 +89,7 @@ const ExpandedShelfView: React.FC<{
                                 return (
                                     <div
                                         key={folder.id}
-                                        className={`group relative h-full rounded-sm cursor-pointer flex items-center justify-center text-white text-xs font-bold transition-all duration-200 hover:scale-105 hover:-translate-y-1 hover:z-10 ${colorClasses}`}
+                                        className={`group relative h-full rounded-sm cursor-pointer flex items-center justify-center text-white text-xs font-bold transition-colors duration-200 ${colorClasses}`}
                                         style={{ flexBasis: `${widthPercent}%` }}
                                         onClick={() => handleFolderClick(folder)}
                                     >
@@ -113,7 +118,7 @@ const ExpandedShelfView: React.FC<{
                             )}
                         </div>
                         <div className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">
-                            Dolu: {usedSpace.toFixed(1)}cm / {shelfWidth}cm ({((usedSpace/shelfWidth)*100).toFixed(0)}%)
+                            Dolu: {(usedSpace || 0).toFixed(1)}cm / {shelfWidth}cm ({(((usedSpace || 0)/(shelfWidth || 1))*100).toFixed(0)}%)
                         </div>
                     </>
                 )}
@@ -132,6 +137,7 @@ interface LocationAnalysisProps {
 
 const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, settings, storageStructure, isLoading }) => {
   const { getDepartmentName } = useArchive();
+  const [theme] = useTheme();
   const [view, setView] = useState<ViewState>({ level: 'summary' });
   const [expandedShelfKey, setExpandedShelfKey] = useState<string | null>(null);
 
@@ -250,7 +256,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
   
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg flex justify-center items-center min-h-[400px]">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg flex justify-center items-center min-h-[400px] border border-gray-200 dark:border-slate-700">
         <div className="text-center">
           <Loader2 className="animate-spin h-8 w-8 text-blue-500 mx-auto" />
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Lokasyon analizi yükleniyor...</p>
@@ -261,7 +267,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
 
   if (view.level !== 'summary') {
     return (
-      <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px]">
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px] border border-gray-200 dark:border-slate-700">
         <div className="flex items-center mb-4">
           <button
             onClick={handleBack}
@@ -303,11 +309,11 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                         {item.name}
                       </span>
                       <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                        {(item.occupancy as number).toFixed(0)}%
+                        {((item.occupancy as number) || 0).toFixed(0)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2.5 transition-colors duration-300">
-                      <div className={`${getOccupancyColor(item.occupancy as number)} h-2.5 rounded-full`} style={{ width: `${item.occupancy}%` }} />
+                    <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
+                      <div className={`${getOccupancyColor(item.occupancy as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${item.occupancy}%` }} />
                     </div>
                   </button>
                   {isExpanded && location && (
@@ -325,7 +331,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
   }
 
   return (
-    <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px]">
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px] border border-gray-200 dark:border-slate-700">
       <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 transition-colors duration-300">
         {renderTitle()}
       </h3>
@@ -342,11 +348,11 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {(percentage as number).toFixed(0)}%
+                    {((percentage as number) || 0).toFixed(0)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2.5 transition-colors duration-300">
-                  <div className={`${getOccupancyColor(percentage as number)} h-2.5 rounded-full`} style={{ width: `${percentage}%` }} />
+                <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
+                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${percentage}%` }} />
                 </div>
               </button>
             ))}
@@ -364,11 +370,11 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {(percentage as number).toFixed(0)}%
+                    {((percentage as number) || 0).toFixed(0)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2.5 transition-colors duration-300">
-                  <div className={`${getOccupancyColor(percentage as number)} h-2.5 rounded-full`} style={{ width: `${percentage}%` }} />
+                <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
+                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${percentage}%` }} />
                 </div>
               </button>
             ))}

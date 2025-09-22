@@ -10,9 +10,9 @@ import {
   KompaktUnitConfig,
 } from '@/types';
 import { Modal } from '@/components/Modal';
-import { Edit, Trash2, HardDrive } from 'lucide-react';
+import { Edit, Trash2, HardDrive, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { deleteBackup } from '@/api';
+import { deleteBackup, getBackups, backupDbToFolder } from '@/api';
 
 declare global {
   interface Window {
@@ -54,20 +54,20 @@ const SettingInput: React.FC<{
 
 const FilePathInput: React.FC<{
   label: string;
-  id: keyof SettingsType;
+  id: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBrowseClick: () => void;
 }> = ({ label, id, value, onChange, onBrowseClick }) => (
   <div>
-    <label htmlFor={String(id)} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <div className="mt-1 flex rounded-md shadow-sm">
       <input
         type="text"
-        name={String(id)}
-        id={String(id)}
+        name={id}
+        id={id}
         value={value}
         onChange={onChange}
         className="block w-full p-2 sm:text-sm border-gray-300 rounded-l-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200"
@@ -75,10 +75,37 @@ const FilePathInput: React.FC<{
       <button
         type="button"
         onClick={onBrowseClick}
-        className="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-500 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
+        className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-gray-300 text-sm hover:bg-gray-100 dark:hover:bg-slate-600"
       >
         <span>Gözat...</span>
       </button>
+    </div>
+  </div>
+);
+
+// Accordion Section Component
+const AccordionSection: React.FC<{
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ title, isOpen, onToggle, children }) => (
+  <div className="bg-white dark:bg-archive-dark-panel rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <button
+      onClick={onToggle}
+      className="w-full px-6 py-4 text-left flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+    >
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
+      {isOpen ? (
+        <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200" />
+      ) : (
+        <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200" />
+      )}
+    </button>
+    <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+      <div className="p-6">
+        {children}
+      </div>
     </div>
   </div>
 );
@@ -98,10 +125,6 @@ export const Settings: React.FC = () => {
     deleteStorageUnit,
     updateStorageUnitShelves,
     isUnitDeletable,
-    refresh,
-    lastBackupEvent,
-    lastRestoreEvent,
-    lastBackupCleanupEvent,
   } = useArchive();
 
   const [currentSettings, setCurrentSettings] = useState<SettingsType>(settings);
@@ -109,6 +132,36 @@ export const Settings: React.FC = () => {
   useEffect(() => {
     setCurrentSettings(settings);
   }, [settings]);
+
+  // Load backup history on component mount
+  useEffect(() => {
+    const loadBackups = async () => {
+      try {
+        const response = await getBackups();
+        setBackups(response.backups || []);
+        setBackupFolder(response.folder || '');
+      } catch (error) {
+        console.error('Failed to load backups:', error);
+      }
+    };
+    loadBackups();
+  }, []);
+
+  // Accordion states
+  const [openSections, setOpenSections] = useState({
+    measurements: true,  // Ölçü Tanımları - default açık
+    system: false,       // Sistem Ayarları
+    departments: false,  // Birim Yönetimi
+    storage: false,      // Lokasyon Yönetimi
+    backup: false        // Yedekleme Ayarları
+  });
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   const [isDepartmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [departmentModalMode, setDepartmentModalMode] = useState<'add' | 'edit'>('add');
@@ -130,43 +183,22 @@ export const Settings: React.FC = () => {
     hasFaceA: true,
     hasFaceB: true,
     hasFaceGizli: false,
-    sectionsPerFace: 3,
+    sectionsPerFace: 2,
     shelvesPerSection: 5,
   };
   const [kompaktConfig, setKompaktConfig] = useState<KompaktUnitConfig>(initialKompaktConfig);
 
+  const [isStandAddModalOpen, setStandAddModalOpen] = useState(false);
+  const [standShelfCount, setStandShelfCount] = useState(5);
+
   const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);
-  const [pendingRestoreFilename, setPendingRestoreFilename] = useState<string>('');
-  
-  const [isBackupDeleteModalOpen, setBackupDeleteModalOpen] = useState(false);
-  const [pendingDeleteFilename, setPendingDeleteFilename] = useState<string>('');
+  const [restoreFilename, setRestoreFilename] = useState('');
+
+  const [isBackupDeleteModalOpen, setIsBackupDeleteModalOpen] = useState(false);
+  const [pendingDeleteFilename, setPendingDeleteFilename] = useState('');
 
   const [backups, setBackups] = useState<BackupRow[]>([]);
   const [backupFolder, setBackupFolder] = useState<string>('');
-  
-  const loadBackups = async () => {
-    try {
-      const res = await fetch('/api/list-backups');
-      if (!res.ok) throw new Error();
-      const { files, folder } = await res.json();
-      setBackups(files || []);
-      setBackupFolder(folder || '');
-    } catch (e) {
-      console.error('[Settings] Load backups error:', e);
-      setBackups([]);
-      setBackupFolder('');
-    }
-  };
-
-  useEffect(() => {
-    loadBackups();
-  }, [currentSettings.yedeklemeKlasoru]);
-
-  useEffect(() => {
-    if (lastBackupEvent || lastRestoreEvent || lastBackupCleanupEvent) {
-      setTimeout(() => loadBackups(), 500);
-    }
-  }, [lastBackupEvent, lastRestoreEvent, lastBackupCleanupEvent]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -176,182 +208,187 @@ export const Settings: React.FC = () => {
     }));
   };
 
-  const handleBrowseClick = async (id: keyof SettingsType) => {
-    if (window.electronAPI) {
-      const path = await window.electronAPI.openFolderDialog();
-      if (path) setCurrentSettings((prev) => ({ ...prev, [id]: path }));
+  const handleSave = async () => {
+    await updateSettings(currentSettings);
+  };
+
+  const handleBrowseClick = async (fieldName: string) => {
+    if (window.electronAPI?.openFolderDialog) {
+      try {
+        const selectedPath = await window.electronAPI.openFolderDialog();
+        if (selectedPath) {
+          setCurrentSettings((prev) => ({ ...prev, [fieldName]: selectedPath }));
+        }
+      } catch (error) {
+        console.error('Folder selection failed:', error);
+        toast.error('Klasör seçimi başarısız oldu.');
+      }
     } else {
-      toast.info('Bu özellik sadece masaüstü uygulamasında mevcuttur.');
+      toast.error('Klasör seçimi bu platformda desteklenmiyor.');
     }
   };
-
-  const handleSave = async () => {
-    const normalized: SettingsType = {
-      ...DEFAULT_SETTINGS,
-      ...currentSettings,
-      backupFrequency: (currentSettings.backupFrequency || DEFAULT_SETTINGS.backupFrequency) as SettingsType['backupFrequency'],
-      backupTime: currentSettings.backupTime || DEFAULT_SETTINGS.backupTime,
-      backupRetention: Math.max(1, Number(currentSettings.backupRetention ?? DEFAULT_SETTINGS.backupRetention)),
-    };
-    updateSettings(normalized);
-    setTimeout(() => loadBackups(), 1000);
-  };
-
-  const handleOpenAddModal = () => {
-    setDepartmentModalMode('add');
-    setCurrentDepartment({ name: '', category: Category.Idari });
-    setEditingDepartmentId(null);
-    setDepartmentModalOpen(true);
-  };
-
-  const handleOpenEditModal = (department: Department) => {
-    setDepartmentModalMode('edit');
-    setCurrentDepartment({ name: department.name, category: department.category });
-    setEditingDepartmentId(department.id);
-    setDepartmentModalOpen(true);
-  };
-
-  const handleCloseDepartmentModal = () => setDepartmentModalOpen(false);
 
   const handleDepartmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCurrentDepartment((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDepartmentSubmit = () => {
+  const handleOpenDepartmentModal = () => {
+    setDepartmentModalMode('add');
+    setCurrentDepartment({ name: '', category: Category.Idari });
+    setEditingDepartmentId(null);
+    setDepartmentModalOpen(true);
+  };
+
+  const handleEditDepartment = (dept: Department) => {
+    setDepartmentModalMode('edit');
+    setCurrentDepartment({ name: dept.name, category: dept.category });
+    setEditingDepartmentId(dept.id);
+    setDepartmentModalOpen(true);
+  };
+
+  const handleCloseDepartmentModal = () => {
+    setDepartmentModalOpen(false);
+    setCurrentDepartment({ name: '', category: Category.Idari });
+    setEditingDepartmentId(null);
+  };
+
+  const handleDepartmentSubmit = async () => {
     if (!currentDepartment.name.trim()) {
       toast.error('Birim adı boş olamaz.');
       return;
     }
-    if (departmentModalMode === 'add') addDepartment(currentDepartment);
-    else if (editingDepartmentId) updateDepartment({ id: editingDepartmentId, ...currentDepartment });
+
+    if (departmentModalMode === 'add') {
+      await addDepartment(currentDepartment);
+    } else if (editingDepartmentId !== null) {
+      const updatedDept: Department = { id: editingDepartmentId, ...currentDepartment };
+      await updateDepartment(updatedDept);
+    }
     handleCloseDepartmentModal();
   };
 
-  const handleOpenLocationEditModal = (type: StorageType, id: number, currentShelves: number) => {
-    setEditingLocation({ type, id, shelfCount: currentShelves });
-    setNewShelfCount(currentShelves);
-    setLocationModalOpen(true);
-  };
-  const handleCloseLocationModal = () => setLocationModalOpen(false);
-
-  const handleLocationSubmit = async () => {
-    if (editingLocation) {
-      const ok = await updateStorageUnitShelves(editingLocation.type, editingLocation.id, newShelfCount);
-      if (ok) handleCloseLocationModal();
-    }
-  };
-
-  const handleOpenKompaktAddModal = () => {
-    setKompaktConfig(initialKompaktConfig);
-    setKompaktAddModalOpen(true);
-  };
-  
-  function kompaktConfigChangeHandler(e: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value, type, checked } = e.target;
-    setKompaktConfig((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : Number(value) }));
-  }
-  
-  const handleAddKompaktUnit = () => {
-    if (!kompaktConfig.hasFaceA && !kompaktConfig.hasFaceB && !kompaktConfig.hasFaceGizli) {
-      toast.error('En az bir yüz seçmelisiniz.');
-      return;
-    }
-    if (kompaktConfig.sectionsPerFace < 1 || kompaktConfig.shelvesPerSection < 1) {
-      toast.error('Bölüm ve raf sayısı en az 1 olmalıdır.');
-      return;
-    }
-    addStorageUnit(StorageType.Kompakt, kompaktConfig);
-    setKompaktAddModalOpen(false);
-  };
-
-  const handleOpenDeleteModal = (type: 'department' | 'location', data: any) => {
+  const openDeleteModal = (type: 'department' | 'location', data: any) => {
     setItemToDelete({ type, data });
     setDeleteModalOpen(true);
   };
-  const handleCloseDeleteModal = () => {
-    setDeleteModalOpen(false);
-    setItemToDelete(null);
-  };
-  const handleConfirmDelete = () => {
+
+  const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    if (itemToDelete.type === 'department') deleteDepartment(itemToDelete.data.id);
-    else if (itemToDelete.type === 'location') deleteStorageUnit(itemToDelete.data.type, itemToDelete.data.id);
-    handleCloseDeleteModal();
+
+    try {
+      if (itemToDelete.type === 'department') {
+        await deleteDepartment(itemToDelete.data.id);
+      } else if (itemToDelete.type === 'location') {
+        await deleteStorageUnit(itemToDelete.data.type, itemToDelete.data.id);
+      }
+    } catch (error: any) {
+      toast.error(`Silme işlemi başarısız: ${error.message}`);
+    } finally {
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+    }
   };
 
-  const handleServerSideBackup = async () => {
-    try {
-      const res = await fetch('/api/backup-db-to-folder', { method: 'POST' });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || 'Bilinmeyen bir yedekleme hatası.');
-      }
-      // SSE event'i toast gösterecek
-    } catch (e: any) {
-      toast.error(`Yedek oluşturulamadı: ${e.message}`);
-    }
+  const openLocationModal = (type: StorageType, id: number, currentShelfCount: number) => {
+    setEditingLocation({ type, id, shelfCount: currentShelfCount });
+    setNewShelfCount(currentShelfCount);
+    setLocationModalOpen(true);
+  };
+
+  const handleLocationSubmit = async () => {
+    if (!editingLocation) return;
+    await updateStorageUnitShelves(editingLocation.type, editingLocation.id, newShelfCount);
+    setLocationModalOpen(false);
+    setEditingLocation(null);
   };
 
   const handleOpenRestoreModal = (filename: string) => {
-    setPendingRestoreFilename(filename);
+    setRestoreFilename(filename);
     setRestoreModalOpen(true);
-  };
-
-  const handleCloseRestoreModal = () => {
-    setRestoreModalOpen(false);
-    setPendingRestoreFilename('');
-  };
-
-  const handleConfirmRestore = async () => {
-    if (!pendingRestoreFilename) return;
-    try {
-      await fetch('/api/restore-db-from-backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: pendingRestoreFilename }),
-      });
-      handleCloseRestoreModal();
-      // SSE event'i sayfayı yenileyecek
-    } catch (e: any) {
-      console.error('[Settings] Restore error:', e);
-      toast.error(`Geri yükleme başarısız: ${e.message}`);
-    }
   };
 
   const openBackupDeleteModal = (filename: string) => {
     setPendingDeleteFilename(filename);
-    setBackupDeleteModalOpen(true);
+    setIsBackupDeleteModalOpen(true);
   };
 
   const closeBackupDeleteModal = () => {
+    setIsBackupDeleteModalOpen(false);
     setPendingDeleteFilename('');
-    setBackupDeleteModalOpen(false);
   };
 
   const handleConfirmBackupDelete = async () => {
     if (!pendingDeleteFilename) return;
     try {
       await deleteBackup(pendingDeleteFilename);
-      toast.success(`'${pendingDeleteFilename}' silindi.`);
-      await loadBackups();
+      setBackups((prev) => prev.filter((b) => b.filename !== pendingDeleteFilename));
+      toast.success('Yedek dosyası silindi.');
     } catch (error: any) {
-      toast.error(`Yedek silinemedi: ${error.message}`);
+      toast.error(`Yedek silme başarısız: ${error.message}`);
+    } finally {
+      closeBackupDeleteModal();
     }
-    closeBackupDeleteModal();
   };
 
+  const handleServerSideBackup = async () => {
+    try {
+      await backupDbToFolder();
+      toast.success('Sunucu tarafında yedekleme başarıyla tamamlandı.');
+      // Yedek listesini yeniden yükle
+      const response = await getBackups();
+      setBackups(response.backups || []);
+    } catch (error: any) {
+      toast.error(`Yedekleme başarısız: ${error.message}`);
+    }
+  };
+
+  // Kompakt ünite modal handlers
+  const handleOpenKompaktModal = () => {
+    setKompaktConfig(initialKompaktConfig);
+    setKompaktAddModalOpen(true);
+  };
+
+  const handleCloseKompaktModal = () => {
+    setKompaktAddModalOpen(false);
+    setKompaktConfig(initialKompaktConfig);
+  };
+
+  const handleKompaktSubmit = async () => {
+    await addStorageUnit(StorageType.Kompakt, kompaktConfig);
+    handleCloseKompaktModal();
+  };
+
+  // Stand modal handlers
+  const handleOpenStandModal = () => {
+    setStandShelfCount(5);
+    setStandAddModalOpen(true);
+  };
+
+  const handleCloseStandModal = () => {
+    setStandAddModalOpen(false);
+    setStandShelfCount(5);
+  };
+
+  const handleStandSubmit = async () => {
+    // Stand için raf sayısı ile birlikte ekleme
+    // Şimdilik basit stand ekleme, sonra useArchiveActions'ı güncelleyeceğiz
+    await addStorageUnit(StorageType.Stand);
+    handleCloseStandModal();
+  };
+
+  // Calculate derived values
   const backupFrequency = (currentSettings.backupFrequency ?? DEFAULT_SETTINGS.backupFrequency) as SettingsType['backupFrequency'];
   const backupTime = currentSettings.backupTime ?? DEFAULT_SETTINGS.backupTime;
   const backupRetention = Number(currentSettings.backupRetention ?? DEFAULT_SETTINGS.backupRetention);
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <Modal isOpen={isDepartmentModalOpen} onClose={handleCloseDepartmentModal} title={departmentModalMode === 'add' ? 'Yeni Birim Ekle' : 'Birimi Düzenle'} onConfirm={handleDepartmentSubmit} confirmText="Kaydet" confirmColor="bg-status-blue">
         <div className="space-y-4">
           <div>
             <label htmlFor="department-name-input" className="block text-sm font-medium text-gray-800 dark:text-gray-200">Birim Adı</label>
-            <input id="department-name-input" type="text" name="name" value={currentDepartment.name} onChange={handleDepartmentChange} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500"/>
+            <input id="department-name-input" type="text" name="name" value={currentDepartment.name} onChange={handleDepartmentChange} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"/>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Kategori</label>
@@ -369,43 +406,14 @@ export const Settings: React.FC = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isLocationModalOpen} onClose={handleCloseLocationModal} title="Raf Sayısını Düzenle" onConfirm={handleLocationSubmit} confirmText="Güncelle" confirmColor="bg-status-blue">
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Silme Onayı" onConfirm={handleConfirmDelete} confirmText="Evet, Sil" type="danger" showIcon>
+        <p>Bu işlem geri alınamaz. Silmek istediğinizden emin misiniz?</p>
+      </Modal>
+
+      <Modal isOpen={isLocationModalOpen} onClose={() => setLocationModalOpen(false)} title="Raf Sayısını Düzenle" onConfirm={handleLocationSubmit} confirmText="Kaydet" confirmColor="bg-status-blue">
         <div>
-          <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Yeni Raf Sayısı</label>
-          <input type="number" min={1} max={10} value={newShelfCount} onChange={(e) => setNewShelfCount(Number(e.target.value))} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500"/>
-        </div>
-      </Modal>
-
-      <Modal isOpen={isKompaktAddModalOpen} onClose={() => setKompaktAddModalOpen(false)} title="Yeni Kompakt Dolap Ekle" onConfirm={handleAddKompaktUnit} confirmText="Ekle" confirmColor="bg-status-blue">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Dolap Yüzleri</label>
-            <div className="mt-2 space-y-2 p-3 bg-gray-50 dark:bg-slate-700 rounded-md">
-              <label className="flex items-center"><input type="checkbox" name="hasFaceA" checked={kompaktConfig.hasFaceA} onChange={kompaktConfigChangeHandler} className="w-4 h-4" /><span className="ml-2">A Yüzü</span></label>
-              <label className="flex items-center"><input type="checkbox" name="hasFaceB" checked={kompaktConfig.hasFaceB} onChange={kompaktConfigChangeHandler} className="w-4 h-4" /><span className="ml-2">B Yüzü</span></label>
-              <label className="flex items-center"><input type="checkbox" name="hasFaceGizli" checked={kompaktConfig.hasFaceGizli} onChange={kompaktConfigChangeHandler} className="w-4 h-4" /><span className="ml-2">Gizli Yüzü</span></label>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Yüz Başına Bölüm Sayısı</label>
-            <input type="number" name="sectionsPerFace" min={1} max={10} value={kompaktConfig.sectionsPerFace} onChange={kompaktConfigChangeHandler} className="mt-1 block w-full p-2 border rounded-md bg-white dark:bg-slate-600 dark:border-gray-500"/>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Bölüm Başına Raf Sayısı</label>
-            <input type="number" name="shelvesPerSection" min={1} max={10} value={kompaktConfig.shelvesPerSection} onChange={kompaktConfigChangeHandler} className="mt-1 block w-full p-2 border rounded-md bg-white dark:bg-slate-600 dark:border-gray-500"/>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal isOpen={isDeleteModalOpen} onClose={handleCloseDeleteModal} title={`${itemToDelete?.type === 'department' ? 'Birimi' : 'Lokasyonu'} Sil`} onConfirm={handleConfirmDelete} confirmText="Sil" type="danger" showIcon>
-        <p><span className="font-bold">{itemToDelete?.data?.name || `${itemToDelete?.data?.type === StorageType.Kompakt ? 'Ünite' : 'Stand'} ${itemToDelete?.data?.id}`}</span>{' '}isimli öğeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
-      </Modal>
-
-      <Modal isOpen={isRestoreModalOpen} onClose={handleCloseRestoreModal} title="Geri Yükleme Onayı" onConfirm={handleConfirmRestore} confirmText="Geri Yükle" type="warning" showIcon>
-        <div className="space-y-3">
-          <p><span className="font-bold text-amber-600 dark:text-amber-400">"{pendingRestoreFilename}"</span> dosyasından geri yükleme yapılacak.</p>
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md"><p className="text-sm text-amber-800 dark:text-amber-200"><strong>Uyarı:</strong> Mevcut tüm veriler kaybolacak ve yedeğin durumuna geri dönülecek. Bu işlem geri alınamaz.</p></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Devam etmek istediğinizden emin misiniz?</p>
+          <label htmlFor="shelf-count-input" className="block text-sm font-medium text-gray-800 dark:text-gray-200">Raf Sayısı</label>
+          <input id="shelf-count-input" type="number" min="1" value={newShelfCount} onChange={(e) => setNewShelfCount(Number(e.target.value))} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"/>
         </div>
       </Modal>
 
@@ -415,33 +423,146 @@ export const Settings: React.FC = () => {
         </p>
       </Modal>
 
-      <div className="max-w-5xl mx-auto space-y-8">
-        <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Ölçü Tanımları</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SettingInput label="Kompakt Dolap Raf Genişliği" id="kompaktRafGenisligi" value={currentSettings.kompaktRafGenisligi} unit="cm" onChange={handleChange} />
-            <SettingInput label="Stand Raf Genişliği" id="standRafGenisligi" value={currentSettings.standRafGenisligi} unit="cm" onChange={handleChange} />
-            <SettingInput label="Dar Klasör Genişliği" id="darKlasorGenisligi" value={currentSettings.darKlasorGenisligi} unit="cm" onChange={handleChange} />
-            <SettingInput label="Geniş Klasör Genişliği" id="genisKlasorGenisligi" value={currentSettings.genisKlasorGenisligi} unit="cm" onChange={handleChange} />
+      <Modal isOpen={isRestoreModalOpen} onClose={() => setRestoreModalOpen(false)} title="Veritabanı Geri Yükleme" onConfirm={() => { setRestoreModalOpen(false); toast.info('Geri yükleme özelliği henüz uygulanmamıştır.'); }} confirmText="Geri Yükle" type="danger" showIcon>
+        <p>
+          <span className="font-bold text-blue-600 dark:text-blue-400">"{restoreFilename}"</span> dosyasından veritabanını geri yüklemek istediğinizden emin misiniz? 
+          <br /><br />
+          <strong className="text-red-600 dark:text-red-400">Uyarı:</strong> Bu işlem mevcut tüm verileri silecek ve yedekteki verilerle değiştirecektir. Bu işlem geri alınamaz.
+        </p>
+      </Modal>
+
+      {/* Kompakt Ünite Ekleme Modal */}
+      <Modal isOpen={isKompaktAddModalOpen} onClose={handleCloseKompaktModal} title="Yeni Kompakt Ünite Ekle" onConfirm={handleKompaktSubmit} confirmText="Ünite Ekle" confirmColor="bg-blue-600">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Yüz Seçimi</label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  checked={kompaktConfig.hasFaceA} 
+                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceA: e.target.checked}))}
+                  className="w-4 h-4 mr-2"
+                />
+                <span>A Yüzü</span>
+              </label>
+              <label className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  checked={kompaktConfig.hasFaceB} 
+                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceB: e.target.checked}))}
+                  className="w-4 h-4 mr-2"
+                />
+                <span>B Yüzü</span>
+              </label>
+              <label className="flex items-center">
+                <input 
+                  type="checkbox" 
+                  checked={kompaktConfig.hasFaceGizli} 
+                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceGizli: e.target.checked}))}
+                  className="w-4 h-4 mr-2"
+                />
+                <span>Gizli Yüzü</span>
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Yüz Başına Bölüm Sayısı</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="10" 
+                value={kompaktConfig.sectionsPerFace} 
+                onChange={(e) => setKompaktConfig(prev => ({...prev, sectionsPerFace: Number(e.target.value)}))}
+                className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Bölüm Başına Raf Sayısı</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="10" 
+                value={kompaktConfig.shelvesPerSection} 
+                onChange={(e) => setKompaktConfig(prev => ({...prev, shelvesPerSection: Number(e.target.value)}))}
+                className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
+              />
+            </div>
           </div>
         </div>
+      </Modal>
 
-        <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Sistem Ayarları</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SettingInput label="PDF Boyut Limiti" id="pdfBoyutLimiti" value={currentSettings.pdfBoyutLimiti} unit="MB" onChange={handleChange} />
-            <SettingInput label="Log Saklama Süresi" id="logSaklamaSuresi" value={currentSettings.logSaklamaSuresi} unit="Yıl" onChange={handleChange} />
-            <FilePathInput label="PDF Kayıt Klasörü" id="pdfKayitKlasoru" value={currentSettings.pdfKayitKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('pdfKayitKlasoru')} />
-            <FilePathInput label="Yedekleme Klasörü" id="yedeklemeKlasoru" value={currentSettings.yedeklemeKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('yedeklemeKlasoru')} />
-            <SettingInput label="İade Uyarısı" id="iadeUyarisiGun" value={currentSettings.iadeUyarisiGun} unit="Gün Önce" onChange={handleChange} />
-          </div>
+      {/* Stand Ekleme Modal */}
+      <Modal isOpen={isStandAddModalOpen} onClose={handleCloseStandModal} title="Yeni Stand Ekle" onConfirm={handleStandSubmit} confirmText="Stand Ekle" confirmColor="bg-blue-600">
+        <div>
+          <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Raf Sayısı</label>
+          <input 
+            type="number" 
+            min="1" 
+            max="20" 
+            value={standShelfCount} 
+            onChange={(e) => setStandShelfCount(Number(e.target.value))}
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white"
+          />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Standın kaç rafa sahip olacağını belirleyin (1-20 arası)</p>
+        </div>
+      </Modal>
 
-          <div className="mt-6 border-t pt-4 dark:border-gray-700">
-            <h3 className="font-semibold mb-3">Otomatik Yedekleme</h3>
+      {/* Ölçü Tanımları */}
+      <AccordionSection
+        title="Ölçü Tanımları"
+        isOpen={openSections.measurements}
+        onToggle={() => toggleSection('measurements')}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SettingInput label="Kompakt Dolap Raf Genişliği" id="kompaktRafGenisligi" value={currentSettings.kompaktRafGenisligi} unit="cm" onChange={handleChange} />
+          <SettingInput label="Stand Raf Genişliği" id="standRafGenisligi" value={currentSettings.standRafGenisligi} unit="cm" onChange={handleChange} />
+          <SettingInput label="Dar Klasör Genişliği" id="darKlasorGenisligi" value={currentSettings.darKlasorGenisligi} unit="cm" onChange={handleChange} />
+          <SettingInput label="Geniş Klasör Genişliği" id="genisKlasorGenisligi" value={currentSettings.genisKlasorGenisligi} unit="cm" onChange={handleChange} />
+        </div>
+      </AccordionSection>
+
+      {/* Sistem Ayarları */}
+      <AccordionSection
+        title="Sistem Ayarları"
+        isOpen={openSections.system}
+        onToggle={() => toggleSection('system')}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SettingInput label="PDF Boyut Limiti" id="pdfBoyutLimiti" value={currentSettings.pdfBoyutLimiti} unit="MB" onChange={handleChange} />
+          <SettingInput label="Log Saklama Süresi" id="logSaklamaSuresi" value={currentSettings.logSaklamaSuresi} unit="Yıl" onChange={handleChange} />
+          <FilePathInput label="PDF Kayıt Klasörü" id="pdfKayitKlasoru" value={currentSettings.pdfKayitKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('pdfKayitKlasoru')} />
+          <FilePathInput label="Yedekleme Klasörü" id="yedeklemeKlasoru" value={currentSettings.yedeklemeKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('yedeklemeKlasoru')} />
+          <SettingInput label="İade Uyarısı" id="iadeUyarisiGun" value={currentSettings.iadeUyarisiGun} unit="Gün Önce" onChange={handleChange} />
+        </div>
+      </AccordionSection>
+
+      {/* Yedekleme Ayarları */}
+      <AccordionSection
+        title="Yedekleme Ayarları"
+        isOpen={openSections.backup}
+        onToggle={() => toggleSection('backup')}
+      >
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Otomatik Yedekleme</h3>
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                backupFrequency === 'Kapalı' 
+                  ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' 
+                  : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  backupFrequency === 'Kapalı' ? 'bg-gray-400' : 'bg-green-500 animate-pulse'
+                }`}></div>
+                {backupFrequency === 'Kapalı' ? 'Devre Dışı' : 'Aktif'}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="backupFrequency" className="block text-sm font-medium mb-1">Sıklık</label>
-                <select id="backupFrequency" name="backupFrequency" value={backupFrequency} onChange={handleChange} className="w-full p-2 border rounded-md bg-white dark:bg-slate-600 dark:border-gray-500">
+                <select id="backupFrequency" name="backupFrequency" value={backupFrequency} onChange={handleChange} className="w-full p-2 border rounded-md bg-white dark:bg-slate-600 dark:border-gray-500 dark:text-white">
                   <option value="Kapalı">Kapalı</option>
                   <option value="Günlük">Günlük</option>
                   <option value="Haftalık">Haftalık</option>
@@ -456,130 +577,169 @@ export const Settings: React.FC = () => {
                 <HardDrive size={16} /> Sunucuda Yedekle
               </button>
             </div>
+          </div>
 
-            <div className="mt-6">
-              <h4 className="font-semibold mb-2">Yedek Geçmişi</h4>
-              {backupFolder && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Yedekleme Konumu: <code className="bg-gray-100 dark:bg-slate-700 p-1 rounded">{backupFolder}</code></p>}
-              {backups.length === 0 ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">Kayıtlı yedek bulunamadı.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="text-left border-b dark:border-slate-700">
-                      <tr>
-                        <th className="py-2 pr-4">Dosya</th>
-                        <th className="py-2 pr-4">Tarih</th>
-                        <th className="py-2 pr-4">Boyut</th>
-                        <th className="py-2">İşlemler</th>
+          <div>
+            <h4 className="font-semibold mb-2">Yedek Geçmişi</h4>
+            {backupFolder && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Yedekleme Konumu: <code className="bg-gray-100 dark:bg-slate-700 p-1 rounded">{backupFolder}</code></p>}
+            {backups.length === 0 ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400 p-4 border rounded-md">Kayıtlı yedek bulunamadı.</div>
+            ) : (
+              <div className="overflow-x-auto border rounded-md">
+                <table className="min-w-full text-sm">
+                  <thead className="text-left border-b dark:border-slate-700 bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="py-3 px-4 font-medium">Dosya</th>
+                      <th className="py-3 px-4 font-medium">Tarih</th>
+                      <th className="py-3 px-4 font-medium">Boyut</th>
+                      <th className="py-3 px-4 font-medium">İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {backups.map((b) => (
+                      <tr key={b.filename} className="border-b last:border-0 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-3 px-4 font-medium">{b.filename}</td>
+                        <td className="py-3 px-4">{new Date(b.iso).toLocaleString()}</td>
+                        <td className="py-3 px-4">{(b.size / (1024 * 1024)).toFixed(2)} MB</td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleOpenRestoreModal(b.filename)} 
+                              className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm"
+                            >
+                              Geri Yükle
+                            </button>
+                            <button 
+                              onClick={() => openBackupDeleteModal(b.filename)} 
+                              className="px-3 py-1 rounded-md bg-rose-600 text-white hover:bg-rose-700 text-sm"
+                            >
+                              Sil
+                            </button>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {backups.map((b) => (
-                        <tr key={b.filename} className="border-b last:border-0 dark:border-slate-700">
-                          <td className="py-2 pr-4">{b.filename}</td>
-                          <td className="py-2 pr-4">{new Date(b.iso).toLocaleString()}</td>
-                          <td className="py-2 pr-4">{(b.size / (1024 * 1024)).toFixed(2)} MB</td>
-                          <td className="py-2 flex gap-2">
-                            <button onClick={() => handleOpenRestoreModal(b.filename)} className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Geri Yükle</button>
-                            <button onClick={() => openBackupDeleteModal(b.filename)} className="px-3 py-1 rounded-md bg-rose-600 text-white hover:bg-rose-700">Sil</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </AccordionSection>
+
+      {/* Birim Yönetimi */}
+      <AccordionSection
+        title="Birim Yönetimi"
+        isOpen={openSections.departments}
+        onToggle={() => toggleSection('departments')}
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold">Birimler</h3>
+            <button onClick={handleOpenDepartmentModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+              Yeni Birim Ekle
+            </button>
+          </div>
+          <div className="max-h-48 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
+            {departments.map((dept) => (
+              <div key={dept.id} className="flex justify-between items-center p-3 border-b last:border-0 dark:border-gray-700">
+                <div>
+                  <span className="font-medium">{dept.name}</span>
+                  <span className={`ml-2 text-sm px-2 py-0.5 rounded-full ${dept.category === Category.Tibbi ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                    {dept.category === Category.Tibbi ? 'Tıbbi' : 'İdari'}
+                  </span>
                 </div>
-              )}
-              <p className="text-xs text-gray-500 mt-2">
-                "Sunucuda Yedekle" ayarlarda seçili <b>Yedekleme Klasörü</b> içine <code>arsiv_YYYYMMDD_HHMMSS.db</code> oluşturur.
-                Otomatik yedekleme etkinse, belirttiğiniz saat ve sıklıkta çalışır; yalnızca son <b>{backupRetention}</b> kopya tutulur.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Birim Yönetimi</h2>
-          <div className="max-h-60 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
-            <ul className="divide-y dark:divide-gray-600">
-              {departments.map((dep) => (
-                <li key={dep.id} className="p-3 flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{dep.name}</span>
-                    <span className={`ml-3 text-xs font-semibold px-2 py-1 rounded-full ${dep.category === 'Tıbbi' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                      {dep.category}
-                    </span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button onClick={() => handleOpenEditModal(dep)} className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" title="Düzenle"><Edit size={16} /></button>
-                    <button onClick={() => handleOpenDeleteModal('department', dep)} className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400" title="Sil"><Trash2 size={16} /></button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <button onClick={handleOpenAddModal} className="mt-4 px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">Yeni Birim Ekle</button>
-        </div>
-
-        <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-bold mb-4">Lokasyon Yönetimi</h2>
-          <div className="grid grid-cols-1 gap-8">
-            <div>
-              <h3 className="font-semibold mb-2">Kompakt Dolaplar</h3>
-              <div className="max-h-48 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
-                <ul className="divide-y dark:divide-gray-600">
-                  {storageStructure.kompakt.map((unit) => {
-                    const deletable = isUnitDeletable(StorageType.Kompakt, unit.unit);
-                    const shelfCount = unit.faces[0]?.sections[0]?.shelves.length || 0;
-                    return (
-                      <li key={unit.unit} className="p-3 flex justify-between items-center">
-                        <span className="font-medium">Ünite {unit.unit} ({shelfCount} Raf)</span>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleOpenLocationEditModal(StorageType.Kompakt, unit.unit, shelfCount)} className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" title="Düzenle"><Edit size={16} /></button>
-                          <div className="relative group">
-                            <button onClick={() => handleOpenDeleteModal('location', { type: StorageType.Kompakt, id: unit.unit })} disabled={!deletable} className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50" title="Sil"><Trash2 size={16} /></button>
-                            {!deletable && (<div className="absolute bottom-full mb-2 w-48 p-2 text-xs text-white bg-gray-900 rounded-md shadow-lg opacity-0 group-hover:opacity-100">Bu ünitede klasörler bulunduğu için silinemez.</div>)}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEditDepartment(dept)} className="p-1 text-gray-600 hover:text-blue-600" title="Düzenle">
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => openDeleteModal('department', dept)} className="p-1 text-gray-600 hover:text-red-600" title="Sil">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-              <button onClick={handleOpenKompaktAddModal} className="mt-4 px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">Yeni Kompakt Dolap Ekle</button>
-            </div>
+            ))}
+          </div>
+        </div>
+      </AccordionSection>
 
-            <div>
-              <h3 className="font-semibold mb-2">Standlar</h3>
-              <div className="max-h-48 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
-                <ul className="divide-y dark:divide-gray-600">
-                  {storageStructure.stand.map((stand) => {
-                    const deletable = isUnitDeletable(StorageType.Stand, stand.stand);
-                    return (
-                      <li key={stand.stand} className="p-3 flex justify-between items-center">
-                        <span className="font-medium">Stand {stand.stand} ({stand.shelves.length} Raf)</span>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleOpenLocationEditModal(StorageType.Stand, stand.stand, stand.shelves.length)} className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" title="Düzenle"><Edit size={16} /></button>
-                          <div className="relative group">
-                            <button onClick={() => handleOpenDeleteModal('location', { type: StorageType.Stand, id: stand.stand })} disabled={!deletable} className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50" title="Sil"><Trash2 size={16} /></button>
-                            {!deletable && (<div className="absolute bottom-full mb-2 w-48 p-2 text-xs text-white bg-gray-900 rounded-md shadow-lg opacity-0 group-hover:opacity-100">Bu standda klasörler bulunduğu için silinemez.</div>)}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <button onClick={() => addStorageUnit(StorageType.Stand)} className="mt-4 px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">Yeni Stand Ekle</button>
+      {/* Lokasyon Yönetimi */}
+      <AccordionSection
+        title="Lokasyon Yönetimi"
+        isOpen={openSections.storage}
+        onToggle={() => toggleSection('storage')}
+      >
+        <div className="space-y-6">
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Kompakt Üniteler</h3>
+              <button onClick={handleOpenKompaktModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                Ünite Ekle
+              </button>
+            </div>
+            <div className="max-h-48 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
+              {storageStructure.kompakt?.map((unit) => {
+                const canDelete = isUnitDeletable(StorageType.Kompakt, unit.unit);
+                return (
+                  <div key={unit.unit} className="flex justify-between items-center p-3 border-b last:border-0 dark:border-gray-700">
+                    <span>Ünite {unit.unit}</span>
+                    <div className="flex gap-2">
+                      {canDelete ? (
+                        <button onClick={() => openDeleteModal('location', { type: StorageType.Kompakt, id: unit.unit })} className="p-1 text-gray-600 hover:text-red-600" title="Sil">
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <button disabled className="p-1 text-gray-400 cursor-not-allowed" title="İçinde klasör bulunan ünite silinemez">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Standlar</h3>
+              <button onClick={handleOpenStandModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                Stand Ekle
+              </button>
+            </div>
+            <div className="max-h-48 overflow-y-auto border rounded-md dark:border-gray-600 bg-gray-50 dark:bg-slate-800">
+              {storageStructure.stand?.map((unit) => {
+                const canDelete = isUnitDeletable(StorageType.Stand, unit.stand);
+                return (
+                  <div key={unit.stand} className="flex justify-between items-center p-3 border-b last:border-0 dark:border-gray-700">
+                    <span>Stand {unit.stand}</span>
+                    <div className="flex gap-2">
+                      {canDelete ? (
+                        <button onClick={() => openDeleteModal('location', { type: StorageType.Stand, id: unit.stand })} className="p-1 text-gray-600 hover:text-red-600" title="Sil">
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <button disabled className="p-1 text-gray-400 cursor-not-allowed" title="İçinde klasör bulunan stand silinemez">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
+      </AccordionSection>
 
-        <div className="flex justify-end">
-          <button onClick={handleSave} className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 font-semibold">
-            Ayarları Kaydet
-          </button>
-        </div>
+      {/* Kaydet Butonu */}
+      <div className="flex justify-end">
+        <button onClick={handleSave} className="px-6 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 font-semibold">
+          Ayarları Kaydet
+        </button>
       </div>
     </div>
   );
 };
+
+export default Settings;

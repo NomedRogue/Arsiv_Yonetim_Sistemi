@@ -1,6 +1,7 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useCallback, useEffect } from 'react';
 import { ArchiveProvider } from '@/context/ArchiveProvider';
 import { useTheme, initTheme } from '@/hooks/useTheme';
+import { useBackendStatus } from '@/hooks/useBackendStatus';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ToastHost } from '@/components/Toast';
@@ -9,19 +10,20 @@ import { Category } from './types';
 import '@/lib/errorLogger'; // Initialize global error handlers
 
 // Lazy load pages for better performance
-const Dashboard = React.lazy(() => import('@/pages/Dashboard').then(module => ({ default: module.Dashboard })));
-const FolderList = React.lazy(() => import('@/pages/FolderList').then(module => ({ default: module.FolderList })));
-const Search = React.lazy(() => import('@/pages/Search').then(module => ({ default: module.Search })));
-const CheckoutReturn = React.lazy(() => import('@/pages/CheckoutReturn').then(module => ({ default: module.CheckoutReturn })));
-const Disposal = React.lazy(() => import('@/pages/Disposal').then(module => ({ default: module.Disposal })));
-const Settings = React.lazy(() => import('@/pages/Settings').then(module => ({ default: module.Settings })));
-const FolderForm = React.lazy(() => import('@/pages/FolderForm').then(module => ({ default: module.FolderForm })));
+const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
+const FolderList = React.lazy(() => import('@/pages/FolderList'));
+const Search = React.lazy(() => import('@/pages/Search'));
+const CheckoutReturn = React.lazy(() => import('@/pages/CheckoutReturn'));
+const Disposal = React.lazy(() => import('@/pages/Disposal'));
+const Settings = React.lazy(() => import('@/pages/Settings'));
+const FolderForm = React.lazy(() => import('@/pages/FolderForm'));
 
 // Start theme management before React renders
 initTheme();
 
 const App: React.FC = () => {
   const [theme, toggleTheme] = useTheme();
+  const { isBackendReady, isLoading, error } = useBackendStatus();
   const [activePage, setActivePage] = useState('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
@@ -29,6 +31,54 @@ const App: React.FC = () => {
   // Dashboard kartlarından gelen yönlendirmeler için state'ler
   const [initialSearchCriteria, setInitialSearchCriteria] = useState<{ category?: Category } | null>(null);
   const [initialDisposalTab, setInitialDisposalTab] = useState<'disposable' | 'disposed' | undefined>();
+  const [initialDisposalFilter, setInitialDisposalFilter] = useState<'thisYear' | 'nextYear' | 'overdue' | undefined>();
+
+  // Backend hazır değilse loading/error göster
+  if (isLoading) {
+    return (
+      <div className={`${theme === 'dark' ? 'dark' : ''}`}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
+            <h2 className="mt-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
+              Arşiv Yönetim Sistemi Başlatılıyor...
+            </h2>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Backend server başlatılıyor, lütfen bekleyin...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`${theme === 'dark' ? 'dark' : ''}`}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <div className="bg-red-100 dark:bg-red-900 rounded-full h-16 w-16 mx-auto flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-red-800 dark:text-red-200">
+              Backend Başlatma Hatası
+            </h2>
+            <p className="mt-2 text-red-600 dark:text-red-400">
+              {error}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Yeniden Dene
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleEditFolder = (folderId: number) => {
     setEditingFolderId(folderId);
@@ -40,10 +90,11 @@ const App: React.FC = () => {
     setActivePage('Yeni Klasör Ekle');
   };
 
-  const handleCardNavigation = (page: string, params?: { category?: Category, tab?: 'disposable' | 'disposed' }) => {
+  const handleCardNavigation = (page: string, params?: { category?: Category, tab?: 'disposable' | 'disposed', filter?: 'thisYear' | 'nextYear' | 'overdue' }) => {
     // Navigasyon öncesi filtreleri ayarla veya temizle
     setInitialSearchCriteria(page === 'Arama' && params?.category ? { category: params.category } : null);
     setInitialDisposalTab(page === 'İmha' ? params?.tab : undefined);
+    setInitialDisposalFilter(page === 'İmha' ? params?.filter : undefined);
     setActivePage(page);
   };
 
@@ -75,7 +126,7 @@ const App: React.FC = () => {
         case 'Çıkış/İade Takip':
           return <CheckoutReturn />;
         case 'İmha':
-          return <Disposal initialTab={initialDisposalTab} />;
+          return <Disposal initialTab={initialDisposalTab} initialFilter={initialDisposalFilter} />;
         case 'Ayarlar':
           return <Settings />;
         default:

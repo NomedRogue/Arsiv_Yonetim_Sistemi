@@ -21,8 +21,11 @@
       "@/*": ["src/*"]
     },
 
-    "types": ["node", "vite/client", "jest", "@testing-library/jest-dom"]
-      ,"esModuleInterop": true
+    "types": ["node", "vite/client", "jest", "@testing-library/jest-dom"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src",

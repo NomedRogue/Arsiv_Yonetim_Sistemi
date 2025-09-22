@@ -2,8 +2,8 @@ import { useEffect, Dispatch } from 'react';
 import { ArchiveAction } from '@/types';
 import { toast } from '@/lib/toast';
 
-const API_BASE = (process.env as any).API_BASE;
-const api = (p: string) => `${API_BASE}${p.startsWith('/') ? '' : '/'}${p}`;
+// Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek
+const api = (p: string) => `/api${p.startsWith('/') ? '' : '/'}${p}`;
 
 export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>) => {
   useEffect(() => {
@@ -37,6 +37,29 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>) => {
         payload: { ...data, ts: new Date(data.ts) },
       });
       toast.info(`${data.count} eski yedek dosyası silindi.`);
+    });
+
+    sse.addEventListener('backup_delete', (e) => {
+      const data = JSON.parse(e.data);
+      toast.success(`Yedek dosyası silindi: ${data.filename}`);
+    });
+
+    sse.addEventListener('departments_updated', (e) => {
+      const data = JSON.parse(e.data);
+      dispatch({
+        type: 'SET_DEPARTMENTS',
+        payload: data.departments,
+      });
+      toast.info('Birim bilgileri güncellendi.');
+    });
+
+    sse.addEventListener('storage_structure_updated', (e) => {
+      const data = JSON.parse(e.data);
+      dispatch({
+        type: 'SET_STORAGE_STRUCTURE',
+        payload: data.storageStructure,
+      });
+      toast.info('Depolama yapısı güncellendi.');
     });
 
     return () => sse.close();

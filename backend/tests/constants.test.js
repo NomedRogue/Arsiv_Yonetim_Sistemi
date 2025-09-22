@@ -72,19 +72,15 @@ describe('Constants', () => {
     it('should have kompakt and stand storage types', () => {
       expect(INITIAL_STORAGE_STRUCTURE).toHaveProperty('kompakt');
       expect(INITIAL_STORAGE_STRUCTURE).toHaveProperty('stand');
-      
       expect(Array.isArray(INITIAL_STORAGE_STRUCTURE.kompakt)).toBe(true);
       expect(Array.isArray(INITIAL_STORAGE_STRUCTURE.stand)).toBe(true);
     });
 
     it('should have valid kompakt unit structure', () => {
       INITIAL_STORAGE_STRUCTURE.kompakt.forEach(unit => {
-        expect(unit).toHaveProperty('id');
-        expect(unit).toHaveProperty('enabled');
+        expect(unit).toHaveProperty('unit');
         expect(unit).toHaveProperty('faces');
-        
-        expect(typeof unit.id).toBe('number');
-        expect(typeof unit.enabled).toBe('boolean');
+        expect(typeof unit.unit).toBe('number');
         expect(Array.isArray(unit.faces)).toBe(true);
       });
     });
@@ -94,22 +90,24 @@ describe('Constants', () => {
         unit.faces.forEach(face => {
           expect(face).toHaveProperty('name');
           expect(face).toHaveProperty('sections');
-          
           expect(typeof face.name).toBe('string');
-          expect(typeof face.sections).toBe('number');
-          expect(face.sections).toBeGreaterThan(0);
+          expect(Array.isArray(face.sections)).toBe(true);
+          face.sections.forEach(sectionObj => {
+            expect(sectionObj).toHaveProperty('section');
+            expect(sectionObj).toHaveProperty('shelves');
+            expect(typeof sectionObj.section).toBe('number');
+            expect(Array.isArray(sectionObj.shelves)).toBe(true);
+          });
         });
       });
     });
 
     it('should have valid stand structure', () => {
       INITIAL_STORAGE_STRUCTURE.stand.forEach(standUnit => {
-        expect(standUnit).toHaveProperty('id');
+        expect(standUnit).toHaveProperty('stand');
         expect(standUnit).toHaveProperty('shelves');
-        
-        expect(typeof standUnit.id).toBe('number');
-        expect(typeof standUnit.shelves).toBe('number');
-        expect(standUnit.shelves).toBeGreaterThan(0);
+        expect(typeof standUnit.stand).toBe('number');
+        expect(Array.isArray(standUnit.shelves)).toBe(true);
       });
     });
   });

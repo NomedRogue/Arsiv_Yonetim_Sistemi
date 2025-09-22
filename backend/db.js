@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { getUserDataPath } = require('./fileHelper');
 const logger = require('./logger');
-const { ALL_DEPARTMENTS: DEFAULT_DEPARTMENTS } = require('./constants');
+const { ALL_DEPARTMENTS: DEFAULT_DEPARTMENTS, INITIAL_STORAGE_STRUCTURE, DEFAULT_SETTINGS } = require('./constants');
 const fs = require('fs');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
@@ -15,22 +15,27 @@ let dbInstance = null; // Lazy initialization
 const SCHEMA_VERSION = 1;
 
 function migrate(db) {
-  db.pragma('journal_mode = WAL');
-  
-  const versionRow = db.prepare("SELECT value FROM configs WHERE key = 'schema_version'").get();
-  const currentVersion = versionRow ? Number(JSON.parse(versionRow.value)) : 0;
-  
-  logger.info(`[DB] Mevcut şema versiyonu: ${currentVersion}, Hedef: ${SCHEMA_VERSION}`);
-
-  if (currentVersion < 1) {
-    logger.info('[DB MIGRATION] Versiyon 1 çalıştırılıyor: Klasörler için ayrı sütunlar oluşturuluyor.');
+  try {
+    console.log('[DB] Starting migration process...');
+    db.pragma('journal_mode = WAL');
+    console.log('[DB] WAL mode set successfully');
     
-    const oldFoldersTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='folders'").get();
+    const versionRow = db.prepare("SELECT value FROM configs WHERE key = 'schema_version'").get();
+    const currentVersion = versionRow ? Number(JSON.parse(versionRow.value)) : 0;
+    
+    logger.info(`[DB] Mevcut şema versiyonu: ${currentVersion}, Hedef: ${SCHEMA_VERSION}`);
+    console.log(`[DB] Current schema version: ${currentVersion}, Target: ${SCHEMA_VERSION}`);
 
-    // Sadece eski tablo varsa ve yeni kolonları içermiyorsa migrate et
-    if (oldFoldersTableExists) {
-        const columns = db.prepare("PRAGMA table_info(folders)").all();
-        const hasDataColumn = columns.some(c => c.name === 'data');
+    if (currentVersion < 1) {
+      console.log('[DB] Running migration to version 1...');
+      logger.info('[DB MIGRATION] Versiyon 1 çalıştırılıyor: Klasörler için ayrı sütunlar oluşturuluyor.');
+      
+      const oldFoldersTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='folders'").get();
+
+      // Sadece eski tablo varsa ve yeni kolonları içermiyorsa migrate et
+      if (oldFoldersTableExists) {
+          const columns = db.prepare("PRAGMA table_info(folders)").all();
+          const hasDataColumn = columns.some(c => c.name === 'data');
         
         if (hasDataColumn) {
             db.exec(`ALTER TABLE folders RENAME TO folders_old_json`);
@@ -90,6 +95,13 @@ function migrate(db) {
   // Şema versiyonunu güncelle
   db.prepare("INSERT OR REPLACE INTO configs (key, value) VALUES ('schema_version', ?)")
     .run(JSON.stringify(SCHEMA_VERSION));
+    
+  console.log('[DB] Migration completed successfully');
+  } catch (error) {
+    console.error('[DB MIGRATION ERROR]', error);
+    logger.error('[DB MIGRATION ERROR]', { error: error.message, stack: error.stack });
+    throw error;
+  }
 }
 
 // Performans için index ekleme
@@ -182,17 +194,31 @@ const dbManager = {
     if (!dbInstance || !dbInstance.open) {
       logger.info('Veritabanı bağlantısı kuruluyor...');
       
-      // Database dosyasının bulunacağı klasörü oluştur
-      const dbDir = path.dirname(DB_FILE);
-      if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
-        logger.info(`Database klasörü oluşturuldu: ${dbDir}`);
+      try {
+        // Database dosyasının bulunacağı klasörü oluştur
+        const dbDir = path.dirname(DB_FILE);
+        if (!fs.existsSync(dbDir)) {
+          fs.mkdirSync(dbDir, { recursive: true });
+          logger.info(`Database klasörü oluşturuldu: ${dbDir}`);
+        }
+        
+        logger.info(`Database dosya yolu: ${DB_FILE}`);
+        console.log('[DB] Creating database instance:', DB_FILE);
+        
+        dbInstance = new Database(DB_FILE);
+        console.log('[DB] Database instance created successfully');
+        
+        ensureTables(dbInstance);
+        console.log('[DB] Tables ensured successfully');
+        
+        logger.info(`better-sqlite3 veritabanına bağlandı: ${DB_FILE}`);
+        console.log('[DB] Connected to SQLite database successfully');
+      } catch (error) {
+        logger.error('[DB CONNECTION ERROR]', { error: error.message, stack: error.stack });
+        console.error('[DB CONNECTION ERROR]', error);
+        console.error('[DB ERROR STACK]', error.stack);
+        throw error;
       }
-      
-      logger.info(`Database dosya yolu: ${DB_FILE}`);
-      dbInstance = new Database(DB_FILE);
-      ensureTables(dbInstance);
-      logger.info(`better-sqlite3 veritabanına bağlandı: ${DB_FILE}`);
     }
     return dbInstance;
   },
@@ -511,20 +537,24 @@ const dbManager = {
     const params = ['İmha'];
 
     if (filter === 'thisYear') {
-      query += ' AND (fileYear + retentionPeriod) <= ?';
+      // Bu yıl imha edilecek klasörler (imha tarihi bu yıl olanlar)
+      // İmha Yılı = Dosya Yılı + Saklama Süresi + 1
+      query += ' AND (fileYear + retentionPeriod + 1) = ?';
       params.push(currentYear);
     } else if (filter === 'nextYear') {
-      query += ' AND (fileYear + retentionPeriod) = ?';
+      // Gelecek yıl imha edilecek klasörler
+      query += ' AND (fileYear + retentionPeriod + 1) = ?';
       params.push(currentYear + 1);
-    } else if (filter === 'pastYears') {
-      query += ' AND (fileYear + retentionPeriod) < ?';
+    } else if (filter === 'overdue') {
+      // İmha süresi geçen klasörler (geçmiş yıllarda imha edilmesi gerekenler)
+      query += ' AND (fileYear + retentionPeriod + 1) < ?';
       params.push(currentYear);
     } else { // default to thisYear
-      query += ' AND (fileYear + retentionPeriod) <= ?';
+      query += ' AND (fileYear + retentionPeriod + 1) = ?';
       params.push(currentYear);
     }
 
-    query += ' ORDER BY (fileYear + retentionPeriod)';
+    query += ' ORDER BY (fileYear + retentionPeriod + 1)';
 
     return db.prepare(query).all(...params).map(rowToFolder);
   },
@@ -533,8 +563,8 @@ const dbManager = {
     const db = this.getDbInstance();
     const { treemapFilter, yearFilter } = filters;
 
-    const settings = this.getConfig('settings') || {};
-    const storageStructure = this.getConfig('storageStructure') || {};
+    const settings = this.getConfig('settings') || DEFAULT_SETTINGS;
+    const storageStructure = this.getConfig('storageStructure') || INITIAL_STORAGE_STRUCTURE;
     const departments = this.getConfig('departments') || DEFAULT_DEPARTMENTS;
     const departmentMap = new Map(departments.map(d => [d.id, d]));
 
@@ -542,7 +572,7 @@ const dbManager = {
     const categoryCounts = db.prepare(`SELECT category, COUNT(*) as count FROM folders WHERE status != 'İmha' GROUP BY category`).all();
     const tibbiCount = categoryCounts.find(c => c.category === 'Tıbbi')?.count || 0;
     const idariCount = categoryCounts.find(c => c.category === 'İdari')?.count || 0;
-    const { cikisBekleyenCount } = db.prepare(`SELECT COUNT(*) as cikisBekleyenCount FROM folders WHERE status = 'Çıkışta'`).get() || { cikisBekleyenCount: 0 };
+    const { arsivDisindaCount } = db.prepare(`SELECT COUNT(*) as arsivDisindaCount FROM folders WHERE status = 'Çıkışta'`).get() || { arsivDisindaCount: 0 };
     const { imhaEdilenCount } = db.prepare(`SELECT COUNT(*) as imhaEdilenCount FROM disposals`).get() || { imhaEdilenCount: 0 };
 
     const now = new Date();
@@ -551,7 +581,14 @@ const dbManager = {
     const iadeGecikenCount = checkoutsRaw.filter(c => c.status === 'Çıkışta' && new Date(c.plannedReturnDate) < now).length;
 
     const currentYear = now.getFullYear();
-    const { imhaBekleyenCount } = db.prepare(`SELECT COUNT(*) as imhaBekleyenCount FROM folders WHERE status != 'İmha' AND (fileYear + retentionPeriod) <= ?`).get(currentYear) || { imhaBekleyenCount: 0 };
+    // Bu yıl imha edilecek klasörler (dinamik olarak şu anki yıl)
+    const { buYilImhaEdilenecekCount } = db.prepare(`SELECT COUNT(*) as buYilImhaEdilenecekCount FROM folders WHERE status != 'İmha' AND (fileYear + retentionPeriod + 1) = ?`).get(currentYear) || { buYilImhaEdilenecekCount: 0 };
+    
+    // Gelecek yıl imha edilecek klasörler
+    const { gelecekYilImhaEdilenecekCount } = db.prepare(`SELECT COUNT(*) as gelecekYilImhaEdilenecekCount FROM folders WHERE status != 'İmha' AND (fileYear + retentionPeriod + 1) = ?`).get(currentYear + 1) || { gelecekYilImhaEdilenecekCount: 0 };
+    
+    // İmha süresi geçen klasörler (geçmiş yıllarda imha edilmesi gerekenler)
+    const { imhaSuresiGecenCount } = db.prepare(`SELECT COUNT(*) as imhaSuresiGecenCount FROM folders WHERE status != 'İmha' AND (fileYear + retentionPeriod + 1) < ?`).get(currentYear) || { imhaSuresiGecenCount: 0 };
     
     const foldersForOccupancy = db.prepare('SELECT folderType, locationStorageType FROM folders WHERE status != ?').all('İmha');
     const darW = settings.darKlasorGenisligi || 3;
@@ -668,8 +705,9 @@ const dbManager = {
     const monthlyData = months.map(m => ({...m, name: m.name.split('-')[1] + '/' + m.name.split('-')[0].slice(2) }));
 
     return {
-      totalFolders, tibbiCount, idariCount, cikisBekleyenCount, iadeGecikenCount,
-      imhaBekleyenCount, imhaEdilenCount, overallOccupancy: overallOccupancy || 0, treemapData,
+      totalFolders, tibbiCount, idariCount, arsivDisindaCount, iadeGecikenCount,
+      buYilImhaEdilenecekCount, gelecekYilImhaEdilenecekCount, imhaSuresiGecenCount, imhaEdilenCount, 
+      overallOccupancy: overallOccupancy || 0, treemapData,
       clinicDistributionData,
       monthlyData, availableYears
     };

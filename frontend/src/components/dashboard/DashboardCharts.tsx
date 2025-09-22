@@ -62,7 +62,7 @@ export const CustomizedTreemapContent = (props: any) => {
     const showText = width > 50 && height > 40;
 
     const nameLines = showText ? wrapTextForTreemap(name, width, fontSize) : [];
-    const percentageLine = `${percentage.toFixed(2)}%`;
+    const percentageLine = `${(percentage || 0).toFixed(2)}%`;
     const allLines = [...nameLines, percentageLine];
     const lineCount = allLines.length;
 
@@ -115,7 +115,7 @@ export const CustomTreemapTooltip: React.FC<any> = ({ active, payload }) => {
       <div className="p-3 bg-white dark:bg-archive-dark-panel rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 text-sm transition-colors duration-300">
         <p className="font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">{nameStr}</p>
         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">
-          {`${data.folderCount} Klasör (${data.percentage.toFixed(2)}%)`}
+          {`${data.folderCount || 0} Klasör (${(data.percentage || 0).toFixed(2)}%)`}
         </p>
       </div>
     );

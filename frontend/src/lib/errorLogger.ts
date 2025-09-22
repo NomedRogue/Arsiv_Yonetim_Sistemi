@@ -6,20 +6,69 @@ interface ErrorLog {
   userAgent: string;
   url: string;
   componentStack?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  sessionId: string;
+  userId?: string;
+  breadcrumbs: BreadcrumbEntry[];
+}
+
+interface BreadcrumbEntry {
+  timestamp: string;
+  action: string;
+  data?: any;
+}
+
+interface PerformanceMetrics {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+  };
+  timing?: {
+    navigationStart: number;
+    loadEventEnd: number;
+  };
 }
 
 class ErrorLogger {
   private logs: ErrorLog[] = [];
+  private breadcrumbs: BreadcrumbEntry[] = [];
   private maxLogs = 100;
+  private maxBreadcrumbs = 50;
+  private sessionId: string;
 
-  logError(error: Error, componentStack?: string): void {
+  constructor() {
+    this.sessionId = this.generateSessionId();
+  }
+
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  addBreadcrumb(action: string, data?: any): void {
+    const breadcrumb: BreadcrumbEntry = {
+      timestamp: new Date().toISOString(),
+      action,
+      data
+    };
+
+    this.breadcrumbs.unshift(breadcrumb);
+    
+    if (this.breadcrumbs.length > this.maxBreadcrumbs) {
+      this.breadcrumbs = this.breadcrumbs.slice(0, this.maxBreadcrumbs);
+    }
+  }
+
+  logError(error: Error, componentStack?: string, severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
     const errorLog: ErrorLog = {
       timestamp: new Date().toISOString(),
       message: error.message,
       stack: error.stack,
       userAgent: navigator.userAgent,
       url: window.location.href,
-      componentStack
+      componentStack,
+      severity,
+      sessionId: this.sessionId,
+      breadcrumbs: [...this.breadcrumbs]
     };
 
     this.logs.unshift(errorLog);
@@ -34,8 +83,57 @@ class ErrorLogger {
       console.error('Error logged:', errorLog);
     }
 
+    // Critical errors should be immediately reported
+    if (severity === 'critical') {
+      this.reportCriticalError(errorLog);
+    }
+
     // In production, you could send to a remote logging service
     // this.sendToRemoteLogger(errorLog);
+  }
+
+  private reportCriticalError(errorLog: ErrorLog): void {
+    // Store critical errors in localStorage for persistence
+    try {
+      const criticalErrors = JSON.parse(localStorage.getItem('criticalErrors') || '[]');
+      criticalErrors.unshift(errorLog);
+      localStorage.setItem('criticalErrors', JSON.stringify(criticalErrors.slice(0, 10)));
+    } catch (e) {
+      console.error('Failed to store critical error:', e);
+    }
+  }
+
+  getPerformanceMetrics(): PerformanceMetrics {
+    const metrics: PerformanceMetrics = {};
+
+    // Memory usage (if available)
+    if ('memory' in performance) {
+      const memInfo = (performance as any).memory;
+      metrics.memory = {
+        usedJSHeapSize: memInfo.usedJSHeapSize,
+        totalJSHeapSize: memInfo.totalJSHeapSize
+      };
+    }
+
+    // Navigation timing
+    if (performance.timing) {
+      metrics.timing = {
+        navigationStart: performance.timing.navigationStart,
+        loadEventEnd: performance.timing.loadEventEnd
+      };
+    }
+
+    return metrics;
+  }
+
+  logPerformanceIssue(metric: string, value: number, threshold: number): void {
+    if (value > threshold) {
+      this.logError(
+        new Error(`Performance issue: ${metric} (${value}ms) exceeded threshold (${threshold}ms)`),
+        undefined,
+        'medium'
+      );
+    }
   }
 
   logUserAction(action: string, data?: any): void {

@@ -76,7 +76,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
 
     return (
       <div className="p-3 bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 rounded-lg text-sm mt-2 transition-colors duration-300">
-        Bu raf %{occupancyInfo.percentage.toFixed(0)} dolu. Kalan alan: {maxDar} dar veya {maxGenis} geniş klasör.
+        Bu raf %{(occupancyInfo.percentage || 0).toFixed(0)} dolu. Kalan alan: {maxDar} dar veya {maxGenis} geniş klasör.
       </div>
     );
   };

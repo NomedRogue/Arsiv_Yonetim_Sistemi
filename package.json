@@ -1,20 +1,21 @@
 {
-  "name": "arsiv-yonetim-sistemi-desktop",
+  "name": "arsiv-yonetim-sistemi",
   "version": "1.0.0",
   "description": "Arşiv Yönetim Sistemi Masaüstü Uygulaması",
   "author": "Arşiv Yönetim Sistemi",
   "license": "MIT",
   "main": "main.js",
   "scripts": {
-    "start": "npm run rebuild && electron .",
-    "dev": "concurrently -k \"npm:frontend\" \"npm:electron\"",
+    "start": "electron .",
+    "dev": "concurrently -k \"npm:backend\" \"npm:frontend\" \"npm:electron\"",
+    "backend": "cd backend && node server.js",
     "frontend": "npm run dev --prefix frontend",
-    "electron": "wait-on http://localhost:5173 && npm run rebuild && electron .",
+    "electron": "wait-on http://localhost:3001 http://localhost:5173/health && electron .",
     "build": "npm run build --prefix frontend",
-    "package": "npm run build --prefix frontend && npm run rebuild && electron-builder",
-    "rebuild": "electron-builder install-app-deps",
+    "package": "npm run build && electron-builder",
+    "postinstall": "electron-builder install-app-deps && npm run rebuild",
+    "rebuild": "electron-rebuild",
     "test": "jest",
-    "pretest:backend": "npm rebuild better-sqlite3",
     "test:backend": "jest --config ./backend/jest.config.js"
   },
   "build": {
@@ -23,16 +24,13 @@
     "files": [
       "main.js",
       "preload.js",
-      "frontend/dist/**/*",
-      "backend/**/*",
-      "!backend/arsiv.db",
-      "assets/**/*"
+      "frontend/dist/",
+      "backend/",
+      "node_modules/",
+      "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "backend/arsiv.db",
-        "to": "arsiv.db"
-      }
+    "asarUnpack": [
+      "**/node_modules/sqlite3/**/*"
     ],
     "directories": {
       "buildResources": "assets",
@@ -45,25 +43,32 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    },
-    "asarUnpack": [
-      "**/*.node",
-      "**/node_modules/better-sqlite3/**/*"
-    ]
+    }
   },
   "dependencies": {
+    "archiver": "^5.3.1",
+    "axios": "^1.7.2",
     "better-sqlite3": "^12.2.0",
+    "concurrently": "^8.2.2",
     "cors": "^2.8.5",
+    "electron-log": "^5.1.6",
     "express": "^4.19.2",
-    "multer": "^1.4.5-lts.1"
+    "extract-zip": "^2.0.1",
+    "fs-extra": "^11.1.1",
+    "multer": "^1.4.5-lts.1",
+    "path": "^0.12.7",
+    "sqlite3": "^5.1.7",
+    "uuid": "^9.0.0",
+    "wait-on": "^7.2.0"
   },
   "devDependencies": {
-    "@types/supertest": "^6.0.2",
-    "concurrently": "^8.2.2",
-    "electron": "^38.1.0",
-    "electron-builder": "^26.0.20",
+    "@electron/rebuild": "^3.6.0",
+    "@types/jest": "^29.5.12",
+    "electron": "31.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
     "jest": "^29.7.0",
-    "supertest": "^7.0.0",
-    "wait-on": "^7.2.0"
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.2.3"
   }
 }

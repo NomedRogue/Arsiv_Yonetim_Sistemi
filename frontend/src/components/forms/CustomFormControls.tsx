@@ -15,7 +15,7 @@ export const CustomInput = ({ label, className, ...props }: CustomInputProps) =>
     <input
       {...props}
       id={props.id || props.name}
-      className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-slate-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white transition-colors duration-300"
+      className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-slate-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white transition-colors duration-300 [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:dark:opacity-100 [&::-webkit-calendar-picker-indicator]:opacity-60"
     />
   </div>
 );

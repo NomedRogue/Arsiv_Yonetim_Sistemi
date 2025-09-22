@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  /* CSS Custom Properties for better theme support */
+  :root {
+    --color-archive-primary: #0078D4;
+    --color-archive-secondary: #E5F3FF;
+  }
+
   /* Anlık tema geçişi için geçişleri geçici olarak devre dışı bırak */
   .theme-changing *,
   .theme-changing *::before,
@@ -12,6 +18,25 @@
     -moz-transition: none !important;
     -ms-transition: none !important;
     -o-transition: none !important;
+    animation-duration: 0s !important;
+    -webkit-animation-duration: 0s !important;
+  }
+
+  /* Liquid gauge animasyonları için istisna - tema değişimi sırasında devam etsin */
+  .theme-changing .bubble-item,
+  .theme-changing .wave-layer-1 svg path,
+  .theme-changing .wave-layer-2 svg path,
+  .theme-changing .wave-layer-3 svg path {
+    animation-duration: inherit !important;
+    -webkit-animation-duration: inherit !important;
+    animation-play-state: running !important;
+  }
+
+  /* Grafik ve SVG elemanlar için özel tema geçişi */
+  .theme-changing svg,
+  .theme-changing canvas,
+  .theme-changing .recharts-wrapper {
+    transition: none !important;
   }
   
   /* Webkit tarayıcılar için özel scrollbar stilleri */
@@ -52,6 +77,45 @@
 
   html.dark * {
     scrollbar-color: #475569 #1e293b; /* dark: thumb track */
+  }
+
+  /* Number input spinner butonları için tema uyumlu stiller */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Firefox için number input spinner gizleme */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  /* Time input için tema uyumlu saat ikonu */
+  input[type="time"]::-webkit-datetime-edit-hour-field,
+  input[type="time"]::-webkit-datetime-edit-minute-field,
+  input[type="time"]::-webkit-datetime-edit-second-field,
+  input[type="time"]::-webkit-datetime-edit-millisecond-field {
+    color: #111827; /* gray-900 */
+  }
+
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+    opacity: 0.7;
+  }
+
+  /* Koyu tema için time input saat ikonu */
+  html.dark input[type="time"]::-webkit-datetime-edit-hour-field,
+  html.dark input[type="time"]::-webkit-datetime-edit-minute-field,
+  html.dark input[type="time"]::-webkit-datetime-edit-second-field,
+  html.dark input[type="time"]::-webkit-datetime-edit-millisecond-field {
+    color: #e5e7eb; /* gray-200 */
+  }
+
+  html.dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.8;
   }
 }
 

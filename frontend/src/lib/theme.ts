@@ -29,10 +29,17 @@ export function applyTheme(theme: Theme) {
   root.classList.add(theme);
   window.localStorage.setItem('theme', theme);
 
+  // Force reflow to ensure the class change takes effect immediately
+  root.offsetHeight;
+
   // Remove the transition-disabling class after a brief moment.
   // This allows transitions to work for subsequent user interactions (e.g., hover).
   clearTimeout(themeChangeTimer);
   themeChangeTimer = window.setTimeout(() => {
     root.classList.remove('theme-changing');
-  }, 10);
+    
+    // Force charts and custom components to re-render
+    const event = new CustomEvent('theme-changed', { detail: { theme } });
+    window.dispatchEvent(event);
+  }, 50);
 }

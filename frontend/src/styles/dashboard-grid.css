@@ -1,0 +1,205 @@
+/.dashboard-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Large screens - all 9 cards in one row with better spacing */
+@media (min-width: 1920px) {
+  .dashboard-cards-grid {
+    grid-template-columns: repeat(9, 1fr);
+    gap: 1rem;
+    overflow-x: visible;
+  }
+}
+
+/* Medium-large screens - ensure good fit */
+@media (min-width: 1600px) and (max-width: 1919px) {
+  .dashboard-cards-grid {
+    grid-template-columns: repeat(9, 1fr);
+    gap: 0.75rem;
+    overflow-x: visible;
+  }
+}
+
+/* Medium screens - 2 rows (5+4 or 6+3) */
+@media (min-width: 1000px) and (max-width: 1599px) {
+  .dashboard-cards-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Small-medium screens - 2 rows (4+5 or 5+4) */
+@media (min-width: 768px) and (max-width: 999px) {
+  .dashboard-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+  }
+}
+
+/* Small screens - 2 columns */
+@media (max-width: 767px) {
+  .dashboard-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* Dashboard card responsive adjustments */
+.dashboard-cards-grid .dashboard-card {
+  min-width: 120px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.75rem;
+  text-align: center;
+  border: none; /* Remove double border for stats cards */
+}
+
+.dashboard-cards-grid .dashboard-card h3 {
+  font-size: 0.75rem !important;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-cards-grid .dashboard-card .text-2xl {
+  font-size: 1.25rem !important;
+  font-weight: bold;
+}
+
+/* Responsive text sizing for cards */
+@media (min-width: 1600px) {
+  .dashboard-cards-grid .dashboard-card h3 {
+    font-size: 0.95rem;
+  }
+  .dashboard-cards-grid .dashboard-card .text-2xl {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 1000px) and (max-width: 1599px) {
+  .dashboard-cards-grid .dashboard-card h3 {
+    font-size: 0.875rem;
+  }
+  .dashboard-cards-grid .dashboard-card .text-2xl {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 999px) {
+  .dashboard-cards-grid .dashboard-card h3 {
+    font-size: 0.875rem;
+  }
+  .dashboard-cards-grid .dashboard-card .text-2xl {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-cards-grid .dashboard-card {
+    padding: 0.75rem;
+    min-height: 100px;
+  }
+  .dashboard-cards-grid .dashboard-card h3 {
+    font-size: 0.75rem;
+  }
+  .dashboard-cards-grid .dashboard-card .text-2xl {
+    font-size: 1.25rem;
+  }
+}s Carousel Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-section {
+  margin-bottom: 1rem;
+}
+
+.mixed-content-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.dashboard-card {
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+html.dark .dashboard-card {
+  background: rgba(51, 65, 85, 0.95);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+html.dark .dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+html.dark .card-title {
+  color: #9CA3AF;
+}
+
+.card-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+html.dark .card-value {
+  color: #F9FAFB;
+}
+
+
+
+.mixed-content-grid > div {
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  transition: all 0.3s ease-in-out;
+}
+
+html.dark .mixed-content-grid > div {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mixed-content-grid > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+html.dark .mixed-content-grid > div:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}

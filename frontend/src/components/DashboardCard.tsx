@@ -6,18 +6,29 @@ interface DashboardCardProps {
   value: string | number;
   icon: React.ComponentType<LucideProps>;
   color: string;
+  className?: string;
 }
 
-export const DashboardCard: React.FC<DashboardCardProps> = React.memo(({ title, value, icon: Icon, color }) => {
+export const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon: Icon, color, className }) => {
   return (
-    <div className="relative bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg flex items-center transition hover:scale-105 duration-300 hover:z-10">
-      <div className={`p-4 rounded-full transition-colors duration-300`} style={{ backgroundColor: `${color}20` }}>
-        <Icon size={32} style={{ color }} />
-      </div>
-      <div className="ml-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">{title}</p>
-        <p className="text-2xl font-bold text-gray-800 dark:text-white transition-colors duration-300">{value}</p>
+    <div 
+      className={`dashboard-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 will-change-transform ${className || ''}`}
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="dashboard-card-content p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 truncate">{title}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 leading-tight">{value}</p>
+          </div>
+          <div 
+            className="icon-container flex-shrink-0 ml-3"
+            style={{ color }}
+          >
+            <Icon className="dashboard-icon w-8 h-8" />
+          </div>
+        </div>
       </div>
     </div>
   );
-});
+};

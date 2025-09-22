@@ -159,7 +159,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               value={formData.documentDescription}
               onChange={handleChange}
               rows={2}
-              className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+              className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
             />
           </div>
         )}
@@ -172,7 +172,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             name="personName"
             value={formData.personName}
             onChange={handleChange}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
           />
         </div>
         <div>
@@ -183,7 +183,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             name="personSurname"
             value={formData.personSurname}
             onChange={handleChange}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
           />
         </div>
         <div>
@@ -195,7 +195,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             name="personPhone"
             value={formData.personPhone}
             onChange={handleChange}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
           />
         </div>
         <div>
@@ -206,7 +206,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             value={formData.reason}
             onChange={handleChange}
             rows={2}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
           />
         </div>
         <div>
@@ -217,7 +217,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             name="plannedReturnDate"
             value={formData.plannedReturnDate}
             onChange={handleChange}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 transition-colors duration-300"
+            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
           />
         </div>
       </div>

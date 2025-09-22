@@ -9,7 +9,8 @@ import { Loader2 } from 'lucide-react';
 
 const getDisposalStatus = (folder: Folder): { text: string; color: 'red' | 'orange' | 'yellow' | 'gray' } => {
     const currentYear = new Date().getFullYear();
-    // FIX: İmha, saklama süresi tamamlandıktan sonraki yıl yapılır.
+    // DOĞRU: İmha, saklama süresi tamamlandıktan sonraki yıl yapılır.
+    // Saklama süresi bitiminden 1 yıl sonra imha edilir
     const disposalYear = folder.fileYear + folder.retentionPeriod + 1;
     const yearsRemaining = disposalYear - currentYear;
 
@@ -33,9 +34,9 @@ const getStatusBadgeColor = (status: FolderStatus) => {
     }
 };
 
-const DisposableFoldersView: React.FC = () => {
+const DisposableFoldersView: React.FC<{ initialFilter?: 'thisYear' | 'nextYear' | 'overdue' }> = ({ initialFilter }) => {
     const { getDepartmentName, disposeFolders } = useArchive();
-    const [selectedView, setSelectedView] = useState<'thisYear' | 'nextYear' | 'pastYears'>('thisYear');
+    const [selectedView, setSelectedView] = useState<'thisYear' | 'nextYear' | 'overdue'>(initialFilter || 'thisYear');
     const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [disposableFolders, setDisposableFolders] = useState<Folder[]>([]);
@@ -92,10 +93,10 @@ const DisposableFoldersView: React.FC = () => {
                     Bu işlem geri alınamaz. Emin misiniz?
                 </p>
             </Modal>
-            <div className="flex space-x-2 border-b dark:border-gray-700 mb-4 transition-colors duration-300">
+            <div className="flex space-x-2 border-b dark:border-gray-600 mb-4 transition-colors duration-300">
                 <button onClick={() => setSelectedView('thisYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'thisYear' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Bu Yıl İmha Edilecekler</button>
-                <button onClick={() => setSelectedView('nextYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'nextYear' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Gelecek Yıl</button>
-                <button onClick={() => setSelectedView('pastYears')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'pastYears' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Geçmiş Yıllar</button>
+                <button onClick={() => setSelectedView('nextYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'nextYear' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Gelecek Yıl İmha Edilecekler</button>
+                <button onClick={() => setSelectedView('overdue')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'overdue' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Süresi Geçenler</button>
             </div>
             <div className="flex justify-between items-center mb-4">
                  <p className="text-sm text-gray-700 dark:text-gray-400 transition-colors duration-300">{disposableFolders.length} klasör bulundu.</p>
@@ -114,7 +115,7 @@ const DisposableFoldersView: React.FC = () => {
             ) : (
                 <div className="overflow-hidden p-2">
                     {disposableFolders.length > 0 && (
-                        <div className="px-4 py-3 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center mb-4">
+                        <div className="px-4 py-3 bg-gray-100 dark:bg-slate-700 border dark:border-gray-600 rounded-lg flex items-center mb-4">
                             <input 
                                 type="checkbox" 
                                 onChange={handleSelectAll} 
@@ -132,7 +133,7 @@ const DisposableFoldersView: React.FC = () => {
                             return (
                                 <div
                                     key={folder.id}
-                                    className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex items-start gap-4"
+                                    className="p-4 border rounded-lg dark:border-gray-600 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01] cursor-pointer flex items-start gap-4"
                                     onClick={() => handleSelectFolder(folder.id)}
                                 >
                                     <input 
@@ -187,7 +188,7 @@ const DisposedFoldersView: React.FC = () => {
                 {disposals.map(disposal => {
                     const folder = disposal.originalFolderData;
                     return (
-                        <div key={disposal.id} className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
+                        <div key={disposal.id} className="p-4 border rounded-lg dark:border-gray-600 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
                             <div className="flex items-center space-x-2 mb-1">
                                 <Badge text={folder.category} color={folder.category === Category.Tibbi ? 'green' : 'blue'} />
                                 <h4 className="font-bold text-lg">{getDepartmentName(folder.departmentId)} - {folder.subject}</h4>
@@ -215,7 +216,7 @@ const DisposedFoldersView: React.FC = () => {
     );
 }
 
-export const Disposal: React.FC<{ initialTab?: 'disposable' | 'disposed' }> = ({ initialTab }) => {
+export const Disposal: React.FC<{ initialTab?: 'disposable' | 'disposed', initialFilter?: 'thisYear' | 'nextYear' | 'overdue' }> = ({ initialTab, initialFilter }) => {
     const [activeTab, setActiveTab] = useState<'disposable' | 'disposed'>(initialTab || 'disposable');
     
     useEffect(() => {
@@ -231,14 +232,16 @@ export const Disposal: React.FC<{ initialTab?: 'disposable' | 'disposed' }> = ({
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">İmha Yönetimi</h2>
                 </div>
 
-                <div className="flex space-x-1 border-b dark:border-gray-700 mb-4 transition-colors duration-300">
+                <div className="flex space-x-1 border-b dark:border-gray-600 mb-4 transition-colors duration-300">
                     <button onClick={() => setActiveTab('disposable')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposable' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Bekleyenler</button>
                     <button onClick={() => setActiveTab('disposed')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposed' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Edilenler</button>
                 </div>
                 
-                {activeTab === 'disposable' ? <DisposableFoldersView /> : <DisposedFoldersView />}
+                {activeTab === 'disposable' ? <DisposableFoldersView initialFilter={initialFilter} /> : <DisposedFoldersView />}
 
             </div>
         </div>
     );
 };
+
+export default Disposal;

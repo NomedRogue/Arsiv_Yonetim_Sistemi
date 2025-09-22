@@ -15,8 +15,8 @@ import { CheckoutModal } from '@/components/CheckoutModal';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
 
-const API_BASE = (process.env as any).API_BASE;
-const api = (p: string) => `${API_BASE}${p.startsWith('/') ? '' : '/'}${p}`;
+// Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek
+const api = (p: string) => `/api${p.startsWith('/') ? '' : '/'}${p}`;
 
 const initialFormState = {
   general: '',
@@ -42,8 +42,6 @@ type SearchProps = FolderActionProps & {
 
 export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria }) => {
   const {
-    folders: searchResults,
-    setFolders,
     getDepartmentName,
     departments,
     addCheckout,
@@ -52,6 +50,8 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
     deleteFolder,
   } = useArchive();
 
+  // Search component'ı için kendi local state'i
+  const [searchResults, setSearchResults] = useState<Folder[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +83,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
       const res = await fetch(api(`/folders?${params.toString()}`));
       if (!res.ok) throw new Error('Arama başarısız oldu');
       const data = await res.json();
-      setFolders(data.items);
+      setSearchResults(data.folders || data.items || []);
       setTotalItems(data.total);
       if (data.total === 0 && hasSearched) { // Sadece aktif bir aramadan sonra göster
         toast.info('Kriterlere uygun klasör bulunamadı.');
@@ -93,7 +93,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
     } finally {
       setIsLoading(false);
     }
-  }, [setFolders, hasSearched]);
+  }, [hasSearched]);
   
   // Dashboard'dan yönlendirme ile geldiğinde aramayı tetikle
   useEffect(() => {
@@ -115,9 +115,9 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
   // Sayfadan ayrılırken sonuçları temizle
   useEffect(() => {
     return () => {
-      setFolders([]);
+      setSearchResults([]);
     }
-  }, [setFolders]);
+  }, []);
 
 
   const getStatusBadgeColor = (status: FolderStatus) => {
@@ -183,7 +183,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
   const confirmDelete = async () => {
     if (selectedFolderToDelete) {
       await deleteFolder(selectedFolderToDelete.id);
-      if (searchResults.length === 1 && currentPage > 1) {
+      if ((searchResults?.length || 0) === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
         fetchResults(currentPage, criteria);
@@ -200,7 +200,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
   const resetCriteria = () => {
     setCriteria(initialFormState);
     setHasSearched(false);
-    setFolders([]);
+    setSearchResults([]);
     setTotalItems(0);
     setCurrentPage(1);
   };
@@ -247,7 +247,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
               value={criteria.general}
               onChange={handleChange}
               placeholder="Tüm alanlarda ara..."
-              className="w-full p-3 pl-10 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              className="w-full p-3 pl-10 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
             />
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           </div>
@@ -285,7 +285,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
                 name="category"
                 value={criteria.category}
                 onChange={handleChange}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Kategori: Tümü</option>
                 <option value={Category.Tibbi}>Tıbbi</option>
@@ -296,7 +296,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
                 name="departmentId"
                 value={criteria.departmentId}
                 onChange={handleChange}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Birim: Tümü</option>
                 {filteredDepartments.map(d => (
@@ -396,8 +396,8 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
                     Sonuçları görmek için yukarıdaki arama alanlarını kullanın.
                   </p>
                 </div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map(folder => (
+              ) : (searchResults?.length || 0) > 0 ? (
+                (searchResults || []).map(folder => (
                   <div
                     key={folder.id}
                     className="p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-slate-800/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.01]"
@@ -534,3 +534,5 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
     </div>
   );
 };
+
+export default Search;

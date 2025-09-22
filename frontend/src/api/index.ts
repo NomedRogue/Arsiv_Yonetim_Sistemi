@@ -1,13 +1,8 @@
 // frontend/src/api/index.ts
-import { Folder, Checkout, Disposal, Log, Settings, Department, StorageStructure, Location } from '@/types';
+import { Folder, Checkout, Disposal, Log, Settings, Department, StorageStructure, Location, DashboardStats } from '@/types';
 
-// Dev'de Vite proxy: "/api", paketli Electron'da: "http://localhost:3001"
-const API: string = 
-  // Production'da (Electron içinde) her zaman localhost:3001 kullan
-  typeof window !== 'undefined' && window.location.protocol === 'file:'
-    ? 'http://localhost:3001/api'
-    : // Development'ta Vite proxy kullan
-      '/api';
+// Vite proxy kullan - dev'de /api → http://localhost:3001/api, prod'da direkt /api
+const API: string = '/api';
 
 // Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -28,6 +23,14 @@ async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T>
   return res.json() as Promise<T>;
 }
 
+// Dashboard endpoints
+export const getDashboardStats = (treemapFilter?: string, yearFilter?: string): Promise<DashboardStats> => {
+  const params = new URLSearchParams();
+  if (treemapFilter) params.append('treemapFilter', treemapFilter);
+  if (yearFilter) params.append('yearFilter', yearFilter);
+  return http<DashboardStats>(`${API}/dashboard-stats?${params.toString()}`);
+};
+
 export const getAllData = () => http(`${API}/all-data`);
 export const saveConfigs = (configs: { settings?: any; departments?: any; storageStructure?: any }) => http(`${API}/save-configs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(configs) });
 
@@ -36,6 +39,7 @@ export const createFolder = (folder: Folder) => http<Folder>(`${API}/folders`, {
 export const updateFolder = (folder: Folder) => http<Folder>(`${API}/folders/${folder.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(folder) });
 export const removeFolder = (folderId: number) => http(`${API}/folders/${folderId}`, { method: 'DELETE' });
 export const getFolder = (folderId: number) => http<Folder>(`${API}/folders/${folderId}`);
+export const getFolders = (params?: URLSearchParams) => http(`${API}/folders${params ? `?${params.toString()}` : ''}`);
 export const getAllFoldersForAnalysis = () => http<Folder[]>(`${API}/all-folders-for-analysis`);
 export const getFoldersByLocation = (location: Location) => http<Folder[]>(`${API}/folders-by-location`, {
     method: 'POST',
@@ -51,7 +55,10 @@ export const updateCheckout = (checkout: Checkout) => http<Checkout>(`${API}/che
 export const getActiveCheckouts = () => http<(Checkout & { folder: Folder })[]>(`${API}/checkouts/active`);
 
 // Disposal Actions
-export const createDisposal = (disposal: Disposal) => http<Disposal>(`${API}/disposals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(disposal) });
+export const createDisposal = (disposal: Disposal) => {
+  console.log('[FRONTEND API] Creating disposal:', disposal);
+  return http<Disposal>(`${API}/disposals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(disposal) });
+};
 
 // Log Actions
 export const addLogEntry = (log: Omit<Log, 'id' | 'timestamp'>) => http(`${API}/logs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(log) });
@@ -71,4 +78,12 @@ export async function deleteBackup(filename: string) {
   return http(`${API}/delete-backup/${encodeURIComponent(filename)}`, {
     method: 'DELETE',
   });
+}
+
+export async function getBackups() {
+  return http<{backups: any[], folder: string}>(`${API}/list-backups`);
+}
+
+export async function backupDbToFolder() {
+  return http(`${API}/backup-db-to-folder`, { method: 'POST' });
 }

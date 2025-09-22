@@ -7,8 +7,8 @@ import { CheckoutModal } from '@/components/CheckoutModal';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
 
-const API_BASE = (process.env as any).API_BASE;
-const api = (p: string) => `${API_BASE}${p.startsWith('/') ? '' : '/'}${p}`;
+// Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek  
+const api = (p: string) => `/api${p.startsWith('/') ? '' : '/'}${p}`;
 
 // Memoized FolderRow component for better performance
 interface FolderRowProps {
@@ -129,17 +129,16 @@ interface Props {
 export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const {
     folders,
-    setFolders,
+    loading,
     getDepartmentName,
     addCheckout,
     getCheckoutsForFolder,
     returnCheckout,
     deleteFolder,
+    refresh, // Context'ten gelen folders'ı yenilemek için
   } = useArchive();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 20;
 
   const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -148,24 +147,14 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedFolderToDelete, setSelectedFolderToDelete] = useState<Folder | null>(null);
 
-  const fetchFolders = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(api(`/folders?page=${page}&limit=${itemsPerPage}&sortBy=createdAt&order=desc`));
-      if (!res.ok) throw new Error('Klasörler alınamadı');
-      const data = await res.json();
-      setFolders(data.items);
-      setTotalItems(data.total);
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setFolders]);
+  // Context'teki folders'ı kullan, paginate et
+  const paginatedFolders = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return (folders || []).slice(startIndex, endIndex);
+  }, [folders, currentPage, itemsPerPage]);
 
-  useEffect(() => {
-    fetchFolders(currentPage);
-  }, [currentPage, fetchFolders]);
+  const totalItems = (folders || []).length;
 
   // Optimized memoized callbacks
   const handleOpenCheckoutModal = useCallback((folder: Folder) => {
@@ -202,16 +191,16 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const confirmDelete = useCallback(async () => {
     if (selectedFolderToDelete) {
       await deleteFolder(selectedFolderToDelete.id);
-      // Refresh current page
-      if (folders.length === 1 && currentPage > 1) {
+      // Context'teki refresh ile verileri yenile
+      await refresh();
+      // İlk sayfaya dön
+      if ((folders?.length || 0) === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
-      } else {
-        fetchFolders(currentPage);
       }
     }
     setDeleteModalOpen(false);
     setSelectedFolderToDelete(null);
-  }, [selectedFolderToDelete, deleteFolder, folders.length, currentPage, setCurrentPage, fetchFolders]);
+  }, [selectedFolderToDelete, deleteFolder, folders?.length, currentPage, setCurrentPage, refresh]);
 
   const statusColor = (st: FolderStatus) =>
     st === FolderStatus.Arsivde ? 'green' : st === FolderStatus.Cikista ? 'yellow' : 'red';
@@ -247,13 +236,13 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
       <div className="bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg transition-colors duration-300">
         <h2 className="text-2xl font-bold mb-4">Tüm Klasörler ({totalItems})</h2>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
           </div>
         ) : (
           <div className="space-y-3">
-            {folders.map((folder) => (
+            {paginatedFolders.map((folder) => (
               <FolderRow
                 key={folder.id}
                 folder={folder}
@@ -266,7 +255,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 onDelete={() => askDelete(folder)}
               />
             ))}
-            {folders.length === 0 && (
+            {(folders?.length || 0) === 0 && (
               <div className="text-center text-gray-500 py-10">Kayıt bulunamadı.</div>
             )}
           </div>
@@ -277,7 +266,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
           <div className="flex justify-between items-center mt-6">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || isLoading}
+              disabled={currentPage === 1 || loading}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600"
             >
               <ChevronLeft size={16} className="inline-block mr-1" />
@@ -288,7 +277,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
             </span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || isLoading}
+              disabled={currentPage === totalPages || loading}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600"
             >
               Sonraki
@@ -300,3 +289,5 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     </div>
   );
 };
+
+export default FolderList;

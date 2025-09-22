@@ -8,10 +8,6 @@ const { getUserDataPath } = require('./fileHelper');
 const isDev = process.env.NODE_ENV === 'development';
 
 const log = (level, message, meta) => {
-  if (level === 'info' && !isDev) {
-    return; // Don't log info level in production to reduce noise
-  }
-  
   const logEntry = {
     level,
     timestamp: new Date().toISOString(),

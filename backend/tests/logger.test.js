@@ -33,12 +33,8 @@ describe('Logger', () => {
       expect(consoleSpy.info).toHaveBeenCalled();
       const logOutput = consoleSpy.info.mock.calls[0][0];
       expect(logOutput).toContain('Test message');
-      // Metadata might be formatted differently based on logger implementation
-      // Just check if any additional argument was passed
-      expect(consoleSpy.info).toHaveBeenCalledWith(
-        expect.stringContaining('Test message'),
-        expect.any(Object)
-      );
+      expect(logOutput).toContain('key');
+      expect(logOutput).toContain('value');
     });
   });
 

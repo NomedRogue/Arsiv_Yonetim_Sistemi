@@ -5,7 +5,7 @@ import {
   ALL_DEPARTMENTS,
   INITIAL_STORAGE_STRUCTURE,
 } from '@/constants';
-import { getAllData } from '@/api';
+import { getAllData, getFolders } from '@/api';
 import { toast } from '@/lib/toast';
 
 const parseDates = (items: any[], dateKeys: string[]) =>
@@ -25,6 +25,9 @@ export const useArchiveState = () => {
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const data = await getAllData();
+      
+      // Klasörleri de yükle
+      const foldersResponse = await getFolders();
 
       dispatch({
         type: 'SET_ALL_DATA',
@@ -32,7 +35,7 @@ export const useArchiveState = () => {
           settings: { ...DEFAULT_SETTINGS, ...data.settings },
           departments: data.departments || ALL_DEPARTMENTS,
           storageStructure: data.storageStructure || INITIAL_STORAGE_STRUCTURE,
-          folders: [], // Klasörler sayfa bazlı yüklenir.
+          folders: parseDates(foldersResponse.folders || [], ['createdAt', 'updatedAt']),
           checkouts: parseDates(data.checkouts || [], ['checkoutDate', 'plannedReturnDate', 'actualReturnDate']),
           disposals: parseDates(data.disposals || [], ['disposalDate']),
           logs: parseDates(data.logs || [], ['timestamp']),

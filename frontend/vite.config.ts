@@ -13,7 +13,28 @@ export default defineConfig(({ mode }) => {
   return {
     base: './',
     plugins: [
-      react(),
+      react({
+        jsxRuntime: 'automatic',
+        // Production build için özel yapılandırma
+        ...(mode === 'production' && {
+          jsxImportSource: 'react'
+        })
+      }),
+      // Health check middleware for wait-on compatibility
+      {
+        name: 'health-check',
+        configureServer(server: any) {
+          server.middlewares.use('/health', (req: any, res: any, next: any) => {
+            if (req.method === 'HEAD' || req.method === 'GET') {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ status: 'ok' }));
+            } else {
+              next();
+            }
+          });
+        }
+      },
       mode === 'analyze' && visualizer({
         filename: 'dist/bundle-analysis.html',
         open: false,
@@ -23,6 +44,9 @@ export default defineConfig(({ mode }) => {
     ].filter(Boolean),
 
     server: {
+      port: 5173,
+      host: '127.0.0.1',
+      middlewareMode: false,
       proxy: {
         '/api': {
           target: 'http://localhost:3001',
@@ -36,7 +60,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            react: ['react', 'react-dom']
+            react: ['react', 'react-dom'],
+            charts: ['recharts'],
+            icons: ['lucide-react']
           }
         }
       },
@@ -49,7 +75,9 @@ export default defineConfig(({ mode }) => {
         mangle: {
           safari10: true
         }
-      }
+      },
+      cssMinify: true,
+      cssCodeSplit: true
     },
 
     optimizeDeps: {
@@ -57,8 +85,7 @@ export default defineConfig(({ mode }) => {
     },
 
     esbuild: {
-      target: 'es2020',
-      logOverride: { 'this-is-undefined-in-esm': 'silent' }
+      target: 'es2020'
     },
 
     resolve: {
@@ -68,11 +95,13 @@ export default defineConfig(({ mode }) => {
     },
 
     define: {
-      'process.env.API_BASE': JSON.stringify(
-        mode === 'development' ? '/api' : 'http://localhost:3001'
-      ),
+      // Production'da her zaman localhost:3001 kullan (Electron için)
+      'process.env.API_BASE': JSON.stringify('http://localhost:3001'),
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.NODE_ENV': JSON.stringify(mode)
+      'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
+      // React development özelliklerini devre dışı bırak
+      '__DEV__': mode === 'development',
+      'process.env.REACT_APP_NODE_ENV': JSON.stringify('production')
     }
   };
 });

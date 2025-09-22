@@ -82,9 +82,9 @@ export interface Checkout {
 }
 
 export interface Disposal {
-  id: number;
+  id: string; // Backend'te TEXT olarak tanımlı
   folderId: number;
-  disposalDate: Date;
+  disposalDate: string; // ISO string olarak
   reason?: string;
   originalFolderData: Folder;
 }
@@ -267,4 +267,22 @@ export interface ArchiveContextType extends ArchiveState {
   isUnitDeletable: (type: StorageType, id: number) => boolean;
   restoreFromBackup: (data: BackupPayload) => void;
   setFolders: (folders: Folder[]) => void;
+}
+
+// Dashboard Stats Interface
+export interface DashboardStats {
+  totalFolders: number;
+  tibbiCount: number;
+  idariCount: number;
+  arsivDisindaCount: number;
+  iadeGecikenCount: number;
+  buYilImhaEdilenecekCount: number;
+  gelecekYilImhaEdilenecekCount: number;
+  imhaSuresiGecenCount: number;
+  imhaEdilenCount: number;
+  overallOccupancy: number;
+  treemapData: any[];
+  clinicDistributionData: any[];
+  monthlyData: any[];
+  availableYears: number[];
 }

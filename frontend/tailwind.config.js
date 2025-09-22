@@ -7,6 +7,9 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      screens: {
+        '3xl': '1920px', // Ultra-wide ekranlar için
+      },
       colors: {
         "archive-primary": "#0078D4",
         "archive-secondary": "#E5F3FF",
@@ -19,7 +22,22 @@ export default {
         "status-yellow": "#FFC107",
         "status-red": "#DC3545",
         "status-orange": "#FD7E14",
-        "status-blue": "#007BFF"
+        "status-blue": "#007BFF",
+        // Chart colors for different themes
+        "chart-light": {
+          "primary": "#0078D4",
+          "secondary": "#E5F3FF",
+          "accent": "#8884d8",
+          "success": "#82ca9d",
+          "warning": "#FD7E14"
+        },
+        "chart-dark": {
+          "primary": "#3B82F6",
+          "secondary": "#1F2937",
+          "accent": "#3B82F6",
+          "success": "#10B981",
+          "warning": "#F59E0B"
+        }
       }
     },
     fontFamily: {

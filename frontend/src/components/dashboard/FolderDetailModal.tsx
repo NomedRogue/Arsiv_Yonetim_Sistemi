@@ -14,9 +14,9 @@ interface FolderDetailModalProps {
 const DetailItem: React.FC<{ label: string; value?: ReactNode | null }> = ({ label, value }) => {
   if (!value && value !== 0) return null;
   return (
-    <div className="py-2 px-3 bg-gray-50 dark:bg-slate-700/50 rounded-md">
-      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="text-sm text-gray-900 dark:text-gray-200">{value}</p>
+    <div className="py-2.5 px-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-100 dark:border-slate-600">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</p>
+      <div className="text-sm text-gray-900 dark:text-gray-200">{value}</div>
     </div>
   );
 };
@@ -26,10 +26,20 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
 
   const getStatusBadge = () => {
     let color: 'green' | 'yellow' | 'red' | 'gray' = 'gray';
-    if (folder.status === FolderStatus.Arsivde) color = 'green';
-    else if (folder.status === FolderStatus.Cikista) color = 'yellow';
-    else if (folder.status === FolderStatus.Imha) color = 'red';
-    return <Badge text={folder.status} color={color} />;
+    let displayText: string = folder.status;
+    
+    if (folder.status === FolderStatus.Arsivde) {
+      color = 'green';
+      displayText = 'Arşivde';
+    } else if (folder.status === FolderStatus.Cikista) {
+      color = 'yellow';
+      displayText = 'Çıkışta';
+    } else if (folder.status === FolderStatus.Imha) {
+      color = 'red';
+      displayText = 'İmha Edildi';
+    }
+    
+    return <Badge text={displayText} color={color} />;
   }
 
   return (

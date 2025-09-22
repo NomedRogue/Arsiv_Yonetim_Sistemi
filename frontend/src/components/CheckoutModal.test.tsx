@@ -1,4 +1,5 @@
 import React from 'react';
+import { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
@@ -74,21 +75,20 @@ describe('CheckoutModal Bileşeni', () => {
         onConfirm={onConfirmMock}
       />
     );
-    
     // Initially, description is not visible
     expect(screen.queryByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeNull();
-    
     // Click 'Kısmi'
     const kismiRadio = screen.getByLabelText('Kısmi');
-    await user.click(kismiRadio);
-
+    await act(async () => {
+      await user.click(kismiRadio);
+    });
     // Now it should be visible
     expect(screen.getByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeTruthy();
-    
     // Click 'Tam'
     const tamRadio = screen.getByLabelText('Tam');
-    await user.click(tamRadio);
-    
+    await act(async () => {
+      await user.click(tamRadio);
+    });
     // It should be hidden again
     expect(screen.queryByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeNull();
   });
@@ -103,18 +103,20 @@ describe('CheckoutModal Bileşeni', () => {
         onConfirm={onConfirmMock}
       />
     );
-
-    await user.type(screen.getByLabelText('Alan Kişi Adı (Zorunlu)'), 'John');
-    await user.type(screen.getByLabelText('Alan Kişi Soyadı (Zorunlu)'), 'Smith');
-    
-    // userEvent.type does not work reliably with date inputs in JSDOM, use fireEvent.change
-    fireEvent.change(screen.getByLabelText('Planlanan İade Tarihi (Zorunlu)'), {
-      target: { value: '2025-02-15' },
+    await act(async () => {
+      await user.type(screen.getByLabelText('Alan Kişi Adı (Zorunlu)'), 'John');
+      await user.type(screen.getByLabelText('Alan Kişi Soyadı (Zorunlu)'), 'Smith');
     });
-    
+    // userEvent.type does not work reliably with date inputs in JSDOM, use fireEvent.change
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Planlanan İade Tarihi (Zorunlu)'), {
+        target: { value: '2025-02-15' },
+      });
+    });
     const confirmButton = screen.getByRole('button', { name: 'Çıkış Ver' });
-    await user.click(confirmButton);
-    
+    await act(async () => {
+      await user.click(confirmButton);
+    });
     expect(onConfirmMock).toHaveBeenCalledWith({
       folderId: mockFolder.id,
       checkoutType: CheckoutType.Tam,
