@@ -31,12 +31,45 @@ export const CheckoutReturn: React.FC = () => {
         const sortedData = data.sort((a, b) => toDate(a.plannedReturnDate).getTime() - toDate(b.plannedReturnDate).getTime())
         setActiveCheckouts(sortedData);
       } catch (error: any) {
-        toast.error(`Aktif çıkışlar alınamadı: ${error.message}`);
+        // Sadece gerçek hataları göster, boş veri durumunu değil
+        if (error.message && !error.message.includes('Failed to fetch')) {
+          toast.error(`Aktif çıkışlar alınamadı: ${error.message}`);
+        }
+        setActiveCheckouts([]);
       } finally {
         setIsLoading(false);
       }
     };
     fetchCheckouts();
+  }, []);
+  
+  // SSE listener: Checkout değişikliklerini dinle ve listeyi yenile
+  useEffect(() => {
+    const fetchCheckouts = async () => {
+      try {
+        const data = await api.getActiveCheckouts();
+        const sortedData = data.sort((a, b) => toDate(a.plannedReturnDate).getTime() - toDate(b.plannedReturnDate).getTime())
+        setActiveCheckouts(sortedData);
+      } catch (error: any) {
+        // Sessizce handle et
+        setActiveCheckouts([]);
+      }
+    };
+    
+    const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:3001';
+    const eventSource = new EventSource(`${baseUrl}/api/events`);
+    
+    const handleCheckoutChange = () => {
+      // Checkout oluşturuldu, güncellendi - listeyi yenile
+      fetchCheckouts();
+    };
+    
+    eventSource.addEventListener('checkout_created', handleCheckoutChange);
+    eventSource.addEventListener('checkout_updated', handleCheckoutChange);
+    
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   const getCardColor = (checkout: Checkout) => {

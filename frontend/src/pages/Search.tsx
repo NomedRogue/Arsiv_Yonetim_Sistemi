@@ -14,9 +14,15 @@ import { RETENTION_CODES } from '@/constants';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
+import * as apiService from '@/api';
 
-// Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek
-const api = (p: string) => `/api${p.startsWith('/') ? '' : '/'}${p}`;
+// Production'da (Electron) veya development'da doğru URL kullan
+const api = (p: string) => {
+  const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
+  return `${baseUrl}${p.startsWith('/') ? '' : '/'}${p}`;
+};
+// PDF viewer için alias
+const getApiUrl = api;
 
 const initialFormState = {
   general: '',
@@ -89,7 +95,12 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
         toast.info('Kriterlere uygun klasör bulunamadı.');
       }
     } catch (error: any) {
-      toast.error(error.message);
+      // Sadece gerçek hataları göster, boş veri durumunu değil
+      if (error.message && !error.message.includes('Failed to fetch')) {
+        toast.error(error.message);
+      }
+      setSearchResults([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +122,29 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
       fetchResults(currentPage, criteria);
     }
   }, [currentPage]);
+  
+  // SSE listener: Klasör değişikliklerini dinle ve sonuçları yenile
+  useEffect(() => {
+    if (!hasSearched) return; // Arama yapılmamışsa listener başlatma
+    
+    const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:3001';
+    const eventSource = new EventSource(`${baseUrl}/api/events`);
+    
+    const handleFolderChange = () => {
+      // Klasör güncellendi veya checkout değişti - sonuçları yenile
+      fetchResults(currentPage, criteria);
+    };
+    
+    eventSource.addEventListener('folder_created', handleFolderChange);
+    eventSource.addEventListener('folder_updated', handleFolderChange);
+    eventSource.addEventListener('folder_deleted', handleFolderChange);
+    eventSource.addEventListener('checkout_created', handleFolderChange);
+    eventSource.addEventListener('checkout_updated', handleFolderChange);
+    
+    return () => {
+      eventSource.close();
+    };
+  }, [hasSearched, currentPage, criteria, fetchResults]);
   
   // Sayfadan ayrılırken sonuçları temizle
   useEffect(() => {
@@ -157,21 +191,57 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
     setSelectedFolderForCheckout(null);
   };
 
-  const handleConfirmCheckout = (checkoutData: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
-    addCheckout(checkoutData);
-    handleCloseCheckoutModal();
-    toast.success('Çıkış verildi.');
+  const handleConfirmCheckout = async (checkoutData: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
+    try {
+      const newCheckout = { ...checkoutData, id: Date.now(), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
+      const folder = searchResults.find(f => f.id === checkoutData.folderId);
+      
+      if (!folder) {
+        toast.error('Çıkış yapılacak klasör bulunamadı.');
+        return;
+      }
+      
+      const updatedFolder = { ...folder, status: FolderStatus.Cikista, updatedAt: new Date() };
+      
+      await apiService.createCheckout(newCheckout);
+      await apiService.updateFolder(updatedFolder);
+      
+      handleCloseCheckoutModal();
+      toast.success('Çıkış verildi.');
+      fetchResults(currentPage, criteria); // Listeyi yenile
+    } catch (e: any) {
+      toast.error(`Çıkış işlemi kaydedilemedi: ${e.message}`);
+    }
   };
 
-  const handleReturnFolder = (folderId: number) => {
-    const activeCheckout = getCheckoutsForFolder(folderId).find(
-      c => c.status === CheckoutStatus.Cikista
-    );
-    if (activeCheckout) {
-      returnCheckout(activeCheckout.id);
-      toast.success('İade alındı.');
-    } else {
-      toast.info('Bu klasör için aktif bir çıkış bulunamadı.');
+  const handleReturnFolder = async (folderId: number) => {
+    try {
+      // Direkt API'den aktif checkout'u al
+      const checkouts = await apiService.getActiveCheckouts();
+      const activeCheckout = checkouts.find(c => c.folderId === folderId && c.status === CheckoutStatus.Cikista);
+      
+      if (!activeCheckout) {
+        toast.info('Bu klasör için aktif bir çıkış bulunamadı.');
+        return;
+      }
+      
+      // İade işlemi
+      const folder = searchResults.find(f => f.id === folderId);
+      if (!folder) {
+        toast.error('Klasör bulunamadı.');
+        return;
+      }
+      
+      const updatedCheckout = { ...activeCheckout, status: CheckoutStatus.IadeEdildi, actualReturnDate: new Date() };
+      const updatedFolder = { ...folder, status: FolderStatus.Arsivde, updatedAt: new Date() };
+      
+      await apiService.updateCheckout(updatedCheckout);
+      await apiService.updateFolder(updatedFolder);
+      
+      toast.success('Klasör iade alındı.');
+      fetchResults(currentPage, criteria); // Listeyi yenile
+    } catch (e: any) {
+      toast.error(`İade işlemi başarısız: ${e.message}`);
     }
   };
 
@@ -182,11 +252,17 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
 
   const confirmDelete = async () => {
     if (selectedFolderToDelete) {
-      await deleteFolder(selectedFolderToDelete.id);
-      if ((searchResults?.length || 0) === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        fetchResults(currentPage, criteria);
+      try {
+        await apiService.removeFolder(selectedFolderToDelete.id);
+        toast.success('Klasör ve ilişkili kayıtlar silindi.');
+        
+        if ((searchResults?.length || 0) === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          fetchResults(currentPage, criteria);
+        }
+      } catch (e: any) {
+        toast.error(`Klasör silinemedi: ${e.message}`);
       }
     }
     setDeleteModalOpen(false);
@@ -379,7 +455,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
 
         <div className="mt-6">
           <h3 className="text-xl font-semibold mb-4 transition-colors duration-300">
-            Arama Sonuçları ({totalItems})
+            Arama Sonuçları
           </h3>
             
           {isLoading ? (
@@ -448,7 +524,7 @@ export const Search: React.FC<SearchProps> = ({ onEditFolder, initialCriteria })
                           {folder.pdfPath && (
                             <button
                               title="PDF Görüntüle"
-                              onClick={() => window.open(`/api/serve-pdf/${folder.pdfPath}`, '_blank')}
+                              onClick={() => window.open(getApiUrl(`/serve-pdf/${folder.pdfPath}`), '_blank')}
                               className="p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors duration-300"
                             >
                               <FileText size={16} />

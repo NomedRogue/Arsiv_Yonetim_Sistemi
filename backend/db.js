@@ -10,6 +10,17 @@ const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
 
 const DB_FILE = process.env.DB_PATH || getUserDataPath('arsiv.db');
+// Veritabanı dosyası yoksa otomatik oluştur
+if (!fs.existsSync(DB_FILE)) {
+  try {
+    new Database(DB_FILE).close();
+    logger.info('[DB INIT] db.js\'de yeni boş veritabanı oluşturuldu: ' + DB_FILE);
+  } catch (dbCreateErr) {
+    logger.error('[DB INIT] db.js\'de veritabanı oluşturulamadı', { error: dbCreateErr });
+  }
+} else {
+  logger.info('[DB INIT] db.js\'de veritabanı zaten mevcut: ' + DB_FILE);
+}
 let dbInstance = null; // Lazy initialization
 
 const SCHEMA_VERSION = 1;
@@ -265,6 +276,13 @@ const dbManager = {
   },
   
   getById(tableName, id) {
+    // Folders tablosu için özel handling (migration sonrası ayrı kolonlar)
+    if (tableName === 'folders') {
+      const row = this.getDbInstance().prepare(`SELECT * FROM folders WHERE id = ?`).get(String(id));
+      return row ? rowToFolder(row) : null;
+    }
+    
+    // Diğer tablolar için eski JSON format
     const row = this.getDbInstance().prepare(`SELECT data FROM ${tableName} WHERE id = ?`).get(String(id));
     return row ? JSON.parse(row.data) : null;
   },
@@ -300,7 +318,8 @@ const dbManager = {
   
   getFolderById(id) {
     const db = this.getDbInstance();
-    const row = db.prepare('SELECT * FROM folders WHERE id = ?').get(id);
+    // ID'yi string'e çevir çünkü folders tablosunda id TEXT tipinde
+    const row = db.prepare('SELECT * FROM folders WHERE id = ?').get(String(id));
     return rowToFolder(row);
   },
   
@@ -419,7 +438,7 @@ const dbManager = {
           const disposalStmt = db.prepare('INSERT INTO disposals (id, data) VALUES (?, ?)');
           for (const item of disposals) disposalStmt.run(String(item.id), JSON.stringify(item));
 
-          db.prepare('DELETE FROM folders WHERE id = ?').run(folderId);
+          db.prepare('DELETE FROM folders WHERE id = ?').run(String(folderId));
       })();
       return { id: folderId };
   },
@@ -572,13 +591,22 @@ const dbManager = {
     const categoryCounts = db.prepare(`SELECT category, COUNT(*) as count FROM folders WHERE status != 'İmha' GROUP BY category`).all();
     const tibbiCount = categoryCounts.find(c => c.category === 'Tıbbi')?.count || 0;
     const idariCount = categoryCounts.find(c => c.category === 'İdari')?.count || 0;
-    const { arsivDisindaCount } = db.prepare(`SELECT COUNT(*) as arsivDisindaCount FROM folders WHERE status = 'Çıkışta'`).get() || { arsivDisindaCount: 0 };
-    const { imhaEdilenCount } = db.prepare(`SELECT COUNT(*) as imhaEdilenCount FROM disposals`).get() || { imhaEdilenCount: 0 };
-
+    
+    // Arşiv Dışında - checkouts tablosundan hesapla (daha doğru)
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const checkoutsRaw = this.getList('checkouts');
-    const iadeGecikenCount = checkoutsRaw.filter(c => c.status === 'Çıkışta' && new Date(c.plannedReturnDate) < now).length;
+    const activeCheckouts = checkoutsRaw.filter(c => c.status === 'Çıkışta');
+    const arsivDisindaCount = activeCheckouts.length;
+    const iadeGecikenCount = activeCheckouts.filter(c => new Date(c.plannedReturnDate) < now).length;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DEBUG] Aktif checkout sayısı (Arşiv Dışında):', arsivDisindaCount);
+      console.log('[DEBUG] İade geciken sayısı:', iadeGecikenCount);
+      console.log('[DEBUG] Aktif checkout\'lar:', activeCheckouts.map(c => ({ id: c.id, folderId: c.folderId, status: c.status, plannedReturn: c.plannedReturnDate })));
+    }
+    
+    const { imhaEdilenCount } = db.prepare(`SELECT COUNT(*) as imhaEdilenCount FROM disposals`).get() || { imhaEdilenCount: 0 };
 
     const currentYear = now.getFullYear();
     // Bu yıl imha edilecek klasörler (dinamik olarak şu anki yıl)
@@ -590,6 +618,7 @@ const dbManager = {
     // İmha süresi geçen klasörler (geçmiş yıllarda imha edilmesi gerekenler)
     const { imhaSuresiGecenCount } = db.prepare(`SELECT COUNT(*) as imhaSuresiGecenCount FROM folders WHERE status != 'İmha' AND (fileYear + retentionPeriod + 1) < ?`).get(currentYear) || { imhaSuresiGecenCount: 0 };
     
+    // OCCUPANCY HESAPLAMA: Çıkışta olanlar dahil (vekil dosya ile yer kaplıyor), sadece İmha edilenler hariç
     const foldersForOccupancy = db.prepare('SELECT folderType, locationStorageType FROM folders WHERE status != ?').all('İmha');
     const darW = settings.darKlasorGenisligi || 3;
     const genisW = settings.genisKlasorGenisligi || 5;

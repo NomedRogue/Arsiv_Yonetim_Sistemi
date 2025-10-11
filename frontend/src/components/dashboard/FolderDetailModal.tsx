@@ -4,6 +4,12 @@ import { Folder, Category, FolderStatus } from '@/types';
 import { Badge } from '@/components/Badge';
 import { FileText } from 'lucide-react';
 
+// API URL helper - production'da doğrudan backend'e bağlan
+const getApiUrl = (path: string) => {
+  const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
+  return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
+};
+
 interface FolderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -76,7 +82,7 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
         {folder.pdfPath && (
           <div className="mt-4">
             <a
-              href={`/api/serve-pdf/${folder.pdfPath}`}
+              href={getApiUrl(`/serve-pdf/${folder.pdfPath}`)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-300"

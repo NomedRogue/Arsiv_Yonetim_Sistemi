@@ -268,23 +268,33 @@ export const useArchiveActions = (
         originalFolderData: f 
       }));
       
-      console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
+      }
       
       dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => foldersToUpdate.find(u => u.id === f.id) || f) });
       dispatch({ type: 'SET_DISPOSALS', payload: [...newDisposals, ...state.disposals] });
       
       try {
-        console.log('[DISPOSE DEBUG] About to update folders...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[DISPOSE DEBUG] About to update folders...');
+        }
         await Promise.all(foldersToUpdate.map(api.updateFolder));
-        console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
+        }
         await Promise.all(newDisposals.map(api.createDisposal));
-        console.log('[DISPOSE DEBUG] All API calls successful!');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[DISPOSE DEBUG] All API calls successful!');
+        }
         toast.success(`${folderIds.length} klasör imha edildi.`);
         
         const details = `${folderIds.length} klasör imha edildi. Detaylar: ${foldersToDispose.map(f => getFolderLogDetails(f)).join(' | ')}`;
         addLog({ type: 'dispose', details });
       } catch (e: any) {
-        console.log('[DISPOSE ERROR] Error during disposal:', e);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[DISPOSE ERROR] Error during disposal:', e);
+        }
         toast.error(`İmha işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousState.folders });
         dispatch({ type: 'SET_DISPOSALS', payload: previousState.disposals });

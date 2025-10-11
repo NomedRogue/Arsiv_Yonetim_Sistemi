@@ -14,6 +14,12 @@ import { CustomInput, CustomSelect } from '@/components/forms/CustomFormControls
 import { LocationSelector } from '@/components/LocationSelector';
 import * as api from '@/api';
 
+// Helper function to get correct API URL
+const getApiUrl = (path: string) => {
+  const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
+  return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
+};
+
 type FormDataType = Omit<
   Folder,
   'id' | 'createdAt' | 'updatedAt' | 'status' | 'departmentId'
@@ -228,7 +234,7 @@ export const FolderForm: React.FC<{
     // 2) Yeni dosya yüklendiyse değiştir
     if (pdfFile && pdfFile.size > 0) {
       if (isEditing && originalFolder?.pdfPath) {
-        await fetch(`/api/delete-pdf/${originalFolder.pdfPath}`, {
+        await fetch(getApiUrl(`/delete-pdf/${originalFolder.pdfPath}`), {
           method: 'DELETE',
         });
       }
@@ -236,7 +242,7 @@ export const FolderForm: React.FC<{
       formDataForUpload.append('pdf', pdfFile);
 
       try {
-        const uploadResponse = await fetch('/api/upload-pdf', {
+        const uploadResponse = await fetch(getApiUrl('/upload-pdf'), {
           method: 'POST',
           body: formDataForUpload,
         });

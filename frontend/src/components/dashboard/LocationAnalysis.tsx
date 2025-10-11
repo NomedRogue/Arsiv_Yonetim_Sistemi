@@ -46,12 +46,28 @@ const ExpandedShelfView: React.FC<{
                 const shelfFolders = await api.getFoldersByLocation(location);
                 setFolders(shelfFolders);
             } catch (error: any) {
-                toast.error(`Raf içeriği alınamadı: ${error.message}`);
+                // Sadece gerçek hataları göster, boş veri durumunu değil
+                if (error.message && !error.message.includes('Failed to fetch')) {
+                    toast.error(`Raf içeriği alınamadı: ${error.message}`);
+                }
+                setFolders([]);
             } finally {
                 setIsLoading(false);
             }
         };
         fetchFolders();
+        
+        // SSE listener: Klasör değişikliklerinde otomatik refresh
+        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+        const eventSource = new EventSource(`${baseUrl}/api/events`);
+        
+        eventSource.addEventListener('folder_created', fetchFolders);
+        eventSource.addEventListener('folder_updated', fetchFolders);
+        eventSource.addEventListener('folder_deleted', fetchFolders);
+        
+        return () => {
+            eventSource.close();
+        };
     }, [location]);
 
     const handleFolderClick = (folder: Folder) => {
@@ -89,8 +105,8 @@ const ExpandedShelfView: React.FC<{
                                 return (
                                     <div
                                         key={folder.id}
-                                        className={`group relative h-full rounded-sm cursor-pointer flex items-center justify-center text-white text-xs font-bold transition-colors duration-200 ${colorClasses}`}
-                                        style={{ flexBasis: `${widthPercent}%` }}
+                                        className={`group relative h-full rounded-sm flex items-center justify-center text-white text-xs font-bold transition-colors duration-200 ${colorClasses}`}
+                                        style={{ flexBasis: `${widthPercent}%`, cursor: 'pointer' }}
                                         onClick={() => handleFolderClick(folder)}
                                     >
                                         <div className="flex flex-col justify-between items-center h-full text-center p-1 leading-tight text-[10px] xl:text-[11px] font-normal text-shadow-sm">
@@ -344,6 +360,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 key={name}
                 onClick={() => handleSummaryClick(StorageType.Kompakt, name)}
                 className="text-left p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50 transition-all hover:shadow-md hover:scale-105 duration-300"
+                style={{ cursor: 'pointer' }}
               >
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
@@ -366,6 +383,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 key={name}
                 onClick={() => handleSummaryClick(StorageType.Stand, name)}
                 className="text-left p-3 rounded-lg bg-gray-50 dark:bg-slate-700/50 transition-all hover:shadow-md hover:scale-105 duration-300"
+                style={{ cursor: 'pointer' }}
               >
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>

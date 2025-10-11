@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   LayoutDashboard,
   Folder,
@@ -33,11 +34,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onAddNewFolder,
 }) => {
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+  
+  const handleMouseEnter = (itemName: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isOpen) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoveredItem(itemName);
+      setTooltipPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 12,
+      });
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    setHoveredItem(null);
+    setTooltipPosition(null);
+  };
+  
   return (
     <aside
       className={`bg-gray-50 dark:bg-slate-800 flex flex-col shadow-lg ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
-      } h-screen sticky top-0 transition-width duration-300`}
+      } h-screen sticky top-0 transition-width duration-300 z-40`}
     >
       <div
         className={`border-b border-gray-200 dark:border-slate-700 flex items-center shrink-0 h-[69px] p-4 transition-colors duration-300 ${
@@ -58,13 +78,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const Icon = item.icon;
             const isActive = activePage === item.name;
             return (
-              <li key={item.name} className="relative group">
+              <li key={item.name} className="relative group isolate">
                 <button
                   type="button"
                   onClick={() => {
                     if (item.name === 'Yeni Klasör Ekle') onAddNewFolder();
                     else setActivePage(item.name);
                   }}
+                  onMouseEnter={(e) => handleMouseEnter(item.name, e)}
+                  onMouseLeave={handleMouseLeave}
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center w-full p-3 my-1 rounded-lg text-left transition-colors duration-300 ${
                     isActive
@@ -81,23 +103,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {item.name}
                   </span>
                 </button>
-
-                {!isOpen && (
-                  <div className="absolute left-full ml-3 px-2 py-1 text-sm font-medium text-white bg-gray-900 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap dark:bg-slate-900 dark:text-white pointer-events-none z-10">
-                    {item.name}
-                  </div>
-                )}
               </li>
             );
           })}
         </ul>
       </nav>
 
+      {/* Tooltip Portal - Body'e render edilir, en üst katmanda görünür */}
+      {!isOpen && hoveredItem && tooltipPosition && createPortal(
+        <div
+          className="fixed px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-md shadow-2xl whitespace-nowrap dark:bg-slate-900 dark:text-white pointer-events-none animate-in fade-in duration-200"
+          style={{
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`,
+            transform: 'translateY(-50%)',
+            zIndex: 99999,
+          }}
+        >
+          {hoveredItem}
+        </div>,
+        document.body
+      )}
+
       <div className="p-4 border-t border-gray-200 dark:border-slate-700 text-center text-xs text-gray-500 dark:text-slate-400 transition-colors duration-300">
         <p className={`${!isOpen ? 'hidden' : 'whitespace-nowrap'}`}>
           Arşiv Yönetim Sistemi
         </p>
-        <p className={`${!isOpen ? 'hidden' : ''}`}>© 2024</p>
+        <p className={`${!isOpen ? 'hidden' : ''}`}>© 2025</p>
       </div>
     </aside>
   );

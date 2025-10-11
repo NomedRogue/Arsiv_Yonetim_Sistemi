@@ -2,10 +2,13 @@ import { useEffect, Dispatch } from 'react';
 import { ArchiveAction } from '@/types';
 import { toast } from '@/lib/toast';
 
-// Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek
-const api = (p: string) => `/api${p.startsWith('/') ? '' : '/'}${p}`;
+// Production'da (Electron) veya development'da doğru URL kullan
+const api = (p: string) => {
+  const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
+  return `${baseUrl}${p.startsWith('/') ? '' : '/'}${p}`;
+};
 
-export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>) => {
+export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => Promise<void>) => {
   useEffect(() => {
     const sse = new EventSource(api('/events'));
     sse.onopen = () => dispatch({ type: 'SET_SSE_CONNECTED', payload: true });
@@ -18,6 +21,24 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>) => {
         payload: { ...data, ts: new Date(data.ts) },
       });
       toast.info(`Yedekleme tamamlandı: ${data.path}`);
+    });
+
+    sse.addEventListener('backup_completed', (e) => {
+      const data = JSON.parse(e.data);
+      dispatch({
+        type: 'SET_LAST_BACKUP_EVENT',
+        payload: { ...data, ts: new Date(data.ts) },
+      });
+      
+      // Otomatik yedekleme bildirimi
+      if (data.type === 'Otomatik') {
+        toast.success('Otomatik yedekleme tamamlandı');
+      } else {
+        toast.info(`Yedekleme tamamlandı: ${data.file}`);
+      }
+      
+      // Logs listesini refresh et
+      refresh();
     });
 
     sse.addEventListener('restore', (e) => {
@@ -63,5 +84,5 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>) => {
     });
 
     return () => sse.close();
-  }, [dispatch]);
+  }, [dispatch, refresh]);
 };

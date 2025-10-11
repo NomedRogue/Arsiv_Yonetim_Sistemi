@@ -12,7 +12,7 @@ import {
 import { Modal } from '@/components/Modal';
 import { Edit, Trash2, HardDrive, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { deleteBackup, getBackups, backupDbToFolder } from '@/api';
+import { deleteBackup, getBackups, backupDbToFolder, restoreDbFromBackup } from '@/api';
 
 declare global {
   interface Window {
@@ -41,9 +41,10 @@ const SettingInput: React.FC<{
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className="block w-full pr-12 p-2 sm:text-sm border-gray-300 rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200 disabled:opacity-50"
+        className={`block w-full p-2 sm:text-sm border border-gray-300 rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${type === 'time' ? 'pr-3' : unit ? 'pr-12' : ''}`}
+        style={type === 'time' ? { textAlign: 'left' } : undefined}
       />
-      {unit && (
+      {unit && type !== 'time' && (
         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
           <span className="text-gray-500 sm:text-sm dark:text-gray-400">{unit}</span>
         </div>
@@ -60,22 +61,22 @@ const FilePathInput: React.FC<{
   onBrowseClick: () => void;
 }> = ({ label, id, value, onChange, onBrowseClick }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
       {label}
     </label>
-    <div className="mt-1 flex rounded-md shadow-sm">
+    <div className="flex rounded-md shadow-sm">
       <input
         type="text"
         name={id}
         id={id}
         value={value}
         onChange={onChange}
-        className="block w-full p-2 sm:text-sm border-gray-300 rounded-l-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200"
+        className="flex-1 block p-2 sm:text-sm border border-gray-300 rounded-l-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
       <button
         type="button"
         onClick={onBrowseClick}
-        className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-gray-300 text-sm hover:bg-gray-100 dark:hover:bg-slate-600"
+        className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
       >
         <span>Gözat...</span>
       </button>
@@ -423,7 +424,17 @@ export const Settings: React.FC = () => {
         </p>
       </Modal>
 
-      <Modal isOpen={isRestoreModalOpen} onClose={() => setRestoreModalOpen(false)} title="Veritabanı Geri Yükleme" onConfirm={() => { setRestoreModalOpen(false); toast.info('Geri yükleme özelliği henüz uygulanmamıştır.'); }} confirmText="Geri Yükle" type="danger" showIcon>
+      <Modal isOpen={isRestoreModalOpen} onClose={() => setRestoreModalOpen(false)} title="Veritabanı Geri Yükleme" onConfirm={async () => {
+        try {
+          await restoreDbFromBackup(restoreFilename);
+          toast.success('Veritabanı başarıyla geri yüklendi! Uygulama yeniden başlatılıyor...');
+          setRestoreModalOpen(false);
+          // Sayfayı yenile (restore sonrası)
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (e: any) {
+          toast.error(`Geri yükleme başarısız: ${e.message}`);
+        }
+      }} confirmText="Geri Yükle" type="danger" showIcon>
         <p>
           <span className="font-bold text-blue-600 dark:text-blue-400">"{restoreFilename}"</span> dosyasından veritabanını geri yüklemek istediğinizden emin misiniz? 
           <br /><br />

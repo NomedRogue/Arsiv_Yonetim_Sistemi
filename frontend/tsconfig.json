@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
 
     "strict": true,
@@ -16,6 +16,8 @@
 
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
+    // baseUrl will be deprecated in TS 7.0, but still needed for path mapping
+    // Using bundler moduleResolution as modern alternative
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
@@ -25,7 +27,10 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    
+    // Suppress baseUrl deprecation warning until TS 7.0 migration
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "src",

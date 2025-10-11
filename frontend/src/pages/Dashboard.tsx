@@ -8,6 +8,7 @@ import { Folder, FileText, AlertTriangle, ChevronsRight, BookX, HardDrive, Rotat
 import { Category, CheckoutStatus, FolderStatus, Log, StorageType, Folder as FolderType, Settings, StorageStructure, DashboardStats } from '@/types';
 import { CustomAreaChartTooltip, CustomizedTreemapContent, CustomPieTooltip, CustomTreemapTooltip } from '../components/dashboard/DashboardCharts';
 import { useTheme } from '@/hooks/useTheme';
+import { getCardIconColor, getOccupancyColor, getOccupancyTextClass, THEME_COLORS } from '@/lib/theme';
 import { toast } from '@/lib/toast';
 import * as api from '@/api';
 import '../styles/dashboard-grid.css';
@@ -44,9 +45,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     logs,
     settings,
     storageStructure,
-    lastBackupEvent,
-    lastRestoreEvent,
-    lastBackupCleanupEvent,
     initialBackupLog,
     initialRestoreLog,
     initialCleanupLog,
@@ -58,25 +56,32 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [isPieHovered, setIsPieHovered] = useState(false);
   const [treemapFilter, setTreemapFilter] = useState<'all' | StorageType.Kompakt | StorageType.Stand>('all');
   const [yearFilter, setYearFilter] = useState<'last12' | number>('last12');
+  const [forceUpdate, setForceUpdate] = useState(0); // Force re-render için
   
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [isLoading, setIsLoading] = useState(true);
 
   const [analysisFolders, setAnalysisFolders] = useState<Partial<FolderType>[]>([]);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
+  
+  // Backup ve restore event state'leri
+  const [lastBackupEvent, setLastBackupEvent] = useState<any>(null);
+  const [lastRestoreEvent, setLastRestoreEvent] = useState<any>(null);
+  const [lastBackupCleanupEvent, setLastBackupCleanupEvent] = useState<any>(null);
 
-  // Dashboard cards data
+  // Dashboard cards data - tema değiştiğinde yeniden hesapla
   const dashboardCardsData = useMemo(() => [
-    { title: "Toplam Klasör", value: stats.totalFolders, icon: Folder, color: "#007BFF", onClick: () => onNavigate('Tüm Klasörler') },
-    { title: "Tıbbi", value: stats.tibbiCount, icon: FileText, color: "#28A745", onClick: () => onNavigate('Arama', { category: Category.Tibbi }) },
-    { title: "İdari", value: stats.idariCount, icon: FileText, color: "#17A2B8", onClick: () => onNavigate('Arama', { category: Category.Idari }) },
-    { title: "Arşiv Dışında", value: stats.arsivDisindaCount, icon: ChevronsRight, color: "#FFC107", onClick: () => onNavigate('Çıkış/İade Takip') },
-    { title: "İade Geciken", value: stats.iadeGecikenCount, icon: AlertTriangle, color: "#DC3545", onClick: () => onNavigate('Çıkış/İade Takip') },
-    { title: "Bu Yıl İmha Edilecekler", value: stats.buYilImhaEdilenecekCount, icon: BookX, color: "#FD7E14", onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'thisYear' }) },
-    { title: "Gelecek Yıl İmha Edilecekler", value: stats.gelecekYilImhaEdilenecekCount, icon: Calendar, color: "#FF6B35", onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'nextYear' }) },
-    { title: "İmha Süresi Geçenler", value: stats.imhaSuresiGecenCount, icon: Clock, color: "#E74C3C", onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'overdue' }) },
-    { title: "İmha Edilen", value: stats.imhaEdilenCount, icon: Trash2, color: "#6c757d", onClick: () => onNavigate('İmha', { tab: 'disposed' }) }
-  ], [stats, onNavigate]);
+    { title: "Toplam Klasör", value: stats.totalFolders, icon: Folder, onClick: () => onNavigate('Tüm Klasörler') },
+    { title: "Tıbbi", value: stats.tibbiCount, icon: FileText, onClick: () => onNavigate('Arama', { category: Category.Tibbi }) },
+    { title: "İdari", value: stats.idariCount, icon: FileText, onClick: () => onNavigate('Arama', { category: Category.Idari }) },
+    { title: "Arşiv Dışında", value: stats.arsivDisindaCount, icon: ChevronsRight, onClick: () => onNavigate('Çıkış/İade Takip') },
+    { title: "İade Geciken", value: stats.iadeGecikenCount, icon: AlertTriangle, onClick: () => onNavigate('Çıkış/İade Takip') },
+    { title: "Bu Yıl İmha Edilecekler", value: stats.buYilImhaEdilenecekCount, icon: BookX, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'thisYear' }) },
+    { title: "Gelecek Yıl İmha Edilecekler", value: stats.gelecekYilImhaEdilenecekCount, icon: Calendar, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'nextYear' }) },
+    { title: "İmha Süresi Geçenler", value: stats.imhaSuresiGecenCount, icon: Clock, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'overdue' }) },
+    { title: "İmha Edilen", value: stats.imhaEdilenCount, icon: Trash2, onClick: () => onNavigate('İmha', { tab: 'disposed' }) }
+  ], [stats, onNavigate, theme]); // theme eklendi
+
 
   useEffect(() => {
     const fetchAnalysisData = async () => {
@@ -85,7 +90,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         const folders = await api.getAllFoldersForAnalysis();
         setAnalysisFolders(folders);
       } catch (error: any) {
-        toast.error(`Analiz verileri alınamadı: ${error.message}`);
+        // Sadece gerçek hataları göster, boş veri durumunu değil
+        if (error.message && !error.message.includes('Failed to fetch')) {
+          toast.error(`Analiz verileri alınamadı: ${error.message}`);
+        }
+        setAnalysisFolders([]);
       } finally {
         setIsAnalysisLoading(false);
       }
@@ -99,7 +108,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       const data = await api.getDashboardStats(treemap, String(year));
       setStats(data);
     } catch (error: any) {
-      toast.error(error.message || 'İstatistikler alınamadı');
+      // Sadece gerçek hataları göster, boş veri durumunu değil
+      if (error.message && !error.message.includes('Failed to fetch')) {
+        toast.error(error.message || 'İstatistikler alınamadı');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -107,6 +119,69 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   
   useEffect(() => {
     fetchStats(treemapFilter, yearFilter);
+  }, [treemapFilter, yearFilter, fetchStats]);
+  
+  // SSE listener: Klasör değişikliklerinde otomatik stats ve analiz yenile
+  useEffect(() => {
+    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+    const eventSource = new EventSource(`${baseUrl}/api/events`);
+    
+    const handleDataChange = () => {
+      // Stats ve analiz verilerini yenile
+      fetchStats(treemapFilter, yearFilter);
+      // Analiz verilerini yenile
+      api.getAllFoldersForAnalysis().then(setAnalysisFolders).catch(() => {});
+    };
+    
+    eventSource.addEventListener('folder_created', handleDataChange);
+    eventSource.addEventListener('folder_updated', handleDataChange);
+    eventSource.addEventListener('folder_deleted', handleDataChange);
+    eventSource.addEventListener('checkout_created', handleDataChange);
+    eventSource.addEventListener('checkout_updated', handleDataChange);
+    
+    // Yedekleme event'lerini dinle
+    eventSource.addEventListener('backup', (e: any) => {
+      const data = JSON.parse(e.data);
+      setLastBackupEvent({
+        ts: new Date(data.ts),
+        reason: data.reason,
+        path: data.path,
+        filename: data.filename
+      });
+    });
+    
+    eventSource.addEventListener('backup_completed', (e: any) => {
+      const data = JSON.parse(e.data);
+      setLastBackupEvent({
+        ts: new Date(data.timestamp),
+        reason: 'auto',
+        filename: data.file ? basename(data.file) : 'bilinmiyor'
+      });
+    });
+    
+    eventSource.addEventListener('restore', (e: any) => {
+      const data = JSON.parse(e.data);
+      setLastRestoreEvent({
+        ts: new Date(data.ts),
+        filename: data.filename,
+        source: data.source || 'unknown'
+      });
+      // Restore sonrası stats'ı yenile
+      handleDataChange();
+    });
+    
+    eventSource.addEventListener('backup_cleanup', (e: any) => {
+      const data = JSON.parse(e.data);
+      setLastBackupCleanupEvent({
+        ts: new Date(data.ts),
+        count: data.count || 0,
+        deleted: data.deleted || []
+      });
+    });
+    
+    return () => {
+      eventSource.close();
+    };
   }, [treemapFilter, yearFilter, fetchStats]);
 
     // Fix for CSS transition reset after window minimize/maximize
@@ -124,6 +199,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
     const handleThemeChange = () => {
       // Force component re-render when theme changes
+      console.log('[DASHBOARD] Theme changed event received');
+      setForceUpdate(prev => prev + 1); // Force re-render
       setTimeout(() => {
         setStats(prev => ({ ...prev }));
       }, 100);
@@ -138,11 +215,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     };
   }, []);
 
+  // Theme değiştiğinde force update
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DASHBOARD] Theme changed to:', theme);
+    }
+    setForceUpdate(prev => prev + 1);
+    
+    // FORCE SVG UPDATE - Manuel DOM manipulation with requestAnimationFrame
+    requestAnimationFrame(() => {
+      const bgCircle = document.querySelector('#occupancy-bg-circle');
+      const progressCircle = document.querySelector('#occupancy-progress-circle');
+      
+      if (bgCircle && progressCircle) {
+        const bgColor = THEME_COLORS[theme].occupancy.background;
+        const progressColor = getOccupancyColor(theme, stats.overallOccupancy);
+        
+        // Force browser to repaint
+        bgCircle.setAttribute('stroke', bgColor);
+        progressCircle.setAttribute('stroke', progressColor);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[DASHBOARD] SVG circles updated manually:', { bgColor, progressColor, theme });
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[DASHBOARD] SVG circles not found in DOM!');
+        }
+      }
+    });
+  }, [theme, stats.overallOccupancy]);
+
   const finalLastBackup = useMemo(() => {
     if (lastBackupEvent) {
         return {
             ts: lastBackupEvent.ts,
-            details: `Yedek alındı (${lastBackupEvent.reason}). Dosya: ${basename(lastBackupEvent.path)}`,
+            details: `Yedek alındı (${lastBackupEvent.reason || 'manuel'}). Dosya: ${lastBackupEvent.filename || basename(lastBackupEvent.path || '') || 'bilinmiyor'}`,
             label: lastBackupEvent.reason === 'auto' ? 'Otomatik' : 'Manuel'
         };
     }
@@ -155,6 +263,45 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }
     return null;
   }, [lastBackupEvent, initialBackupLog]);
+
+  // SVG HTML - theme, occupancy VE forceUpdate değiştiğinde yeniden hesapla
+  const svgHTML = useMemo(() => {
+    const bgColor = THEME_COLORS[theme].occupancy.background;
+    const progressColor = getOccupancyColor(theme, stats.overallOccupancy);
+    const dashArray = `${(stats.overallOccupancy / 100) * 264} 264`;
+    
+    // Add timestamp to force new string instance
+    const timestamp = Date.now();
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[DASHBOARD] SVG HTML regenerated:', { theme, bgColor, progressColor, forceUpdate, timestamp });
+    }
+    
+    return `
+      <svg class="transform -rotate-90" viewBox="0 0 100 100" style="width: 100%; height: 100%;" data-theme="${theme}" data-update="${forceUpdate}" data-ts="${timestamp}">
+        <circle
+          id="occupancy-bg-circle"
+          cx="50"
+          cy="50"
+          r="42"
+          fill="none"
+          stroke="${bgColor}"
+          stroke-width="8"
+        />
+        <circle
+          id="occupancy-progress-circle"
+          cx="50"
+          cy="50"
+          r="42"
+          fill="none"
+          stroke="${progressColor}"
+          stroke-width="8"
+          stroke-linecap="round"
+          stroke-dasharray="${dashArray}"
+        />
+      </svg>
+    `;
+  }, [theme, stats.overallOccupancy, forceUpdate]);
   
   const finalLastRestore = useMemo(() => {
     if (lastRestoreEvent) {
@@ -269,21 +416,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     <div className="p-6 space-y-6">
       {/* Statistics Cards Grid */}
       <div className="grid grid-cols-5 xl:grid-cols-9 gap-4 mb-6">
-        {dashboardCardsData.map((card, index) => (
-          <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[80px] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
-            <div className="mr-3 flex-shrink-0" style={{ color: card.color }}>
-              <card.icon size={24} />
+        {dashboardCardsData.map((card, index) => {
+          const iconColor = getCardIconColor(theme, card.title);
+          return (
+            <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[80px] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
+              <div className="mr-3 flex-shrink-0 transition-colors duration-200" style={{ color: iconColor }}>
+                <card.icon size={24} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 truncate">
+                  {card.title}
+                </h3>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  {card.value}
+                </span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1 truncate">
-                {card.title}
-              </h3>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                {card.value}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Backup Status Cards */}
@@ -401,85 +551,110 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="dashboard-card relative overflow-hidden">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 text-center transition-colors duration-300">Genel Doluluk Oranı</h3>
-          <div className="relative w-full h-[280px] flex items-center justify-center">
-            {/* Animated Circle Chart */}
-            <div className="relative w-64 h-64 flex items-center justify-center">
-              {/* Background Circle */}
-              <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 200 200">
-                {/* Background Track */}
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="85"
-                  fill="none"
-                  stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
-                  strokeWidth="12"
-                  className="transition-colors duration-300"
-                />
-                
-                {/* Animated Progress Circle */}
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="85"
-                  fill="none"
-                  stroke={
-                    stats.overallOccupancy > 80 ? '#ef4444' : 
-                    stats.overallOccupancy > 60 ? '#f59e0b' : 
-                    '#10b981'
-                  }
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray="534.07"
-                  strokeDashoffset={Math.max(
-                    534.07 - (Math.max(stats.overallOccupancy, 1.5) / 100) * 534.07,
-                    534.07 - (1.5 / 100) * 534.07
-                  )}
-                  className="circle-progress transition-all duration-[2500ms] ease-out"
-                  style={{
-                    filter: `drop-shadow(0 0 15px ${
-                      stats.overallOccupancy > 80 ? 'rgba(239, 68, 68, 0.3)' : 
-                      stats.overallOccupancy > 60 ? 'rgba(245, 158, 11, 0.3)' : 
-                      'rgba(16, 185, 129, 0.3)'
-                    })`
-                  }}
-                />
-              </svg>
+        
+        {/* Arşiv Doluluk Durumu */}
+        <div key={`occupancy-card-${theme}-${forceUpdate}`} className="dashboard-card relative overflow-hidden" style={{ cursor: 'default' }}>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-8 text-center">
+            Arşiv Doluluk Durumu
+          </h3>
+          
+          <div className="flex flex-col items-center gap-8 py-4">
+            {/* Circular Progress Chart */}
+            <div className="relative" style={{ width: '280px', height: '280px' }}>
+              <div 
+                key={`svg-container-${theme}-${forceUpdate}-${stats.overallOccupancy}`}
+                dangerouslySetInnerHTML={{ __html: svgHTML }}
+                style={{ width: '100%', height: '100%' }}
+              />
               
-              {/* Center Content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10">
-                {/* Main Percentage */}
-                <div className={`text-4xl font-bold mb-3 transition-all duration-[2500ms] ease-out ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                } ${
-                  stats.overallOccupancy > 80 ? 'text-red-600 dark:text-red-400' : 
-                  stats.overallOccupancy > 60 ? 'text-amber-600 dark:text-amber-400' : 
-                  'text-emerald-600 dark:text-emerald-400'
-                }`}>
-                  <span className="counter-animation">
-                    {stats.overallOccupancy.toFixed(1)}
-                  </span>%
+              {/* Center Text */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className={`text-6xl font-bold leading-none mb-2 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
+                  {stats.overallOccupancy.toFixed(1)}%
                 </div>
-                
-                {/* Status Badge */}
-                <div className={`inline-block px-3 py-1.5 rounded-full text-sm font-medium mb-3 transition-all duration-300 ${
-                  stats.overallOccupancy > 80 ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
-                  stats.overallOccupancy > 60 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' :
-                  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
+                <div className={`text-sm font-medium uppercase tracking-wider ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}>
-                  {stats.overallOccupancy > 80 ? 'Yüksek Doluluk' :
-                   stats.overallOccupancy > 60 ? 'Orta Doluluk' : 'Normal Doluluk'}
+                  Dolu
                 </div>
-                
-                {/* Empty Space Info */}
-                <div className={`text-sm font-medium transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                  {(100 - stats.overallOccupancy).toFixed(1)}% Boş Alan
+              </div>
+            </div>
+            
+            {/* Stats Cards */}
+            <div key={`stats-${theme}`} className="grid grid-cols-2 gap-6 w-full max-w-md">
+              {/* Dolu Alan Card */}
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
+                <div className="flex items-center gap-3">
+                  <div key={`dot-filled-${theme}-${stats.overallOccupancy}`} className={`w-3 h-3 rounded-full flex-shrink-0 transition-colors duration-200 ${
+                    stats.overallOccupancy > 85 
+                      ? 'bg-red-500 dark:bg-red-400'
+                      : stats.overallOccupancy > 70 
+                      ? 'bg-amber-500 dark:bg-amber-400'
+                      : stats.overallOccupancy > 50 
+                      ? 'bg-blue-500 dark:bg-blue-400'
+                      : 'bg-emerald-500 dark:bg-emerald-400'
+                  }`}></div>
+                  <div className="flex-1">
+                    <div className="text-xs mb-1 text-gray-600 dark:text-gray-300 transition-colors duration-200">
+                      Dolu Alan
+                    </div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                      {stats.overallOccupancy.toFixed(1)}%
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              {/* Animated Pulse Effects - Removed for simplicity */}
+              {/* Boş Alan Card */}
+              <div className="p-4 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
+                <div className="flex items-center gap-3">
+                  <div key={`dot-empty-${theme}`} className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
+                  <div className="flex-1">
+                    <div className="text-xs mb-1 text-gray-600 dark:text-gray-300 transition-colors duration-200">
+                      Boş Alan
+                    </div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                      {(100 - stats.overallOccupancy).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Status Badge */}
+            <div key={`badge-${theme}-${stats.overallOccupancy}`} className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
+              stats.overallOccupancy > 85 
+                ? 'bg-red-50 dark:bg-red-500/20 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-400/30'
+                : stats.overallOccupancy > 70 
+                ? 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-200 dark:border-amber-400/30'
+                : stats.overallOccupancy > 50 
+                ? 'bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-400/30'
+                : 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-400/30'
+            }`}>
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 transition-colors duration-200 ${
+                  stats.overallOccupancy > 85 
+                    ? 'bg-red-500 dark:bg-red-400'
+                    : stats.overallOccupancy > 70 
+                    ? 'bg-amber-500 dark:bg-amber-400'
+                    : stats.overallOccupancy > 50 
+                    ? 'bg-blue-500 dark:bg-blue-400'
+                    : 'bg-emerald-500 dark:bg-emerald-400'
+                }`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 transition-colors duration-200 ${
+                  stats.overallOccupancy > 85 
+                    ? 'bg-red-600 dark:bg-red-500'
+                    : stats.overallOccupancy > 70 
+                    ? 'bg-amber-600 dark:bg-amber-500'
+                    : stats.overallOccupancy > 50 
+                    ? 'bg-blue-600 dark:bg-blue-400'
+                    : 'bg-emerald-600 dark:bg-emerald-400'
+                }`}></span>
+              </span>
+              {stats.overallOccupancy > 85 ? 'Kritik Seviye - Acil Genişleme Gerekli' :
+               stats.overallOccupancy > 70 ? 'Yüksek Doluluk - Dikkat Edilmeli' :
+               stats.overallOccupancy > 50 ? 'Orta Seviye - Normal Doluluk' :
+               'Optimal Seviye - Yeterli Kapasite'}
             </div>
           </div>
         </div>
@@ -542,7 +717,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* Recent Activity */}
-      <div className="dashboard-card">
+      <div className="dashboard-card" style={{ cursor: 'default' }}>
         <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="animate-spin h-8 w-8 text-blue-500" /></div>}>
           <RecentActivityList logs={logs} />
         </Suspense>

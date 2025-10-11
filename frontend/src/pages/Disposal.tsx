@@ -35,27 +35,47 @@ const getStatusBadgeColor = (status: FolderStatus) => {
 };
 
 const DisposableFoldersView: React.FC<{ initialFilter?: 'thisYear' | 'nextYear' | 'overdue' }> = ({ initialFilter }) => {
-    const { getDepartmentName, disposeFolders } = useArchive();
+    const { getDepartmentName } = useArchive();
     const [selectedView, setSelectedView] = useState<'thisYear' | 'nextYear' | 'overdue'>(initialFilter || 'thisYear');
     const [selectedFolderIds, setSelectedFolderIds] = useState<number[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [disposableFolders, setDisposableFolders] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    useEffect(() => {
-        const fetchFolders = async () => {
-            setIsLoading(true);
-            try {
-                const data = await api.getDisposableFolders(selectedView);
-                setDisposableFolders(data);
-            } catch (error: any) {
+    const fetchFolders = async () => {
+        setIsLoading(true);
+        try {
+            const data = await api.getDisposableFolders(selectedView);
+            setDisposableFolders(data);
+        } catch (error: any) {
+            // Sadece gerçek hataları göster, boş veri durumunu değil
+            if (error.message && !error.message.includes('Failed to fetch')) {
                 toast.error(`İmha edilecek klasörler alınamadı: ${error.message}`);
-                setDisposableFolders([]);
-            } finally {
-                setIsLoading(false);
             }
-        };
+            setDisposableFolders([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
         fetchFolders();
+        
+        // SSE listener: Klasör değişikliklerinde otomatik refresh
+        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+        const eventSource = new EventSource(`${baseUrl}/api/events`);
+        
+        const handleFolderChange = () => {
+            fetchFolders(); // İmha listesini yenile
+        };
+        
+        eventSource.addEventListener('folder_created', handleFolderChange);
+        eventSource.addEventListener('folder_updated', handleFolderChange);
+        eventSource.addEventListener('folder_deleted', handleFolderChange);
+        
+        return () => {
+            eventSource.close();
+        };
     }, [selectedView]);
 
     const handleSelectFolder = (id: number) => {
@@ -72,11 +92,45 @@ const DisposableFoldersView: React.FC<{ initialFilter?: 'thisYear' | 'nextYear' 
         }
     };
 
-    const handleConfirmDisposal = () => {
-        disposeFolders(selectedFolderIds);
-        setDisposableFolders(prev => prev.filter(f => !selectedFolderIds.includes(f.id)));
-        setSelectedFolderIds([]);
-        setIsModalOpen(false);
+    const handleConfirmDisposal = async () => {
+        try {
+            // Seçili klasörleri bul
+            const foldersToDispose = disposableFolders.filter(f => selectedFolderIds.includes(f.id));
+            
+            // Çıkışta olanları kontrol et
+            if (foldersToDispose.some(f => f.status === FolderStatus.Cikista)) {
+                toast.error('Çıkışta olan klasörler imha edilemez.');
+                return;
+            }
+            
+            // Tüm klasörleri "İmha" durumuna güncelle ve disposal kayıtları oluştur
+            const now = new Date();
+            const updates = foldersToDispose.map(async (f, i) => {
+                // Klasör durumunu güncelle
+                await api.updateFolder({ ...f, status: FolderStatus.Imha, updatedAt: now });
+                
+                // Disposal kaydı oluştur
+                await api.createDisposal({
+                    id: `disposal_${Date.now()}_${i}`,
+                    folderId: f.id,
+                    disposalDate: now.toISOString(),
+                    originalFolderData: f
+                });
+            });
+            
+            await Promise.all(updates);
+            
+            toast.success(`${selectedFolderIds.length} klasör imha edildi.`);
+            
+            // Local state'i güncelle
+            setDisposableFolders(prev => prev.filter(f => !selectedFolderIds.includes(f.id)));
+            setSelectedFolderIds([]);
+            setIsModalOpen(false);
+            
+            // Liste yenilenecek (SSE ile otomatik)
+        } catch (e: any) {
+            toast.error(`İmha işlemi başarısız: ${e.message}`);
+        }
     };
 
     return (
@@ -179,39 +233,88 @@ const DisposableFoldersView: React.FC<{ initialFilter?: 'thisYear' | 'nextYear' 
 }
 
 const DisposedFoldersView: React.FC = () => {
-    const { disposals, getDepartmentName } = useArchive();
+    const { getDepartmentName } = useArchive();
+    const [disposals, setDisposals] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    const fetchDisposals = async () => {
+        setIsLoading(true);
+        try {
+            const data = await api.getDisposals();
+            setDisposals(data);
+        } catch (error: any) {
+            if (error.message && !error.message.includes('Failed to fetch')) {
+                toast.error(`İmha edilmiş klasörler alınamadı: ${error.message}`);
+            }
+            setDisposals([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        fetchDisposals();
+        
+        // SSE listener: İmha işlemlerinde otomatik refresh
+        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+        const eventSource = new EventSource(`${baseUrl}/api/events`);
+        
+        const handleFolderChange = () => {
+            fetchDisposals(); // İmha listesini yenile
+        };
+        
+        eventSource.addEventListener('folder_updated', handleFolderChange);
+        
+        return () => {
+            eventSource.close();
+        };
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
 
     return (
         <div className="overflow-hidden p-2">
             <p className="text-sm text-gray-700 dark:text-gray-400 mb-4 transition-colors duration-300">{disposals.length} adet imha edilmiş klasör bulundu.</p>
-            <div className="space-y-3">
-                {disposals.map(disposal => {
-                    const folder = disposal.originalFolderData;
-                    return (
-                        <div key={disposal.id} className="p-4 border rounded-lg dark:border-gray-600 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
-                            <div className="flex items-center space-x-2 mb-1">
-                                <Badge text={folder.category} color={folder.category === Category.Tibbi ? 'green' : 'blue'} />
-                                <h4 className="font-bold text-lg">{getDepartmentName(folder.departmentId)} - {folder.subject}</h4>
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-4 gap-y-1">
-                                <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
-                                <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
-                                <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
-                                {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
-                            </div>
-                            {folder.specialInfo && (
-                                <div className="text-sm mt-1 text-gray-500 dark:text-gray-400">
-                                    <strong>Özel Bilgi:</strong> {folder.specialInfo}
+            {disposals.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    Henüz imha edilmiş klasör bulunmuyor.
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {disposals.map(disposal => {
+                        const folder = disposal.originalFolderData;
+                        return (
+                            <div key={disposal.id} className="p-4 border rounded-lg dark:border-gray-600 bg-white dark:bg-archive-dark-panel transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
+                                <div className="flex items-center space-x-2 mb-1">
+                                    <Badge text={folder.category} color={folder.category === Category.Tibbi ? 'green' : 'blue'} />
+                                    <h4 className="font-bold text-lg">{getDepartmentName(folder.departmentId)} - {folder.subject}</h4>
                                 </div>
-                            )}
-                            <div className="mt-2 flex flex-wrap gap-4">
-                                <span><strong>Durum: </strong><Badge text="İmha Edildi" color="red" /></span>
-                                <span><strong>İmha Tarihi: </strong>{new Date(disposal.disposalDate).toLocaleDateString()}</span>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-4 gap-y-1">
+                                    <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
+                                    <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
+                                    <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
+                                    {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
+                                </div>
+                                {folder.specialInfo && (
+                                    <div className="text-sm mt-1 text-gray-500 dark:text-gray-400">
+                                        <strong>Özel Bilgi:</strong> {folder.specialInfo}
+                                    </div>
+                                )}
+                                <div className="mt-2 flex flex-wrap gap-4">
+                                    <span><strong>Durum: </strong><Badge text="İmha Edildi" color="red" /></span>
+                                    <span><strong>İmha Tarihi: </strong>{new Date(disposal.disposalDate).toLocaleDateString()}</span>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

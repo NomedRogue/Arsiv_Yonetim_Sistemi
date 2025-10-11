@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const dbManager = require('./db');
 const { performBackupToFolder } = require('./backup');
 const logger = require('./logger');
+const { sseBroadcast } = require('./sse');
 
 function parseHHMM(str) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(str || '');
@@ -25,7 +26,9 @@ function clearAutoBackupState() {
 function shouldRunAutoBackup(settings, state, now) {
   const freq = settings?.backupFrequency || 'Kapalı';
   if (freq === 'Kapalı' || !settings?.yedeklemeKlasoru) {
-    logger.info('[DEBUG BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[DEBUG BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
+    }
     return false;
   }
 
@@ -36,18 +39,22 @@ function shouldRunAutoBackup(settings, state, now) {
   // scheduledToday saatini kullanıcının yerel saatine göre ayarla
   const scheduledToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
 
-  logger.info('[DEBUG BACKUP] Debug values:', {
-    now: now.toLocaleString(),
-    scheduledToday: scheduledToday.toLocaleString(),
-    lastAuto: lastAuto.toLocaleString(),
-    nowTime: now.getTime(),
-    scheduledTime: scheduledToday.getTime(),
-    lastAutoTime: lastAuto.getTime()
-  });
+  if (process.env.NODE_ENV === 'development') {
+    logger.info('[DEBUG BACKUP] Debug values:', {
+      now: now.toLocaleString(),
+      scheduledToday: scheduledToday.toLocaleString(),
+      lastAuto: lastAuto.toLocaleString(),
+      nowTime: now.getTime(),
+      scheduledTime: scheduledToday.getTime(),
+      lastAutoTime: lastAuto.getTime()
+    });
+  }
 
   // Eğer backup zamanı henüz gelmediyse, backup çalıştırılmamalı
   if (now < scheduledToday) {
-    logger.info('[DEBUG BACKUP] Skipping: scheduled time not yet reached');
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[DEBUG BACKUP] Skipping: scheduled time not yet reached');
+    }
     return false;
   }
 
@@ -56,13 +63,17 @@ function shouldRunAutoBackup(settings, state, now) {
 
   // If the last backup was performed at or after the last applicable scheduled time, no need to run.
   if (lastAuto.getTime() >= lastScheduledTime.getTime()) {
-    logger.info('[DEBUG BACKUP] Skipping: backup already done today (lastAuto >= scheduled)');
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[DEBUG BACKUP] Skipping: backup already done today (lastAuto >= scheduled)');
+    }
     return false;
   }
 
   // A backup is due. Check frequency.
   if (freq === 'Günlük') {
-    logger.info('[DEBUG BACKUP] Running backup: frequency is Günlük and conditions met');
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[DEBUG BACKUP] Running backup: frequency is Günlük and conditions met');
+    }
     return true;
   }
 
@@ -70,11 +81,15 @@ function shouldRunAutoBackup(settings, state, now) {
     const oneWeekInMillis = 7 * 24 * 60 * 60 * 1000;
     // Using getTime() compares UTC timestamps, which is fine here since we are just checking a duration.
     const shouldRun = (now.getTime() - lastAuto.getTime()) >= (oneWeekInMillis - 60000); // 1-minute buffer
-    logger.info('[DEBUG BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('[DEBUG BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
+    }
     return shouldRun;
   }
 
-  logger.info('[DEBUG BACKUP] Skipping: unknown frequency=' + freq);
+  if (process.env.NODE_ENV === 'development') {
+    logger.info('[DEBUG BACKUP] Skipping: unknown frequency=' + freq);
+  }
   return false;
 }
 
@@ -110,6 +125,13 @@ function startAutoBackupScheduler() {
         dbManager.setConfig('autoBackupState', newState);
         
         logger.info('[AUTO BACKUP] Completed:', { dest, state: newState });
+        
+        // SSE ile frontend'e bildirim gönder
+        sseBroadcast('backup_completed', {
+          type: 'Otomatik',
+          file: dest,
+          timestamp: new Date().toISOString()
+        });
         
         autoBackupRunning = false;
       }

@@ -58,7 +58,9 @@ async function resolvePdfFolder() {
     folderPath = getUserDataPath('PDFs');
   }
   
+  logger.info('[PDF FOLDER] Resolved path:', folderPath);
   ensureDirExists(folderPath);
+  logger.info('[PDF FOLDER] Directory ensured:', folderPath);
   return folderPath;
 }
 
@@ -82,62 +84,81 @@ const validateDbSchema = async (dbPath) => {
 };
 
 // ---------- Multer: PDF depolama ----------
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    try {
-      const uploadPath = await resolvePdfFolder();
-      cb(null, uploadPath);
-    } catch (error) {
-      logger.error('Upload path error:', { error });
-      cb(error);
-    }
-  },
-  filename(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'pdf-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-const upload = multer({ storage });
+// Lazy initialization to ensure USER_DATA_PATH is set
+let upload = null;
+function getUploadMiddleware() {
+  if (!upload) {
+    const storage = multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          const uploadPath = await resolvePdfFolder();
+          cb(null, uploadPath);
+        } catch (error) {
+          logger.error('Upload path error:', { error });
+          cb(error);
+        }
+      },
+      filename(req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, 'pdf-' + uniqueSuffix + path.extname(file.originalname));
+      },
+    });
+    upload = multer({ storage });
+  }
+  return upload;
+}
 
 // ---------- Multer: DB restore (temp) ----------
-const tmpDir = path.join(__dirname, 'tmp');
-fs.mkdirSync(tmpDir, { recursive: true });
-const uploadDb = multer({ dest: tmpDir });
+// Lazy initialization to ensure USER_DATA_PATH is set
+let uploadDb = null;
+function getUploadDbMiddleware() {
+  if (!uploadDb) {
+    const tmpDir = getUserDataPath('tmp');
+    ensureDirExists(tmpDir);
+    uploadDb = multer({ dest: tmpDir });
+  }
+  return uploadDb;
+}
 
 // ---------- Routes ----------
 router.get('/health', (_req, res) => res.json({ ok: true }));
 
 // PDF endpoints
-router.post('/upload-pdf', upload.single('pdf'), (req, res, next) => {
-  try {
-    if (!req.file) return res.status(400).send('No file uploaded.');
+router.post('/upload-pdf', (req, res, next) => {
+  const uploadMiddleware = getUploadMiddleware();
+  uploadMiddleware.single('pdf')(req, res, (err) => {
+    if (err) return next(err);
+    
+    try {
+      if (!req.file) return res.status(400).send('No file uploaded.');
 
-    // Validate file is a PDF by checking magic number
-    const buffer = Buffer.alloc(4);
-    const fd = fs.openSync(req.file.path, 'r');
-    fs.readSync(fd, buffer, 0, 4, 0);
-    fs.closeSync(fd);
+      // Validate file is a PDF by checking magic number
+      const buffer = Buffer.alloc(4);
+      const fd = fs.openSync(req.file.path, 'r');
+      fs.readSync(fd, buffer, 0, 4, 0);
+      fs.closeSync(fd);
 
-    if (buffer.toString('utf-8', 0, 4) !== '%PDF') {
-      // Not a PDF, delete the file and return error
-      fs.unlinkSync(req.file.path);
-      const err = new Error('Yalnızca PDF dosyaları yüklenebilir.');
-      err.statusCode = 400;
-      return next(err);
-    }
-
-    res.json({ filename: req.file.filename });
-  } catch (err) {
-    // If file exists after error, try to clean it up
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      try {
+      if (buffer.toString('utf-8', 0, 4) !== '%PDF') {
+        // Not a PDF, delete the file and return error
         fs.unlinkSync(req.file.path);
-      } catch (cleanupError) {
-        logger.error('Failed to cleanup uploaded file after validation error', { error: cleanupError });
+        const err = new Error('Yalnızca PDF dosyaları yüklenebilir.');
+        err.statusCode = 400;
+        return next(err);
       }
+
+      res.json({ filename: req.file.filename });
+    } catch (err) {
+      // If file exists after error, try to clean it up
+      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          logger.error('Failed to cleanup uploaded file after validation error', { error: cleanupError });
+        }
+      }
+      next(err);
     }
-    next(err);
-  }
+  });
 });
 
 router.get('/serve-pdf/:filename', async (req, res, next) => {
@@ -273,6 +294,13 @@ router.get('/folders/disposable', async (req, res, next) => {
 router.post('/folders', (req, res, next) => {
   try {
     const newFolder = dbManager.insertFolder(req.body);
+    
+    // SSE broadcast: Yeni klasör eklendi
+    sseBroadcast('folder_created', { 
+      folder: newFolder,
+      ts: new Date()
+    });
+    
     res.status(201).json(newFolder);
   } catch (err) {
     next(err);
@@ -282,6 +310,13 @@ router.post('/folders', (req, res, next) => {
 router.put('/folders/:id', (req, res, next) => {
   try {
     const updatedFolder = dbManager.updateFolder(req.body);
+    
+    // SSE broadcast: Klasör güncellendi
+    sseBroadcast('folder_updated', { 
+      folder: updatedFolder,
+      ts: new Date()
+    });
+    
     res.json(updatedFolder);
   } catch (err) {
     next(err);
@@ -304,6 +339,13 @@ router.get('/folders/:id', async (req, res, next) => {
 router.delete('/folders/:id', (req, res, next) => {
   try {
     dbManager.deleteFolderAndRelations(req.params.id);
+    
+    // SSE broadcast: Klasör silindi
+    sseBroadcast('folder_deleted', { 
+      folderId: req.params.id,
+      ts: new Date()
+    });
+    
     res.status(204).send();
   } catch(err) {
     next(err);
@@ -314,6 +356,13 @@ router.delete('/folders/:id', (req, res, next) => {
 router.post('/checkouts', (req, res, next) => {
   try {
     const newCheckout = dbManager.insert('checkouts', req.body);
+    
+    // SSE broadcast: Klasör çıkışı yapıldı
+    sseBroadcast('checkout_created', { 
+      checkout: newCheckout,
+      ts: new Date()
+    });
+    
     res.status(201).json(newCheckout);
   } catch (err) {
     next(err);
@@ -323,6 +372,13 @@ router.post('/checkouts', (req, res, next) => {
 router.put('/checkouts/:id', (req, res, next) => {
   try {
     const updatedCheckout = dbManager.update('checkouts', req.body);
+    
+    // SSE broadcast: Çıkış bilgisi güncellendi
+    sseBroadcast('checkout_updated', { 
+      checkout: updatedCheckout,
+      ts: new Date()
+    });
+    
     res.json(updatedCheckout);
   } catch(err) {
     next(err);
@@ -341,9 +397,36 @@ router.get('/checkouts/active', async (req, res, next) => {
 
 
 // DISPOSALS
+router.get('/disposals', (req, res, next) => {
+  try {
+    const disposals = dbManager.getList('disposals');
+    res.json(disposals);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/disposals', (req, res, next) => {
   try {
     const newDisposal = dbManager.insert('disposals', req.body);
+    
+    // Klasör bilgisini al ve log oluştur
+    const folder = dbManager.getById('folders', req.body.folderId);
+    if (folder) {
+      const logDetails = `Klasör imha edildi: ${folder.fileCode || 'Kod Yok'} - ${folder.subject || 'Konu Yok'} (${folder.fileYear || 'Yıl Yok'})`;
+      dbManager.addLog({ 
+        type: 'dispose', 
+        details: logDetails 
+      });
+    }
+    
+    // SSE broadcast: İmha edildi, tüm sayfaları güncelle
+    sseBroadcast('folder_updated', { 
+      folderId: req.body.folderId,
+      status: 'İmha',
+      ts: new Date()
+    });
+    
     res.status(201).json(newDisposal);
   } catch (err) {
     next(err);
@@ -373,36 +456,41 @@ router.post('/backup-db-to-folder', async (req, res, next) => {
   }
 });
 
-router.post('/restore-db', uploadDb.single('dbfile'), async (req, res, next) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No file' });
-
-    if (!(await validateDbSchema(req.file.path))) {
-      fs.unlinkSync(req.file.path);
-      const err = new Error('Geçersiz veritabanı dosyası. Şema uyumsuz.');
-      err.statusCode = 400;
-      return next(err);
-    }
-
-    const before = await getDbInfo().catch(() => null);
-
-    const tempDb = new Database(req.file.path, { readonly: true });
-    await tempDb.backup(dbManager.DB_FILE);
-    tempDb.close();
-    fs.unlink(req.file.path, () => {});
-
-    dbManager.reconnectDb();
-
-    const after = await getDbInfo();
-    dbManager.addLog({ type: 'restore', details: 'Yüklenen .db dosyasıyla geri yükleme yapıldı.' });
-    clearAutoBackupState();
-    sseBroadcast('restore', { source: 'upload', ts: new Date() });
+router.post('/restore-db', (req, res, next) => {
+  const uploadDbMiddleware = getUploadDbMiddleware();
+  uploadDbMiddleware.single('dbfile')(req, res, async (err) => {
+    if (err) return next(err);
     
-    res.json({ ok: true, before, after });
-  } catch (e) {
-    dbManager.reconnectDb();
-    next(e);
-  }
+    try {
+      if (!req.file) return res.status(400).json({ error: 'No file' });
+
+      if (!(await validateDbSchema(req.file.path))) {
+        fs.unlinkSync(req.file.path);
+        const err = new Error('Geçersiz veritabanı dosyası. Şema uyumsuz.');
+        err.statusCode = 400;
+        return next(err);
+      }
+
+      const before = await getDbInfo().catch(() => null);
+
+      const tempDb = new Database(req.file.path, { readonly: true });
+      await tempDb.backup(dbManager.DB_FILE);
+      tempDb.close();
+      fs.unlink(req.file.path, () => {});
+
+      dbManager.reconnectDb();
+
+      const after = await getDbInfo();
+      dbManager.addLog({ type: 'restore', details: 'Yüklenen .db dosyasıyla geri yükleme yapıldı.' });
+      clearAutoBackupState();
+      sseBroadcast('restore', { source: 'upload', ts: new Date() });
+      
+      res.json({ ok: true, before, after });
+    } catch (e) {
+      dbManager.reconnectDb();
+      next(e);
+    }
+  });
 });
 
 router.get('/list-backups', (req, res, next) => {

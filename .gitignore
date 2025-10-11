@@ -35,15 +35,19 @@ coverage/
 .env.test.local
 .env.production.local
 
-# Database files
+# Database files - Ana dizinde kesinlikle olmamalı!
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
+# Sadece backend klasöründe veritabanı tutulmalı
+!backend/arsiv.db
 
 # Backup files
 backups/
 *.backup
+main_old.js
+*_old.js
 
 # Temporary folders
 tmp/
@@ -115,6 +119,8 @@ jspm_packages/
 bundle-analysis.html
 
 # PDF storage (if not needed in repo)
+# Root PDFs folder is NOT USED - backend/PDFs is the actual storage
+/PDFs/
 PDFs/*.pdf
 PDFs/*.PDF
 

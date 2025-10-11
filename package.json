@@ -16,7 +16,9 @@
     "postinstall": "electron-builder install-app-deps && npm run rebuild",
     "rebuild": "electron-rebuild",
     "test": "jest",
-    "test:backend": "jest --config ./backend/jest.config.js"
+    "test:backend": "jest --config ./backend/jest.config.js",
+    "clean": "rimraf backend/arsiv.db backend/arsiv.db-shm backend/arsiv.db-wal backend/PDFs/* backend/Backups/* backend/tmp/* release/ dist/ dist_electron/ *.db *.log",
+    "clean:appdata": "powershell -Command \"Remove-Item -Path $env:APPDATA\\arsiv-yonetim-sistemi -Recurse -Force -ErrorAction SilentlyContinue\""
   },
   "build": {
     "appId": "com.arsivyonetim.sistemi",
@@ -25,12 +27,16 @@
       "main.js",
       "preload.js",
       "frontend/dist/",
-      "backend/",
-      "node_modules/",
+      "backend/**/*",
+      "node_modules/**/*",
       "package.json"
     ],
+    "asar": true,
     "asarUnpack": [
-      "**/node_modules/sqlite3/**/*"
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/sqlite3/**/*"
     ],
     "directories": {
       "buildResources": "assets",
@@ -42,13 +48,20 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "include": "extraUninstall.nsh",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Arşiv Yönetim Sistemi",
+      "deleteAppDataOnUninstall": true,
+      "perMachine": false,
+      "runAfterFinish": true
     }
   },
   "dependencies": {
     "archiver": "^5.3.1",
     "axios": "^1.7.2",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "8.7.0",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
     "electron-log": "^5.1.6",
@@ -64,7 +77,7 @@
   "devDependencies": {
     "@electron/rebuild": "^3.6.0",
     "@types/jest": "^29.5.12",
-    "electron": "31.1.0",
+    "electron": "28.2.0",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "jest": "^29.7.0",

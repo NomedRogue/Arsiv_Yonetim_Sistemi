@@ -8,7 +8,7 @@
 
 @keyframes circle-fill {
   0% {
-    stroke-dashoffset: 534.07;
+    stroke-dashoffset: 596.9;
     opacity: 0.6;
   }
   100% {
@@ -38,19 +38,10 @@
   }
 }
 
-/* Circle Chart Hover Effects */
-.dashboard-card:hover .circle-progress {
-  filter: brightness(1.1) drop-shadow(0 0 20px currentColor);
-  transition: all 0.3s ease;
-}
-
-/* Simple hover transition */
+/* Dashboard card base styling - NO hover or pointer cursor */
 .dashboard-card {
-  transition: transform 0.3s ease;
-}
-
-.dashboard-card:hover {
-  transform: translateY(-2px);
+  cursor: default !important;
+  transition: none;
 }
 
 /* Performance optimizations */
@@ -62,15 +53,11 @@
 }
 
 /* Minimum visibility for very small values */
-.circle-progress[stroke-dashoffset="534.07"] {
-  stroke-dashoffset: 523.4 !important; /* Always show at least 2% */
+.circle-progress[stroke-dashoffset="596.9"] {
+  stroke-dashoffset: 585.0 !important; /* Always show at least 2% */
 }
 
 /* Enhanced shadow effects for different themes */
 .dark .circle-progress {
-  filter: brightness(1.2) drop-shadow(0 0 20px currentColor);
-}
-
-.dark .dashboard-card:hover {
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.1);
 }

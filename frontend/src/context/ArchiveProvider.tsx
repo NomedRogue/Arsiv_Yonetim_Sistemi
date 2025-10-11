@@ -8,7 +8,7 @@ export const ArchiveProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const { state, dispatch, refresh } = useArchiveState();
-  useArchiveSSE(dispatch);
+  useArchiveSSE(dispatch, refresh);
   const actions = useArchiveActions(state, dispatch);
 
   const contextValue = useMemo(

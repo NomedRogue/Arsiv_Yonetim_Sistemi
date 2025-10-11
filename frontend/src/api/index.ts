@@ -1,8 +1,10 @@
 // frontend/src/api/index.ts
 import { Folder, Checkout, Disposal, Log, Settings, Department, StorageStructure, Location, DashboardStats } from '@/types';
 
-// Vite proxy kullan - dev'de /api → http://localhost:3001/api, prod'da direkt /api
-const API: string = '/api';
+// Production'da (Electron) veya development'da doğru URL kullan
+const API: string = import.meta.env.DEV 
+  ? '/api'  // Dev modda Vite proxy kullan
+  : 'http://localhost:3001/api';  // Production'da (Electron) direkt backend'e bağlan
 
 // Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -55,8 +57,11 @@ export const updateCheckout = (checkout: Checkout) => http<Checkout>(`${API}/che
 export const getActiveCheckouts = () => http<(Checkout & { folder: Folder })[]>(`${API}/checkouts/active`);
 
 // Disposal Actions
+export const getDisposals = () => http<Disposal[]>(`${API}/disposals`);
 export const createDisposal = (disposal: Disposal) => {
-  console.log('[FRONTEND API] Creating disposal:', disposal);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[FRONTEND API] Creating disposal:', disposal);
+  }
   return http<Disposal>(`${API}/disposals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(disposal) });
 };
 
@@ -86,4 +91,12 @@ export async function getBackups() {
 
 export async function backupDbToFolder() {
   return http(`${API}/backup-db-to-folder`, { method: 'POST' });
+}
+
+export async function restoreDbFromBackup(filename: string) {
+  return http(`${API}/restore-db-from-backup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename })
+  });
 }
