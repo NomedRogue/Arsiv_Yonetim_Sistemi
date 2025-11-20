@@ -93,7 +93,7 @@ describe('FolderList Sayfası', () => {
   it('klasör ekleme smoke test', async () => {
     render(<FolderList onEditFolder={jest.fn()} />, { wrapper: AllTheProviders });
     await waitFor(() => {
-      expect(screen.getByText(/Tüm Klasörler/)).toBeTruthy();
+      expect(screen.getByText(/Arşiv/)).toBeTruthy();
     });
   });
 });

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   LayoutDashboard,
   Folder,
-  Search as SearchIcon,
+  FileSpreadsheet,
   FileOutput,
   Trash2,
   Settings,
@@ -19,10 +19,10 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { name: 'Dashboard', icon: LayoutDashboard },
-  { name: 'Tüm Klasörler', icon: Folder },
+  { name: 'Anasayfa', icon: LayoutDashboard },
+  { name: 'Arşiv', icon: Folder },
   { name: 'Yeni Klasör Ekle', icon: FolderPlus },
-  { name: 'Arama', icon: SearchIcon },
+  { name: 'Excel Arama', icon: FileSpreadsheet },
   { name: 'Çıkış/İade Takip', icon: FileOutput },
   { name: 'İmha', icon: Trash2 },
   { name: 'Ayarlar', icon: Settings },

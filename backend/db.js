@@ -23,37 +23,58 @@ if (!fs.existsSync(DB_FILE)) {
 }
 let dbInstance = null; // Lazy initialization
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2; // Excel support için version 2
 
 function migrate(db) {
   try {
-    console.log('[DB] Starting migration process...');
+    if (process.env.NODE_ENV !== 'production') console.log('[DB] Starting migration process...');
     db.pragma('journal_mode = WAL');
-    console.log('[DB] WAL mode set successfully');
+    if (process.env.NODE_ENV !== 'production') console.log('[DB] WAL mode set successfully');
     
     const versionRow = db.prepare("SELECT value FROM configs WHERE key = 'schema_version'").get();
     const currentVersion = versionRow ? Number(JSON.parse(versionRow.value)) : 0;
     
     logger.info(`[DB] Mevcut şema versiyonu: ${currentVersion}, Hedef: ${SCHEMA_VERSION}`);
-    console.log(`[DB] Current schema version: ${currentVersion}, Target: ${SCHEMA_VERSION}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[DB] Current schema version: ${currentVersion}, Target: ${SCHEMA_VERSION}`);
 
     if (currentVersion < 1) {
-      console.log('[DB] Running migration to version 1...');
+      if (process.env.NODE_ENV !== 'production') console.log('[DB] Running migration to version 1...');
       logger.info('[DB MIGRATION] Versiyon 1 çalıştırılıyor: Klasörler için ayrı sütunlar oluşturuluyor.');
+      
+      // Migration backup oluştur (only for file-based databases, not :memory:)
+      let backupPath = null;
+      let backupCreated = false;
+      
+      if (DB_FILE !== ':memory:') {
+        backupPath = path.join(path.dirname(DB_FILE), `migration_backup_v${currentVersion}_to_v1.db`);
+        try {
+          fs.copyFileSync(DB_FILE, backupPath);
+          backupCreated = true;
+          logger.info('[DB MIGRATION] Backup created:', backupPath);
+        } catch (backupErr) {
+          logger.error('[DB MIGRATION] Backup creation failed:', backupErr);
+          throw new Error('Migration aborted: Cannot create backup');
+        }
+      } else {
+        logger.info('[DB MIGRATION] Skipping backup for in-memory database');
+      }
       
       const oldFoldersTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='folders'").get();
 
       // Sadece eski tablo varsa ve yeni kolonları içermiyorsa migrate et
       if (oldFoldersTableExists) {
+        try {
           const columns = db.prepare("PRAGMA table_info(folders)").all();
           const hasDataColumn = columns.some(c => c.name === 'data');
         
-        if (hasDataColumn) {
+          if (hasDataColumn) {
+            const oldFolders = db.prepare('SELECT data FROM folders_old_json').all();
+            const oldCount = oldFolders.length;
+            
             db.exec(`ALTER TABLE folders RENAME TO folders_old_json`);
             ensureTables(db); // Create new schema
             logger.info('[DB MIGRATION] folders tablosu `folders_old_json` olarak yeniden adlandırıldı.');
 
-            const oldFolders = db.prepare('SELECT data FROM folders_old_json').all();
             const insertStmt = db.prepare(`
                 INSERT INTO folders (
                     id, category, departmentId, clinic, unitCode, fileCode, subject, specialInfo, retentionPeriod, 
@@ -97,11 +118,52 @@ function migrate(db) {
                 }
             })();
             
+            // Validation: Veri kaybı kontrolü
+            const newCount = db.prepare('SELECT COUNT(*) as count FROM folders').get().count;
+            if (newCount !== oldCount) {
+              throw new Error(`Data loss detected during migration: ${oldCount} -> ${newCount}`);
+            }
+            logger.info(`[DB MIGRATION] Validation successful: ${newCount} folders migrated`);
+            
             db.exec('DROP TABLE folders_old_json');
             logger.info('[DB MIGRATION] `folders` tablosu başarıyla yeni şemaya geçirildi.');
+            
+            // Migration başarılı, backup'ı sil
+            if (backupCreated && fs.existsSync(backupPath)) {
+              fs.unlinkSync(backupPath);
+              logger.info('[DB MIGRATION] Backup removed after successful migration');
+            }
+          }
+        } catch (migrationError) {
+          logger.error('[DB MIGRATION FAILED] Rolling back...', migrationError);
+          
+          // Rollback: Backup'tan geri yükle (only for file-based databases)
+          if (backupCreated && backupPath && fs.existsSync(backupPath)) {
+            db.close();
+            fs.copyFileSync(backupPath, DB_FILE);
+            logger.error('[DB MIGRATION] Database restored from backup:', backupPath);
+          }
+          
+          throw migrationError;
         }
+      }
     }
-  }
+    
+    // Migration v1 → v2: excelPath kolonu ekle
+    if (currentVersion < 2) {
+      logger.info('[DB MIGRATION] Versiyon 2 çalıştırılıyor: Excel support ekleniyor.');
+      
+      // folders tablosuna excelPath kolonu ekle
+      try {
+        db.exec('ALTER TABLE folders ADD COLUMN excelPath TEXT');
+        logger.info('[DB MIGRATION] excelPath kolonu eklendi.');
+      } catch (err) {
+        // Kolon zaten varsa ignore et
+        if (!err.message.includes('duplicate column name')) {
+          throw err;
+        }
+      }
+    }
   
   // Şema versiyonunu güncelle
   db.prepare("INSERT OR REPLACE INTO configs (key, value) VALUES ('schema_version', ?)")
@@ -135,7 +197,7 @@ function ensureTables(db) {
     CREATE TABLE IF NOT EXISTS folders   ( 
       id TEXT PRIMARY KEY, category TEXT, departmentId INTEGER, clinic TEXT, unitCode TEXT, fileCode TEXT, subject TEXT, 
       specialInfo TEXT, retentionPeriod INTEGER, retentionCode TEXT, fileYear INTEGER, fileCount INTEGER, folderType TEXT,
-      pdfPath TEXT, locationStorageType TEXT, locationUnit INTEGER, locationFace TEXT, locationSection INTEGER, 
+      pdfPath TEXT, excelPath TEXT, locationStorageType TEXT, locationUnit INTEGER, locationFace TEXT, locationSection INTEGER, 
       locationShelf INTEGER, locationStand INTEGER, status TEXT, createdAt TEXT, updatedAt TEXT 
     );
     CREATE TABLE IF NOT EXISTS checkouts ( id  TEXT PRIMARY KEY, data  TEXT );
@@ -169,6 +231,7 @@ function rowToFolder(row) {
         fileCount: row.fileCount,
         folderType: row.folderType,
         pdfPath: row.pdfPath,
+        excelPath: row.excelPath,
         status: row.status,
         createdAt: new Date(row.createdAt),
         updatedAt: new Date(row.updatedAt),
@@ -214,16 +277,16 @@ const dbManager = {
         }
         
         logger.info(`Database dosya yolu: ${DB_FILE}`);
-        console.log('[DB] Creating database instance:', DB_FILE);
+        if (process.env.NODE_ENV !== 'production') console.log('[DB] Creating database instance:', DB_FILE);
         
         dbInstance = new Database(DB_FILE);
-        console.log('[DB] Database instance created successfully');
+        if (process.env.NODE_ENV !== 'production') console.log('[DB] Database instance created successfully');
         
         ensureTables(dbInstance);
-        console.log('[DB] Tables ensured successfully');
+        if (process.env.NODE_ENV !== 'production') console.log('[DB] Tables ensured successfully');
         
         logger.info(`better-sqlite3 veritabanına bağlandı: ${DB_FILE}`);
-        console.log('[DB] Connected to SQLite database successfully');
+        if (process.env.NODE_ENV !== 'production') console.log('[DB] Connected to SQLite database successfully');
       } catch (error) {
         logger.error('[DB CONNECTION ERROR]', { error: error.message, stack: error.stack });
         console.error('[DB CONNECTION ERROR]', error);
@@ -271,7 +334,17 @@ const dbManager = {
     }
   },
 
+  // SQL Injection koruması için tableName validation
+  validateTableName(tableName) {
+    const allowedTables = ['configs', 'checkouts', 'disposals', 'logs'];
+    if (!allowedTables.includes(tableName)) {
+      throw new Error(`Invalid table name: ${tableName}. SQL injection attempt detected.`);
+    }
+    return tableName;
+  },
+
   getList(tableName) {
+    this.validateTableName(tableName);
     return this.getDbInstance().prepare(`SELECT data FROM ${tableName}`).all().map(r => JSON.parse(r.data));
   },
   
@@ -282,22 +355,26 @@ const dbManager = {
       return row ? rowToFolder(row) : null;
     }
     
-    // Diğer tablolar için eski JSON format
+    // Diğer tablolar için güvenlik kontrolü ve eski JSON format
+    this.validateTableName(tableName);
     const row = this.getDbInstance().prepare(`SELECT data FROM ${tableName} WHERE id = ?`).get(String(id));
     return row ? JSON.parse(row.data) : null;
   },
 
   insert(tableName, item) {
+    this.validateTableName(tableName);
     this.getDbInstance().prepare(`INSERT INTO ${tableName} (id, data) VALUES (?, ?)`).run(String(item.id), JSON.stringify(item));
     return item;
   },
 
   update(tableName, item) {
+    this.validateTableName(tableName);
     this.getDbInstance().prepare(`UPDATE ${tableName} SET data = ? WHERE id = ?`).run(JSON.stringify(item), String(item.id));
     return item;
   },
   
   remove(tableName, id) {
+    this.validateTableName(tableName);
      this.getDbInstance().prepare(`DELETE FROM ${tableName} WHERE id = ?`).run(String(id));
      return { id };
   },
@@ -331,12 +408,12 @@ const dbManager = {
       const stmt = db.prepare(`
           INSERT INTO folders (
               id, category, departmentId, clinic, unitCode, fileCode, subject, specialInfo, 
-              retentionPeriod, retentionCode, fileYear, fileCount, folderType, pdfPath, 
+              retentionPeriod, retentionCode, fileYear, fileCount, folderType, pdfPath, excelPath, 
               locationStorageType, locationUnit, locationFace, locationSection, locationShelf, locationStand, 
               status, createdAt, updatedAt
           ) VALUES (
               @id, @category, @departmentId, @clinic, @unitCode, @fileCode, @subject, @specialInfo, 
-              @retentionPeriod, @retentionCode, @fileYear, @fileCount, @folderType, @pdfPath, 
+              @retentionPeriod, @retentionCode, @fileYear, @fileCount, @folderType, @pdfPath, @excelPath, 
               @locationStorageType, @locationUnit, @locationFace, @locationSection, @locationShelf, @locationStand, 
               @status, @createdAt, @updatedAt
           )
@@ -365,6 +442,7 @@ const dbManager = {
           fileCount: newFolder.fileCount,
           folderType: newFolder.folderType,
           pdfPath: newFolder.pdfPath || null,
+          excelPath: newFolder.excelPath || null,
           locationStorageType: newFolder.location?.storageType,
           locationUnit: newFolder.location?.unit || null,
           locationFace: newFolder.location?.face || null,
@@ -388,7 +466,7 @@ const dbManager = {
           category = @category, departmentId = @departmentId, clinic = @clinic, unitCode = @unitCode,
           fileCode = @fileCode, subject = @subject, specialInfo = @specialInfo,
           retentionPeriod = @retentionPeriod, retentionCode = @retentionCode, fileYear = @fileYear,
-          fileCount = @fileCount, folderType = @folderType, pdfPath = @pdfPath,
+          fileCount = @fileCount, folderType = @folderType, pdfPath = @pdfPath, excelPath = @excelPath,
           locationStorageType = @locationStorageType, locationUnit = @locationUnit,
           locationFace = @locationFace, locationSection = @locationSection, locationShelf = @locationShelf,
           locationStand = @locationStand, status = @status, updatedAt = @updatedAt
@@ -412,6 +490,7 @@ const dbManager = {
           fileCount: updatedData.fileCount,
           folderType: updatedData.folderType,
           pdfPath: updatedData.pdfPath || null,
+          excelPath: updatedData.excelPath || null,
           locationStorageType: updatedData.location?.storageType,
           locationUnit: updatedData.location?.unit || null,
           locationFace: updatedData.location?.face || null,
@@ -481,7 +560,11 @@ const dbManager = {
 
     const validSortColumns = ['subject', 'fileYear', 'createdAt', 'updatedAt'];
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'createdAt';
-    const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    
+    // SQL Injection prevention: Whitelist validation for order
+    const validOrders = ['asc', 'desc'];
+    const normalizedOrder = order ? order.toLowerCase() : 'desc';
+    const sortOrder = validOrders.includes(normalizedOrder) ? normalizedOrder.toUpperCase() : 'DESC';
     query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
     const offset = (page - 1) * limit;
@@ -541,12 +624,28 @@ const dbManager = {
 
   getActiveCheckoutsWithFolders() {
     const db = this.getDbInstance();
-    const checkoutsRaw = db.prepare("SELECT data FROM checkouts WHERE json_extract(data, '$.status') = 'Çıkışta'").all();
-    const checkouts = checkoutsRaw.map(c => JSON.parse(c.data));
-    return checkouts.map(checkout => ({
-      ...checkout,
-      folder: this.getFolderById(checkout.folderId)
-    }));
+    
+    // Optimized query with JOIN to prevent N+1 problem
+    const query = `
+      SELECT 
+        c.data as checkout_data,
+        f.*
+      FROM checkouts c
+      LEFT JOIN folders f ON CAST(json_extract(c.data, '$.folderId') AS TEXT) = f.id
+      WHERE json_extract(c.data, '$.status') = 'Çıkışta'
+    `;
+    
+    const rows = db.prepare(query).all();
+    
+    return rows.map(row => {
+      const checkout = JSON.parse(row.checkout_data);
+      const folder = row.id ? rowToFolder(row) : null;
+      
+      return {
+        ...checkout,
+        folder
+      };
+    });
   },
 
   getDisposableFolders(filter) {
@@ -601,9 +700,11 @@ const dbManager = {
     const iadeGecikenCount = activeCheckouts.filter(c => new Date(c.plannedReturnDate) < now).length;
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('[DEBUG] Aktif checkout sayısı (Arşiv Dışında):', arsivDisindaCount);
-      console.log('[DEBUG] İade geciken sayısı:', iadeGecikenCount);
-      console.log('[DEBUG] Aktif checkout\'lar:', activeCheckouts.map(c => ({ id: c.id, folderId: c.folderId, status: c.status, plannedReturn: c.plannedReturnDate })));
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[DEBUG] Aktif checkout sayısı (Arşiv Dışında):', arsivDisindaCount);
+        console.log('[DEBUG] İade geciken sayısı:', iadeGecikenCount);
+        console.log('[DEBUG] Aktif checkout\'lar:', activeCheckouts.map(c => ({ id: c.id, folderId: c.folderId, status: c.status, plannedReturn: c.plannedReturnDate })));
+      }
     }
     
     const { imhaEdilenCount } = db.prepare(`SELECT COUNT(*) as imhaEdilenCount FROM disposals`).get() || { imhaEdilenCount: 0 };

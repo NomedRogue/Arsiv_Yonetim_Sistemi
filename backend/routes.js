@@ -9,6 +9,7 @@ const { resolveBackupFolder, performBackupToFolder, getDbInfo } = require('./bac
 const { clearAutoBackupState } = require('./backupScheduler');
 const { getUserDataPath, ensureDirExists } = require('./fileHelper');
 const logger = require('./logger');
+const { uploadLimiter, strictLimiter } = require('./middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -64,6 +65,26 @@ async function resolvePdfFolder() {
   return folderPath;
 }
 
+async function resolveExcelFolder() {
+  let folderPath = '';
+  const settings = await dbManager.getConfig('settings');
+  if (
+    settings &&
+    settings.excelKayitKlasoru &&
+    typeof settings.excelKayitKlasoru === 'string'
+  ) {
+    folderPath = settings.excelKayitKlasoru.trim();
+  }
+
+  if (!folderPath) {
+    folderPath = getUserDataPath('Excels');
+  }
+  
+  logger.info('[EXCEL FOLDER] Resolved path:', folderPath);
+  ensureDirExists(folderPath);
+  return folderPath;
+}
+
 const validateDbSchema = async (dbPath) => {
   const Database = require('better-sqlite3');
   
@@ -100,10 +121,35 @@ function getUploadMiddleware() {
       },
       filename(req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, 'pdf-' + uniqueSuffix + path.extname(file.originalname));
+        // Sanitize original filename
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, 'pdf-' + uniqueSuffix + path.extname(sanitized));
       },
     });
-    upload = multer({ storage });
+    
+    upload = multer({ 
+      storage,
+      limits: {
+        fileSize: 50 * 1024 * 1024, // 50 MB max (will be overridden by settings)
+        files: 1, // Only one file
+      },
+      fileFilter: (req, file, cb) => {
+        // 1. Extension check
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (ext !== '.pdf') {
+          logger.warn('[UPLOAD SECURITY] Invalid extension rejected:', ext);
+          return cb(new Error('Sadece PDF dosyaları yüklenebilir.'));
+        }
+        
+        // 2. MIME type check
+        if (file.mimetype !== 'application/pdf') {
+          logger.warn('[UPLOAD SECURITY] Invalid MIME type rejected:', file.mimetype);
+          return cb(new Error('Geçersiz dosya tipi. Sadece PDF kabul edilir.'));
+        }
+        
+        cb(null, true);
+      },
+    });
   }
   return upload;
 }
@@ -120,50 +166,135 @@ function getUploadDbMiddleware() {
   return uploadDb;
 }
 
+// ---------- Multer: Excel depolama ----------
+let uploadExcel = null;
+function getUploadExcelMiddleware() {
+  if (!uploadExcel) {
+    const storage = multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          const uploadPath = await resolveExcelFolder();
+          cb(null, uploadPath);
+        } catch (error) {
+          logger.error('Excel upload path error:', { error });
+          cb(error);
+        }
+      },
+      filename(req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, 'excel-' + uniqueSuffix + path.extname(sanitized));
+      },
+    });
+    
+    uploadExcel = multer({ 
+      storage,
+      limits: {
+        fileSize: 50 * 1024 * 1024, // 50 MB max
+        files: 1,
+      },
+      fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const validExts = ['.xlsx', '.xls'];
+        
+        if (!validExts.includes(ext)) {
+          logger.warn('[EXCEL UPLOAD SECURITY] Invalid extension rejected:', ext);
+          return cb(new Error('Sadece Excel dosyaları (.xlsx, .xls) yüklenebilir.'));
+        }
+        
+        const validMimes = [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel', // .xls
+        ];
+        
+        if (!validMimes.includes(file.mimetype)) {
+          logger.warn('[EXCEL UPLOAD SECURITY] Invalid MIME type rejected:', file.mimetype);
+          return cb(new Error('Geçersiz dosya tipi. Sadece Excel kabul edilir.'));
+        }
+        
+        cb(null, true);
+      },
+    });
+  }
+  return uploadExcel;
+}
+
 // ---------- Routes ----------
 router.get('/health', (_req, res) => res.json({ ok: true }));
 
 // PDF endpoints
-router.post('/upload-pdf', (req, res, next) => {
+router.post('/upload-pdf', uploadLimiter, (req, res, next) => {
   const uploadMiddleware = getUploadMiddleware();
-  uploadMiddleware.single('pdf')(req, res, (err) => {
-    if (err) return next(err);
+  uploadMiddleware.single('pdf')(req, res, async (err) => {
+    if (err) {
+      logger.error('[UPLOAD ERROR]', { error: err.message });
+      return next(err);
+    }
     
     try {
       if (!req.file) return res.status(400).send('No file uploaded.');
 
-      // Validate file is a PDF by checking magic number
-      const buffer = Buffer.alloc(4);
-      const fd = fs.openSync(req.file.path, 'r');
-      fs.readSync(fd, buffer, 0, 4, 0);
-      fs.closeSync(fd);
-
-      if (buffer.toString('utf-8', 0, 4) !== '%PDF') {
-        // Not a PDF, delete the file and return error
-        fs.unlinkSync(req.file.path);
-        const err = new Error('Yalnızca PDF dosyaları yüklenebilir.');
-        err.statusCode = 400;
-        return next(err);
+      // Validate file is a PDF by checking magic number (%PDF at start)
+      const buffer = await fs.promises.readFile(req.file.path);
+      const isPDF = buffer.slice(0, 4).toString() === '%PDF';
+      
+      if (!isPDF) {
+        // Delete invalid file
+        await fs.promises.unlink(req.file.path).catch(e => 
+          logger.error('[CLEANUP ERROR]', { error: e })
+        );
+        logger.warn('[UPLOAD SECURITY] Invalid PDF magic number detected');
+        return res.status(400).json({ error: 'Geçersiz PDF dosyası. Dosya içeriği PDF formatında değil.' });
       }
 
+      logger.info('[UPLOAD SUCCESS]', { filename: req.file.filename, size: req.file.size });
+      
       res.json({ filename: req.file.filename });
-    } catch (err) {
-      // If file exists after error, try to clean it up
-      if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+    } catch (error) {
+      // Cleanup on error
+      if (req.file?.path) {
         try {
-          fs.unlinkSync(req.file.path);
-        } catch (cleanupError) {
-          logger.error('Failed to cleanup uploaded file after validation error', { error: cleanupError });
+          await fs.promises.unlink(req.file.path);
+        } catch (e) {
+          logger.error('[CLEANUP ERROR]', { error: e });
         }
       }
-      next(err);
+      next(error);
     }
   });
 });
 
-router.get('/serve-pdf/:filename', async (req, res, next) => {
+// PDF dosya yolunu döndür (Electron için)
+router.get('/pdf-path/:filename', async (req, res, next) => {
   try {
     const filename = path.basename(req.params.filename);
+    
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
+    const filePath = path.join(await resolvePdfFolder(), filename);
+
+    if (fs.existsSync(filePath)) {
+      res.json({ filePath: path.resolve(filePath) });
+    } else {
+      res.status(404).json({ error: 'File not found' });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/serve-pdf/:filename', async (req, res, next) => {
+  try {
+    // Path traversal protection: Use only basename
+    const filename = path.basename(req.params.filename);
+    
+    // Additional validation: Block suspicious patterns
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
     const filePath = path.join(await resolvePdfFolder(), filename);
 
     if (fs.existsSync(filePath)) {
@@ -180,12 +311,135 @@ router.get('/serve-pdf/:filename', async (req, res, next) => {
 router.delete('/delete-pdf/:filename', async (req, res, next) => {
   try {
     const filename = path.basename(req.params.filename);
+    
+    // Additional validation: Block suspicious patterns
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
     const filePath = path.join(await resolvePdfFolder(), filename);
 
     if (fs.existsSync(filePath)) {
       fs.unlink(filePath, (err) => {
         if (err) return next(err);
         res.json({ message: 'File deleted successfully.' });
+      });
+    } else {
+      res.status(200).json({ message: 'File not found, but proceeding.' });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Excel endpoints
+router.post('/upload-excel', uploadLimiter, (req, res, next) => {
+  const uploadMiddleware = getUploadExcelMiddleware();
+  uploadMiddleware.single('excel')(req, res, async (err) => {
+    if (err) {
+      logger.error('[EXCEL UPLOAD ERROR]', { error: err.message });
+      return next(err);
+    }
+    
+    try {
+      if (!req.file) return res.status(400).send('No file uploaded.');
+
+      logger.info('[EXCEL UPLOAD SUCCESS]', { filename: req.file.filename, size: req.file.size });
+      
+      // Excel indexleme - arka planda çalışsın
+      const excelSearchService = require('./excelSearchService');
+      excelSearchService.indexSingleExcel(req.file.path, req.file.filename)
+        .catch(err => logger.error('[EXCEL INDEX ERROR]', { error: err.message }));
+      
+      res.json({ filename: req.file.filename });
+    } catch (error) {
+      // Cleanup on error
+      if (req.file?.path) {
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch (e) {
+          logger.error('[CLEANUP ERROR]', { error: e });
+        }
+      }
+      next(error);
+    }
+  });
+});
+
+// Excel dosya yolunu döndür (Electron için)
+router.get('/excel-path/:filename', async (req, res, next) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
+    const filePath = path.join(await resolveExcelFolder(), filename);
+
+    if (fs.existsSync(filePath)) {
+      res.json({ filePath: path.resolve(filePath) });
+    } else {
+      res.status(404).json({ error: 'File not found' });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/serve-excel/:filename', async (req, res, next) => {
+  try {
+    // Path traversal protection: Use only basename
+    const filename = path.basename(req.params.filename);
+    
+    // Additional validation: Block suspicious patterns
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
+    const filePath = path.join(await resolveExcelFolder(), filename);
+
+    if (fs.existsSync(filePath)) {
+      // Excel dosyasını indir ve bilgisayarda aç
+      const ext = path.extname(filename).toLowerCase();
+      const mimeType = ext === '.xlsx' 
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/vnd.ms-excel';
+      
+      // Orijinal dosya adını koruyarak indir
+      const originalName = filename.replace(/^excel-\d+-\d+-/, '');
+      
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+      res.sendFile(path.resolve(filePath));
+    } else {
+      res.status(404).send('File not found.');
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/delete-excel/:filename', async (req, res, next) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    
+    // Additional validation: Block suspicious patterns
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    
+    const filePath = path.join(await resolveExcelFolder(), filename);
+
+    // Excel index'ten kaldır
+    const excelSearchService = require('./excelSearchService');
+    const db = await dbManager.getDbInstance();
+    db.prepare('DELETE FROM excel_metadata WHERE excel_path = ?').run(filename);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlink(filePath, (err) => {
+        if (err) return next(err);
+        res.json({ message: 'Excel file deleted successfully.' });
       });
     } else {
       res.status(200).json({ message: 'File not found, but proceeding.' });
@@ -444,7 +698,7 @@ router.get('/db-info', async (_req, res, next) => {
 });
 
 // YEDEKLEME / GERİ YÜKLEME
-router.post('/backup-db-to-folder', async (req, res, next) => {
+router.post('/backup-db-to-folder', strictLimiter, async (req, res, next) => {
   try {
     const dest = await performBackupToFolder('manual');
     res.json({ ok: true, path: dest });
@@ -456,7 +710,7 @@ router.post('/backup-db-to-folder', async (req, res, next) => {
   }
 });
 
-router.post('/restore-db', (req, res, next) => {
+router.post('/restore-db', strictLimiter, (req, res, next) => {
   const uploadDbMiddleware = getUploadDbMiddleware();
   uploadDbMiddleware.single('dbfile')(req, res, async (err) => {
     if (err) return next(err);
@@ -490,7 +744,7 @@ router.post('/restore-db', (req, res, next) => {
       dbManager.reconnectDb();
       next(e);
     }
-  });
+  }); // <-- Burada eksikti
 });
 
 router.get('/list-backups', (req, res, next) => {
@@ -684,6 +938,43 @@ router.get('/all-data', async (req, res) => {
     disposals
     // NOTE: folders are now excluded from this endpoint
   });
+});
+
+// ==================== EXCEL SEARCH ENDPOINTS ====================
+const excelSearchService = require('./excelSearchService');
+
+// Excel arama için tüm Excelleri index'le
+router.post('/excel-search/index-all', async (req, res, next) => {
+  try {
+    const result = await excelSearchService.indexAllExcels();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /excel-search/stats - Index istatistikleri
+router.get('/excel-search/stats', async (req, res, next) => {
+  try {
+    const stats = excelSearchService.getIndexStats();
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /excel-search?q=... - Excel içeriğinde arama yap
+router.get('/excel-search', async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim() === '') {
+      return res.json([]);
+    }
+    const results = excelSearchService.searchExcels(q);
+    res.json(results);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

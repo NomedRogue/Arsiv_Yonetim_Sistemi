@@ -1,6 +1,17 @@
 // jest-dom gibi eklentileri etkinleştirir
 require('@testing-library/jest-dom');
 
+// Mock import.meta for Vite environment variables
+global.import = global.import || {};
+global.import.meta = {
+  env: {
+    DEV: false,
+    MODE: 'test',
+    PROD: false,
+    SSR: false,
+  }
+};
+
 // JSDOM'da bulunmayan tarayıcı API'leri için global mock'lar ekle
 global.fetch = jest.fn(() =>
   Promise.resolve({

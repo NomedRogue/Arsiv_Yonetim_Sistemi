@@ -2,9 +2,12 @@ import { useEffect, Dispatch } from 'react';
 import { ArchiveAction } from '@/types';
 import { toast } from '@/lib/toast';
 
+// Electron'dan mı yoksa browser'dan mı çalıştığını kontrol et
+const isElectron = window.location.protocol === 'file:' || navigator.userAgent.includes('Electron');
+
 // Production'da (Electron) veya development'da doğru URL kullan
 const api = (p: string) => {
-  const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
+  const baseUrl = isElectron ? 'http://localhost:3001/api' : '/api';
   return `${baseUrl}${p.startsWith('/') ? '' : '/'}${p}`;
 };
 

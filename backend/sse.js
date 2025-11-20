@@ -6,18 +6,53 @@ const sseClients = new Set();
 const clients = new Set();
 let intervalId = null;
 
+// SSE Configuration
+const SSE_TIMEOUT = 30 * 60 * 1000; // 30 dakika
+const HEARTBEAT_INTERVAL = 30000; // 30 saniye
+const PING_INTERVAL = 25000; // 25 saniye
+const MAX_SSE_CLIENTS = 50; // Prevent memory exhaustion
+
 function addClient(res) {
-  clients.add(res);
+  const client = {
+    res,
+    connectedAt: Date.now(),
+    lastActivity: Date.now(),
+  };
+  
+  clients.add(client);
+  
   if (!intervalId) {
     intervalId = setInterval(() => {
-      // Herkese ping veya veri gönder
-      clients.forEach(client => {
-        client.write(`data: ping\n\n`);
+      const now = Date.now();
+      // Herkese ping gönder ve eski bağlantıları temizle
+      clients.forEach(c => {
+        try {
+          // Timeout kontrolü
+          if (now - c.lastActivity > SSE_TIMEOUT) {
+            logger.info('[SSE] Client timeout, closing connection');
+            c.res.end();
+            clients.delete(c);
+            return;
+          }
+          
+          c.res.write(`data: ping\n\n`);
+          c.lastActivity = now;
+        } catch (err) {
+          logger.error('[SSE PING ERROR]', { error: err });
+          clients.delete(c);
+        }
       });
-    }, 30000);
+      
+      // Interval'ı temizle eğer client kalmadıysa
+      if (clients.size === 0 && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }, HEARTBEAT_INTERVAL);
   }
+  
   res.on('close', () => {
-    clients.delete(res);
+    clients.delete(client);
     if (clients.size === 0 && intervalId) {
       clearInterval(intervalId);
       intervalId = null;
@@ -41,32 +76,53 @@ function sseBroadcast(type, payload = {}) {
 }
 
 function initSse(app) {
-  app.get('/api/events', (req, res) => {
-    res.set({
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-    });
-    res.flushHeaders?.();
-    res.write(`event: message\ndata: ${JSON.stringify({ type: 'connected', hello: true })}\n\n`);
-    sseClients.add(res);
-    addClient(res);
-    logger.info(`[SSE] Client connected. Total: ${sseClients.size}`);
+  app.get('/api/events', async (req, res, next) => {
+    try {
+      // Prevent too many concurrent connections (security)
+      if (sseClients.size >= MAX_SSE_CLIENTS) {
+        return res.status(503).json({ 
+          error: 'Too many active connections. Please try again later.' 
+        });
+      }
+      
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.flushHeaders?.();
+      res.write(`event: message\ndata: ${JSON.stringify({ type: 'connected', hello: true })}\n\n`);
+      sseClients.add(res);
+      addClient(res);
+      logger.info(`[SSE] Client connected. Total: ${sseClients.size}`);
 
-    const hb = setInterval(() => {
-      try { 
-        res.write(`event: ping\ndata: {}\n\n`); 
-      } catch (_) {}
-    }, 25000);
+      const hb = setInterval(() => {
+        try { 
+          res.write(`event: ping\ndata: {}\n\n`); 
+        } catch (_) {
+          clearInterval(hb);
+        }
+      }, PING_INTERVAL);
+      
+      // Auto-cleanup timeout
+      const cleanupTimeout = setTimeout(() => {
+        logger.info('[SSE] Client connection timeout, closing');
+        clearInterval(hb);
+        sseClients.delete(res);
+        try { 
+          res.end(); 
+        } catch (_) {}
+      }, SSE_TIMEOUT);
 
-    req.on('close', () => {
-      clearInterval(hb);
-      sseClients.delete(res);
-      logger.info(`[SSE] Client disconnected. Total: ${sseClients.size}`);
-      try { 
-        res.end(); 
-      } catch (_) {}
-    });
+      req.on('close', () => {
+        clearInterval(hb);
+        clearTimeout(cleanupTimeout);
+        sseClients.delete(res);
+        logger.info(`[SSE] Client disconnected. Total: ${sseClients.size}`);
+        try { 
+          res.end(); 
+        } catch (_) {}
+      });
+    } catch (error) {
+      logger.error('[SSE] Connection error:', error);
+      next(error);
+    }
   });
 }
 

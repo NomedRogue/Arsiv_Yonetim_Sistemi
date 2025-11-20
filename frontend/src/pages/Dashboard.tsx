@@ -71,9 +71,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   // Dashboard cards data - tema değiştiğinde yeniden hesapla
   const dashboardCardsData = useMemo(() => [
-    { title: "Toplam Klasör", value: stats.totalFolders, icon: Folder, onClick: () => onNavigate('Tüm Klasörler') },
-    { title: "Tıbbi", value: stats.tibbiCount, icon: FileText, onClick: () => onNavigate('Arama', { category: Category.Tibbi }) },
-    { title: "İdari", value: stats.idariCount, icon: FileText, onClick: () => onNavigate('Arama', { category: Category.Idari }) },
+    { title: "Toplam Klasör", value: stats.totalFolders, icon: Folder, onClick: () => onNavigate('Arşiv') },
+    { title: "Tıbbi", value: stats.tibbiCount, icon: FileText, onClick: () => onNavigate('Arşiv') },
+    { title: "İdari", value: stats.idariCount, icon: FileText, onClick: () => onNavigate('Arşiv') },
     { title: "Arşiv Dışında", value: stats.arsivDisindaCount, icon: ChevronsRight, onClick: () => onNavigate('Çıkış/İade Takip') },
     { title: "İade Geciken", value: stats.iadeGecikenCount, icon: AlertTriangle, onClick: () => onNavigate('Çıkış/İade Takip') },
     { title: "Bu Yıl İmha Edilecekler", value: stats.buYilImhaEdilenecekCount, icon: BookX, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'thisYear' }) },
@@ -199,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
     const handleThemeChange = () => {
       // Force component re-render when theme changes
-      console.log('[DASHBOARD] Theme changed event received');
+      if (import.meta.env.DEV) console.log('[DASHBOARD] Theme changed event received');
       setForceUpdate(prev => prev + 1); // Force re-render
       setTimeout(() => {
         setStats(prev => ({ ...prev }));
@@ -218,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   // Theme değiştiğinde force update
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[DASHBOARD] Theme changed to:', theme);
+      if (import.meta.env.DEV) console.log('[DASHBOARD] Theme changed to:', theme);
     }
     setForceUpdate(prev => prev + 1);
     
@@ -236,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         progressCircle.setAttribute('stroke', progressColor);
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('[DASHBOARD] SVG circles updated manually:', { bgColor, progressColor, theme });
+          if (import.meta.env.DEV) console.log('[DASHBOARD] SVG circles updated manually:', { bgColor, progressColor, theme });
         }
       } else {
         if (process.env.NODE_ENV === 'development') {
@@ -274,7 +274,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const timestamp = Date.now();
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('[DASHBOARD] SVG HTML regenerated:', { theme, bgColor, progressColor, forceUpdate, timestamp });
+      if (import.meta.env.DEV) console.log('[DASHBOARD] SVG HTML regenerated:', { theme, bgColor, progressColor, forceUpdate, timestamp });
     }
     
     return `

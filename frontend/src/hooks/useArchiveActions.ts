@@ -269,7 +269,7 @@ export const useArchiveActions = (
       }));
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
+        if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
       }
       
       dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => foldersToUpdate.find(u => u.id === f.id) || f) });
@@ -277,15 +277,15 @@ export const useArchiveActions = (
       
       try {
         if (process.env.NODE_ENV === 'development') {
-          console.log('[DISPOSE DEBUG] About to update folders...');
+          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] About to update folders...');
         }
         await Promise.all(foldersToUpdate.map(api.updateFolder));
         if (process.env.NODE_ENV === 'development') {
-          console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
+          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
         }
         await Promise.all(newDisposals.map(api.createDisposal));
         if (process.env.NODE_ENV === 'development') {
-          console.log('[DISPOSE DEBUG] All API calls successful!');
+          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] All API calls successful!');
         }
         toast.success(`${folderIds.length} klasör imha edildi.`);
         
@@ -293,7 +293,7 @@ export const useArchiveActions = (
         addLog({ type: 'dispose', details });
       } catch (e: any) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('[DISPOSE ERROR] Error during disposal:', e);
+          if (import.meta.env.DEV) console.log('[DISPOSE ERROR] Error during disposal:', e);
         }
         toast.error(`İmha işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousState.folders });
@@ -321,6 +321,7 @@ export const useArchiveActions = (
           logSaklamaSuresi: 'Log Saklama Süresi',
           yedeklemeKlasoru: 'Yedekleme Klasörü',
           pdfKayitKlasoru: 'PDF Kayıt Klasörü',
+          excelKayitKlasoru: 'Excel Kayıt Klasörü',
           iadeUyarisiGun: 'İade Uyarısı',
           backupFrequency: 'Oto. Yedekleme Sıklığı',
           backupTime: 'Oto. Yedekleme Saati',
@@ -329,7 +330,7 @@ export const useArchiveActions = (
 
         (Object.keys(keyLabels) as Array<keyof Settings>).forEach(key => {
           if (newSettings[key] !== previousSettings[key]) {
-             if (key === 'yedeklemeKlasoru' || key === 'pdfKayitKlasoru') {
+             if (key === 'yedeklemeKlasoru' || key === 'pdfKayitKlasoru' || key === 'excelKayitKlasoru') {
                 changes.push(`${keyLabels[key]}: "${newSettings[key] || 'Varsayılan'}"`);
              } else {
                 changes.push(`${keyLabels[key]}: ${newSettings[key]}`);
@@ -534,7 +535,20 @@ export const useArchiveActions = (
   
   const getOccupancy = useCallback(
     (location: Location): OccupancyInfo => {
-      const foldersInLocation = (state.folders || []).filter(f => f.status !== FolderStatus.Imha && f.location.storageType === location.storageType && f.location.unit === location.unit && f.location.face === location.face && f.location.section === location.section && f.location.shelf === location.shelf && f.location.stand === location.stand);
+      const foldersInLocation = (state.folders || []).filter(f => {
+        if (f.status === FolderStatus.Imha) return false;
+        if (f.location.storageType !== location.storageType) return false;
+        
+        if (location.storageType === StorageType.Kompakt) {
+          return f.location.unit === location.unit && 
+                 f.location.face === location.face && 
+                 f.location.section === location.section && 
+                 f.location.shelf === location.shelf;
+        } else {
+          return f.location.stand === location.stand && 
+                 f.location.shelf === location.shelf;
+        }
+      });
       const total = location.storageType === StorageType.Kompakt ? state.settings.kompaktRafGenisligi : state.settings.standRafGenisligi;
       const used = foldersInLocation.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? state.settings.darKlasorGenisligi : state.settings.genisKlasorGenisligi), 0);
       return { total, used, percentage: total > 0 ? (used / total) * 100 : 0, folders: foldersInLocation };

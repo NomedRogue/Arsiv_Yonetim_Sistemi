@@ -1,8 +1,9 @@
 import React, { ReactNode } from 'react';
 import { Modal } from '@/components/Modal';
+import { openFileWithSystem } from '@/lib/fileUtils';
 import { Folder, Category, FolderStatus } from '@/types';
 import { Badge } from '@/components/Badge';
-import { FileText } from 'lucide-react';
+import { FileText, FileSpreadsheet } from 'lucide-react';
 
 // API URL helper - production'da doğrudan backend'e bağlan
 const getApiUrl = (path: string) => {
@@ -72,6 +73,7 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
           <DetailItem label="Saklama Kodu" value={folder.retentionCode} />
           <DetailItem label="Durum" value={getStatusBadge()} />
           {folder.pdfPath && <DetailItem label="PDF" value="Mevcut" />}
+          {folder.excelPath && <DetailItem label="Excel" value="Mevcut" />}
         </div>
         {folder.specialInfo && (
             <div className="col-span-2">
@@ -79,18 +81,25 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
             </div>
         )}
         
-        {folder.pdfPath && (
-          <div className="mt-4">
-            <a
-              href={getApiUrl(`/serve-pdf/${folder.pdfPath}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-300"
+        <div className="mt-4 flex gap-3">
+          {folder.pdfPath && (
+            <button
+              onClick={() => openFileWithSystem(folder.pdfPath!, 'pdf')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 text-sm font-medium shadow-sm hover:shadow-md"
             >
-              <FileText size={16} /> PDF Görüntüle
-            </a>
-          </div>
-        )}
+              <FileText size={18} /> PDF Görüntüle
+            </button>
+          )}
+          
+          {folder.excelPath && (
+            <button
+              onClick={() => openFileWithSystem(folder.excelPath!, 'excel')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm font-medium shadow-sm hover:shadow-md"
+            >
+              <FileSpreadsheet size={18} /> Excel Aç
+            </button>
+          )}
+        </div>
       </div>
     </Modal>
   );

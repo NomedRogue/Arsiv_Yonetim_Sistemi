@@ -1,10 +1,13 @@
 // frontend/src/api/index.ts
 import { Folder, Checkout, Disposal, Log, Settings, Department, StorageStructure, Location, DashboardStats } from '@/types';
 
+// Electron'dan mı yoksa browser'dan mı çalıştığını kontrol et
+const isElectron = window.location.protocol === 'file:' || navigator.userAgent.includes('Electron');
+
 // Production'da (Electron) veya development'da doğru URL kullan
-const API: string = import.meta.env.DEV 
-  ? '/api'  // Dev modda Vite proxy kullan
-  : 'http://localhost:3001/api';  // Production'da (Electron) direkt backend'e bağlan
+const API: string = isElectron
+  ? 'http://localhost:3001/api'  // Electron'dan çalışıyorsa direkt backend'e bağlan
+  : '/api';  // Browser'dan çalışıyorsa Vite proxy kullan
 
 // Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -59,10 +62,12 @@ export const getActiveCheckouts = () => http<(Checkout & { folder: Folder })[]>(
 // Disposal Actions
 export const getDisposals = () => http<Disposal[]>(`${API}/disposals`);
 export const createDisposal = (disposal: Disposal) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[FRONTEND API] Creating disposal:', disposal);
-  }
-  return http<Disposal>(`${API}/disposals`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(disposal) });
+  if (import.meta.env.DEV) console.log('[FRONTEND API] Creating disposal:', disposal);
+  return http<Disposal>(`${API}/disposals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(disposal)
+  });
 };
 
 // Log Actions

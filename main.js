@@ -1,5 +1,5 @@
 ﻿// Electron ana modülleri
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./backend/logger');
@@ -14,7 +14,11 @@ if (!gotTheLock) {
 // Global değişkenler
 let mainWindow = null;
 let backendProcess = null;
-const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production';
+const isDev = !app.isPackaged && (
+  process.env.NODE_ENV !== 'production' || 
+  process.defaultApp || 
+  /node_modules[\\/]electron[\\/]/.test(process.execPath)
+);
 const userDataPath = app.getPath('userData');
 const dbPath = path.join(userDataPath, 'arsiv.db');
 const logFilePath = path.join(userDataPath, 'app-log.txt');
@@ -172,5 +176,21 @@ ipcMain.handle('dialog:openDirectory', async () => {
   } catch (e) {
     logger.error('[DIALOG ERROR]', { error: e });
     return null;
+  }
+});
+
+// Excel/PDF dosyasını sistem varsayılan uygulamasıyla aç
+ipcMain.handle('file:openExternal', async (event, filePath) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) {
+      logger.error('[OPEN FILE ERROR] File not found:', filePath);
+      return { success: false, error: 'Dosya bulunamadı' };
+    }
+    
+    await shell.openPath(filePath);
+    return { success: true };
+  } catch (e) {
+    logger.error('[OPEN FILE ERROR]', { error: e.message, filePath });
+    return { success: false, error: e.message };
   }
 });

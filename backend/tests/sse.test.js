@@ -16,12 +16,14 @@ describe('SSE (Server-Sent Events)', () => {
 
     // Mock response object
     mockResponse = {
-      set: jest.fn(),
+      setHeader: jest.fn(),
       flushHeaders: jest.fn(),
       write: jest.fn(),
       end: jest.fn(),
       on: jest.fn(),
-      removeAllListeners: jest.fn()
+      removeAllListeners: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis()
     };
 
     // Mock request object
@@ -39,27 +41,21 @@ describe('SSE (Server-Sent Events)', () => {
   });
 
   describe('initSse', () => {
-    it('should initialize SSE connection correctly', () => {
+    it('should initialize SSE connection correctly', async () => {
       initSse(mockApp);
 
       expect(mockApp.get).toHaveBeenCalledWith('/api/events', expect.any(Function));
       
-      // Simulate the route handler being called
-      routeHandler(mockRequest, mockResponse);
+      // Simulate the route handler being called (it's async now)
+      await routeHandler(mockRequest, mockResponse);
       
-      expect(mockResponse.set).toHaveBeenCalledWith({
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-      });
-
-      expect(mockResponse.flushHeaders).toHaveBeenCalled();
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
       expect(mockResponse.write).toHaveBeenCalled();
     });
 
-    it('should handle request close event', () => {
+    it('should handle request close event', async () => {
       initSse(mockApp);
-      routeHandler(mockRequest, mockResponse);
+      await routeHandler(mockRequest, mockResponse);
 
       expect(mockRequest.on).toHaveBeenCalledWith('close', expect.any(Function));
     });

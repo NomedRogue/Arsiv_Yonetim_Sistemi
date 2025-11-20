@@ -60,7 +60,6 @@
   },
   "dependencies": {
     "archiver": "^5.3.1",
-    "axios": "^1.7.2",
     "better-sqlite3": "8.7.0",
     "concurrently": "^8.2.2",
     "cors": "^2.8.5",
@@ -69,19 +68,27 @@
     "extract-zip": "^2.0.1",
     "fs-extra": "^11.1.1",
     "multer": "^1.4.5-lts.1",
-    "path": "^0.12.7",
+    "pdf-parse": "^1.1.1",
     "sqlite3": "^5.1.7",
     "uuid": "^9.0.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@electron/rebuild": "^3.6.0",
     "@types/jest": "^29.5.12",
-    "electron": "28.2.0",
+    "babel-plugin-transform-vite-meta-env": "^1.0.3",
+    "electron": "28.3.3",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "jest": "^29.7.0",
     "supertest": "^6.3.3",
     "ts-jest": "^29.2.3"
+  },
+  "overrides": {
+    "js-yaml": "^4.1.1"
   }
 }

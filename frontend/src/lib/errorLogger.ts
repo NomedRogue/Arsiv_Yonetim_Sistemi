@@ -138,7 +138,7 @@ class ErrorLogger {
 
   logUserAction(action: string, data?: any): void {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`User Action: ${action}`, data);
+      if (import.meta.env.DEV) console.log(`User Action: ${action}`, data);
     }
   }
 

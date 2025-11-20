@@ -1,11 +1,14 @@
 import React, { useMemo, useState, useEffect, useCallback, memo } from 'react';
 import { useArchive } from '@/context/ArchiveContext';
+import { openFileWithSystem } from '@/lib/fileUtils';
 import { Category, Folder, FolderStatus, Checkout, CheckoutStatus } from '@/types';
-import { FileText, Edit, FileOutput, RotateCcw, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, FileSpreadsheet, Edit, FileOutput, RotateCcw, Trash2, ChevronLeft, ChevronRight, Loader2, Search as SearchIcon } from 'lucide-react';
 import { Badge } from '@/components/Badge';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
+import { handleApiError } from '@/lib/apiErrorHandler';
+import { RETENTION_CODES } from '@/constants';
 import * as apiService from '@/api';
 
 // Vite proxy kullan - /api otomatik olarak http://localhost:3001'e yönlendirilecek  
@@ -80,10 +83,19 @@ const FolderRow = React.memo<FolderRowProps>(({
           {folder.pdfPath && (
             <button
               title="PDF Görüntüle"
-              onClick={() => window.open(getApiUrl(`/serve-pdf/${folder.pdfPath}`), '_blank')}
-              className="p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors"
+              onClick={() => openFileWithSystem(folder.pdfPath!, 'pdf')}
+              className="p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors shadow-sm hover:shadow"
             >
-              <FileText size={16} />
+              <FileText size={18} />
+            </button>
+          )}
+          {folder.excelPath && (
+            <button
+              title="Excel Aç"
+              onClick={() => openFileWithSystem(folder.excelPath!, 'excel')}
+              className="p-2 bg-green-100 text-green-600 rounded-md hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 transition-colors shadow-sm hover:shadow"
+            >
+              <FileSpreadsheet size={18} />
             </button>
           )}
           <button
@@ -137,20 +149,37 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const {
     loading: contextLoading,
     getDepartmentName,
+    departments,
     addCheckout,
     getCheckoutsForFolder,
     returnCheckout,
     deleteFolder,
-    refresh, // Context'ten gelen folders'ı yenilemek için
+    refresh,
   } = useArchive();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50; // 10K klasör için 50 item/sayfa optimal
+  const itemsPerPage = 50;
 
   // Server-side pagination için state
   const [folders, setFolders] = useState<Folder[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // Gelişmiş arama state'leri
+  const [isAdvanced, setIsAdvanced] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState({
+    general: '',
+    category: 'Tümü',
+    departmentId: 'Tümü',
+    clinic: '',
+    fileCode: '',
+    subject: '',
+    specialInfo: '',
+    startYear: '',
+    endYear: '',
+    retentionCode: 'Tümü',
+    status: 'Tümü', // Durum filtresi
+  });
 
   const [isCheckoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [selectedFolderForCheckout, setSelectedFolderForCheckout] = useState<Folder | null>(null);
@@ -163,17 +192,33 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     try {
       setLoading(true);
       const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
-      const response = await fetch(`${baseUrl}/folders?page=${currentPage}&limit=${itemsPerPage}&sortBy=createdAt&order=desc`);
+      
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(itemsPerPage),
+      });
+
+      // Arama kriterleri ekle
+      Object.entries(searchCriteria).forEach(([key, value]) => {
+        if (value && value !== 'Tümü') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await fetch(`${baseUrl}/folders?${params.toString()}`);
       const data = await response.json();
-      setFolders(data.folders || []);
+      
+      setFolders(Array.isArray(data.folders) ? data.folders : []);
       setTotalItems(data.total || 0);
     } catch (error) {
       toast.error('Klasörler yüklenirken hata oluştu');
       console.error('Fetch folders error:', error);
+      setFolders([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchCriteria]);
 
   // Sayfa değiştiğinde veri çek
   useEffect(() => {
@@ -325,7 +370,156 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
       </Modal>
 
       <div className="flex flex-col h-full bg-white dark:bg-archive-dark-panel p-6 rounded-xl shadow-lg transition-colors duration-300">
-        <h2 className="text-2xl font-bold mb-4">Tüm Klasörler</h2>
+        <h2 className="text-2xl font-bold mb-4">Arşiv</h2>
+
+        {/* Gelişmiş Arama Formu */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); setCurrentPage(1); fetchFolders(); }}
+          className="space-y-4 p-4 mb-4 border rounded-lg dark:border-gray-600 transition-colors duration-300"
+        >
+          <div className="relative">
+            <input
+              type="text"
+              value={searchCriteria.general}
+              onChange={(e) => setSearchCriteria({ ...searchCriteria, general: e.target.value })}
+              placeholder="Tüm alanlarda ara..."
+              className="w-full p-3 pl-10 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+            />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="space-x-3">
+              <button
+                type="button"
+                onClick={() => setIsAdvanced(!isAdvanced)}
+                className="text-sm text-blue-600 dark:text-blue-400 transition-colors duration-300"
+              >
+                {isAdvanced ? 'Basit Aramaya Geç' : 'Gelişmiş Arama'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchCriteria({
+                    general: '',
+                    category: 'Tümü',
+                    departmentId: 'Tümü',
+                    clinic: '',
+                    fileCode: '',
+                    subject: '',
+                    specialInfo: '',
+                    startYear: '',
+                    endYear: '',
+                    retentionCode: 'Tümü',
+                    status: 'Tümü',
+                  });
+                  setCurrentPage(1);
+                }}
+                className="text-sm text-gray-600 dark:text-gray-300 hover:underline"
+              >
+                Temizle
+              </button>
+            </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors duration-300"
+              disabled={loading}
+            >
+              {loading ? <Loader2 size={18} className="mr-2 animate-spin" /> : <SearchIcon size={18} className="mr-2" />}
+              Ara
+            </button>
+          </div>
+
+          {isAdvanced && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t dark:border-gray-700 transition-colors duration-300">
+              <select
+                value={searchCriteria.category}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, category: e.target.value })}
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+              >
+                <option value="Tümü">Kategori: Tümü</option>
+                <option value={Category.Tibbi}>Tıbbi</option>
+                <option value={Category.Idari}>İdari</option>
+              </select>
+
+              <select
+                value={searchCriteria.departmentId}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, departmentId: e.target.value })}
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+              >
+                <option value="Tümü">Birim: Tümü</option>
+                {departments.filter(d => searchCriteria.category === 'Tümü' || d.category === searchCriteria.category).map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={searchCriteria.status}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, status: e.target.value })}
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+              >
+                <option value="Tümü">Durum: Tümü</option>
+                <option value={FolderStatus.Arsivde}>Arşivde</option>
+                <option value={FolderStatus.Cikista}>Çıkışta</option>
+                <option value={FolderStatus.Imha}>İmha</option>
+              </select>
+
+              <input
+                type="text"
+                value={searchCriteria.clinic}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, clinic: e.target.value })}
+                placeholder="Klinik Adı"
+                disabled={searchCriteria.category === Category.Idari}
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg disabled:opacity-50 transition-colors duration-300"
+              />
+              
+              <input
+                type="text"
+                value={searchCriteria.fileCode}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, fileCode: e.target.value })}
+                placeholder="Dosya Kodu"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              />
+              
+              <input
+                type="text"
+                value={searchCriteria.subject}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, subject: e.target.value })}
+                placeholder="Konu"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              />
+
+              <input
+                type="text"
+                value={searchCriteria.startYear}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, startYear: e.target.value })}
+                placeholder="Başlangıç Yılı"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              />
+              
+              <input
+                type="text"
+                value={searchCriteria.endYear}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, endYear: e.target.value })}
+                placeholder="Bitiş Yılı"
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              />
+
+              <select
+                value={searchCriteria.retentionCode}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, retentionCode: e.target.value })}
+                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+              >
+                <option value="Tümü">Saklama Kodu: Tümü</option>
+                {RETENTION_CODES.map(code => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form>
 
         {loading ? (
           <div className="flex justify-center items-center py-10">
@@ -333,7 +527,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto overflow-x-visible space-y-3 mb-4">
-            {folders.map((folder) => (
+            {Array.isArray(folders) && folders.map((folder) => (
               <FolderRow
                 key={folder.id}
                 folder={folder}
@@ -346,7 +540,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 onDelete={() => askDelete(folder)}
               />
             ))}
-            {folders.length === 0 && (
+            {(!Array.isArray(folders) || folders.length === 0) && (
               <div className="text-center text-gray-500 py-10">Kayıt bulunamadı.</div>
             )}
           </div>

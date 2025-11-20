@@ -1,6 +1,5 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+/** @type {import('jest').Config} */
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
@@ -10,9 +9,15 @@ module.exports = {
   transform: {
     '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(recharts|react-window)/)',
+  ],
   globals: {
-    'ts-jest': {
-      useESM: true,
+    'import.meta': {
+      env: {
+        DEV: false,
+        MODE: 'test',
+      },
     },
   },
 };

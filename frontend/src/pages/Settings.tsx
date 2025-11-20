@@ -2,6 +2,7 @@
 import { DEFAULT_SETTINGS } from '@/constants';
 import React, { useEffect, useState } from 'react';
 import { useArchive } from '@/context/ArchiveContext';
+import { handleApiError } from '@/lib/apiErrorHandler';
 import {
   Settings as SettingsType,
   Department,
@@ -10,7 +11,7 @@ import {
   KompaktUnitConfig,
 } from '@/types';
 import { Modal } from '@/components/Modal';
-import { Edit, Trash2, HardDrive, ChevronDown, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, HardDrive, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { deleteBackup, getBackups, backupDbToFolder, restoreDbFromBackup } from '@/api';
 
@@ -142,7 +143,7 @@ export const Settings: React.FC = () => {
         setBackups(response.backups || []);
         setBackupFolder(response.folder || '');
       } catch (error) {
-        console.error('Failed to load backups:', error);
+        handleApiError(error, 'Yedekler yüklenemedi');
       }
     };
     loadBackups();
@@ -221,8 +222,7 @@ export const Settings: React.FC = () => {
           setCurrentSettings((prev) => ({ ...prev, [fieldName]: selectedPath }));
         }
       } catch (error) {
-        console.error('Folder selection failed:', error);
-        toast.error('Klasör seçimi başarısız oldu.');
+        handleApiError(error, 'Klasör seçimi başarısız oldu.');
       }
     } else {
       toast.error('Klasör seçimi bu platformda desteklenmiyor.');
@@ -544,6 +544,7 @@ export const Settings: React.FC = () => {
           <SettingInput label="PDF Boyut Limiti" id="pdfBoyutLimiti" value={currentSettings.pdfBoyutLimiti} unit="MB" onChange={handleChange} />
           <SettingInput label="Log Saklama Süresi" id="logSaklamaSuresi" value={currentSettings.logSaklamaSuresi} unit="Yıl" onChange={handleChange} />
           <FilePathInput label="PDF Kayıt Klasörü" id="pdfKayitKlasoru" value={currentSettings.pdfKayitKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('pdfKayitKlasoru')} />
+          <FilePathInput label="Excel Kayıt Klasörü" id="excelKayitKlasoru" value={currentSettings.excelKayitKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('excelKayitKlasoru')} />
           <FilePathInput label="Yedekleme Klasörü" id="yedeklemeKlasoru" value={currentSettings.yedeklemeKlasoru} onChange={handleChange} onBrowseClick={() => handleBrowseClick('yedeklemeKlasoru')} />
           <SettingInput label="İade Uyarısı" id="iadeUyarisiGun" value={currentSettings.iadeUyarisiGun} unit="Gün Önce" onChange={handleChange} />
         </div>

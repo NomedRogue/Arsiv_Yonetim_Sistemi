@@ -8,8 +8,9 @@ import React, {
 import { useArchive } from '@/context/ArchiveContext';
 import { Category, FolderType, StorageType, Folder, Location } from '@/types';
 import { RETENTION_CODES } from '@/constants';
-import { UploadCloud, XCircle, FileText, Loader2 } from 'lucide-react';
+import { UploadCloud, XCircle, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { handleApiError } from '@/lib/apiErrorHandler';
 import { CustomInput, CustomSelect } from '@/components/forms/CustomFormControls';
 import { LocationSelector } from '@/components/LocationSelector';
 import * as api from '@/api';
@@ -70,6 +71,7 @@ export const FolderForm: React.FC<{
 
   const [formData, setFormData] = useState<FormDataType>(initialFormData);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [originalFolder, setOriginalFolder] = useState<Folder | null>(null);
 
@@ -99,6 +101,11 @@ export const FolderForm: React.FC<{
           } else {
             setPdfFile(null);
           }
+          if (folderToEdit.excelPath) {
+            setExcelFile({ name: folderToEdit.excelPath, size: 0 } as File);
+          } else {
+            setExcelFile(null);
+          }
         } catch (error: any) {
           toast.error(`Klasör verileri alınamadı: ${error.message}`);
           setEditingFolderId(null);
@@ -108,6 +115,7 @@ export const FolderForm: React.FC<{
     } else {
       setFormData(initialFormData);
       setPdfFile(null);
+      setExcelFile(null);
       setOriginalFolder(null);
     }
   }, [editingFolderId, isEditing, setEditingFolderId]);
@@ -165,6 +173,7 @@ export const FolderForm: React.FC<{
         newLocation.face = undefined;
         newLocation.section = undefined;
         newLocation.shelf = undefined;
+        newLocation.stand = undefined; // Kompakt seçildiğinde stand'ı temizle
       } else if (field === 'face') {
         newLocation.section = undefined;
         newLocation.shelf = undefined;
@@ -172,6 +181,9 @@ export const FolderForm: React.FC<{
         newLocation.shelf = undefined;
       } else if (field === 'stand') {
         newLocation.shelf = undefined;
+        newLocation.unit = undefined; // Stand seçildiğinde kompakt alanlarını temizle
+        newLocation.face = undefined;
+        newLocation.section = undefined;
       }
 
       const processedValue = field === 'face' ? (value as string | undefined) : value ? Number(value) : undefined;
@@ -204,6 +216,22 @@ export const FolderForm: React.FC<{
     setFormData((prev) => ({ ...prev, pdfPath: undefined }));
   };
 
+  const handleExcelFileChange = (files: FileList | null) => {
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.size > 50 * 1024 * 1024) { // 50 MB limit
+        toast.error('Excel dosya boyutu çok büyük. Maksimum boyut 50 MB olabilir.');
+        return;
+      }
+      setExcelFile(file);
+    }
+  };
+
+  const removeExcelFile = () => {
+    setExcelFile(null);
+    setFormData((prev) => ({ ...prev, excelPath: undefined }));
+  };
+
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -222,8 +250,9 @@ export const FolderForm: React.FC<{
     setIsSubmitting(true);
 
     let submittedPdfPath = originalFolder?.pdfPath;
+    let submittedExcelPath = originalFolder?.excelPath;
 
-    // 1) Eski dosyayı kaldır
+    // 1) Eski PDF dosyasını kaldır
     if (isEditing && originalFolder?.pdfPath && !pdfFile) {
       await fetch(`/api/delete-pdf/${originalFolder.pdfPath}`, {
         method: 'DELETE',
@@ -231,7 +260,15 @@ export const FolderForm: React.FC<{
       submittedPdfPath = undefined;
     }
 
-    // 2) Yeni dosya yüklendiyse değiştir
+    // 1b) Eski Excel dosyasını kaldır
+    if (isEditing && originalFolder?.excelPath && !excelFile) {
+      await fetch(`/api/delete-excel/${originalFolder.excelPath}`, {
+        method: 'DELETE',
+      });
+      submittedExcelPath = undefined;
+    }
+
+    // 2) Yeni PDF dosya yüklendiysevdegistir
     if (pdfFile && pdfFile.size > 0) {
       if (isEditing && originalFolder?.pdfPath) {
         await fetch(getApiUrl(`/delete-pdf/${originalFolder.pdfPath}`), {
@@ -250,8 +287,33 @@ export const FolderForm: React.FC<{
         const result = await uploadResponse.json();
         submittedPdfPath = result.filename;
       } catch (error) {
+        handleApiError(error, 'PDF yüklenirken bir hata oluştu!');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // 2b) Yeni Excel dosya yüklendiysevdegistir
+    if (excelFile && excelFile.size > 0) {
+      if (isEditing && originalFolder?.excelPath) {
+        await fetch(getApiUrl(`/delete-excel/${originalFolder.excelPath}`), {
+          method: 'DELETE',
+        });
+      }
+      const formDataForExcelUpload = new FormData();
+      formDataForExcelUpload.append('excel', excelFile);
+
+      try {
+        const uploadResponse = await fetch(getApiUrl('/upload-excel'), {
+          method: 'POST',
+          body: formDataForExcelUpload,
+        });
+        if (!uploadResponse.ok) throw new Error('Excel upload failed');
+        const result = await uploadResponse.json();
+        submittedExcelPath = result.filename;
+      } catch (error) {
         console.error(error);
-        toast.error('PDF yüklenirken bir hata oluştu!');
+        toast.error('Excel yüklenirken bir hata oluştu!');
         setIsSubmitting(false);
         return;
       }
@@ -263,6 +325,7 @@ export const FolderForm: React.FC<{
       departmentId: Number(departmentId),
       location: formData.location as Location,
       pdfPath: submittedPdfPath,
+      excelPath: submittedExcelPath,
     };
 
     if (isEditing && originalFolder && editingFolderId) {
@@ -273,7 +336,7 @@ export const FolderForm: React.FC<{
 
     setIsSubmitting(false);
     setEditingFolderId(null);
-    setActivePage('Tüm Klasörler');
+    setActivePage('Arşiv');
   };
 
   return (
@@ -524,6 +587,62 @@ export const FolderForm: React.FC<{
             </div>
           )}
         </fieldset>
+
+        <fieldset className="border p-4 rounded-lg dark:border-gray-600 transition-colors duration-300">
+          <legend className="px-2 font-semibold">
+            Excel Hasta Kayıt Listesi (Opsiyonel)
+          </legend>
+
+          {!excelFile ? (
+            <div className="flex justify-center items-center w-full">
+              <label
+                htmlFor="dropzone-excel-file"
+                className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-slate-600 transition-colors duration-300"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <UploadCloud className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="font-semibold">Excel dosyası yüklemek için tıklayın</span>{' '}
+                    veya sürükleyip bırakın
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Sadece Excel (.xlsx, .xls) (MAX. 50MB)
+                  </p>
+                </div>
+                <input
+                  id="dropzone-excel-file"
+                  type="file"
+                  className="hidden"
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    handleExcelFileChange(e.target.files)
+                  }
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="p-4 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-between transition-colors duration-300">
+              <div className="flex items-center">
+                <FileSpreadsheet className="w-6 h-6 mr-3 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium">{excelFile?.name}</p>
+                  {excelFile?.size > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {(excelFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={removeExcelFile}
+                className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-300"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+          )}
+        </fieldset>
         
         <LocationSelector 
             location={formData.location}
@@ -537,7 +656,7 @@ export const FolderForm: React.FC<{
             disabled={isSubmitting}
             onClick={() => {
               setEditingFolderId(null);
-              setActivePage('Tüm Klasörler');
+              setActivePage('Arşiv');
             }}
             className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 dark:bg-slate-700 dark:text-white dark:border-gray-600 dark:hover:bg-slate-600 transition-colors duration-300 disabled:opacity-50"
           >

@@ -74,7 +74,16 @@ function errorHandler(err, req, res, next) {
     };
   }
 
-  res.status(statusCode).json(errorResponse);
+    // Don't expose stack trace in production
+  const includeStack = process.env.NODE_ENV !== 'production';
+  
+  // Send error response
+  res.status(statusCode).json({
+    error: message,
+    type: errorType,
+    ...(includeStack && { stack: err.stack }),
+    timestamp: new Date().toISOString()
+  });
 }
 
 // Async error wrapper

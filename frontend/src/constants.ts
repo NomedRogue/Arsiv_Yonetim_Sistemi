@@ -65,6 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // NOTE: Empty strings will be resolved to a safe default path in USER_DATA_PATH on the backend
   yedeklemeKlasoru: '',
   pdfKayitKlasoru: '',
+  excelKayitKlasoru: '',
   iadeUyarisiGun: 3,
 
   // NEW: automatic backup config

@@ -10,9 +10,9 @@ import { Category } from './types';
 import '@/lib/errorLogger'; // Initialize global error handlers
 
 // Lazy load pages for better performance
-const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
-const FolderList = React.lazy(() => import('@/pages/FolderList'));
-const Search = React.lazy(() => import('@/pages/Search'));
+const Anasayfa = React.lazy(() => import('@/pages/Dashboard'));
+const Arsiv = React.lazy(() => import('@/pages/FolderList'));
+const ExcelSearch = React.lazy(() => import('@/pages/ExcelSearch'));
 const CheckoutReturn = React.lazy(() => import('@/pages/CheckoutReturn'));
 const Disposal = React.lazy(() => import('@/pages/Disposal'));
 const Settings = React.lazy(() => import('@/pages/Settings'));
@@ -24,12 +24,11 @@ initTheme();
 const App: React.FC = () => {
   const [theme, toggleTheme] = useTheme();
   const { isBackendReady, isLoading, error } = useBackendStatus();
-  const [activePage, setActivePage] = useState('Dashboard');
+  const [activePage, setActivePage] = useState('Anasayfa');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
 
   // Dashboard kartlarından gelen yönlendirmeler için state'ler
-  const [initialSearchCriteria, setInitialSearchCriteria] = useState<{ category?: Category } | null>(null);
   const [initialDisposalTab, setInitialDisposalTab] = useState<'disposable' | 'disposed' | undefined>();
   const [initialDisposalFilter, setInitialDisposalFilter] = useState<'thisYear' | 'nextYear' | 'overdue' | undefined>();
 
@@ -92,7 +91,6 @@ const App: React.FC = () => {
 
   const handleCardNavigation = (page: string, params?: { category?: Category, tab?: 'disposable' | 'disposed', filter?: 'thisYear' | 'nextYear' | 'overdue' }) => {
     // Navigasyon öncesi filtreleri ayarla veya temizle
-    setInitialSearchCriteria(page === 'Arama' && params?.category ? { category: params.category } : null);
     setInitialDisposalTab(page === 'İmha' ? params?.tab : undefined);
     setInitialDisposalFilter(page === 'İmha' ? params?.filter : undefined);
     setActivePage(page);
@@ -109,10 +107,10 @@ const App: React.FC = () => {
   const renderPage = () => {
     const pageContent = (() => {
       switch (activePage) {
-        case 'Dashboard':
-          return <Dashboard onNavigate={handleCardNavigation} />;
-        case 'Tüm Klasörler':
-          return <FolderList onEditFolder={handleEditFolder} />;
+        case 'Anasayfa':
+          return <Anasayfa onNavigate={handleCardNavigation} />;
+        case 'Arşiv':
+          return <Arsiv onEditFolder={handleEditFolder} />;
         case 'Yeni Klasör Ekle':
           return (
             <FolderForm
@@ -121,8 +119,8 @@ const App: React.FC = () => {
               setActivePage={setActivePage}
             />
           );
-        case 'Arama':
-          return <Search onEditFolder={handleEditFolder} initialCriteria={initialSearchCriteria} />;
+        case 'Excel Arama':
+          return <ExcelSearch />;
         case 'Çıkış/İade Takip':
           return <CheckoutReturn />;
         case 'İmha':
@@ -130,7 +128,7 @@ const App: React.FC = () => {
         case 'Ayarlar':
           return <Settings />;
         default:
-          return <Dashboard onNavigate={handleCardNavigation} />;
+          return <Anasayfa onNavigate={handleCardNavigation} />;
       }
     })();
 

@@ -49,6 +49,7 @@ export interface Folder {
   id: number;
   category: Category;
   departmentId: number;
+  departmentName?: string;
   clinic?: string;
   unitCode?: string;
   fileCode: string;
@@ -60,6 +61,7 @@ export interface Folder {
   fileCount: number;
   folderType: FolderType;
   pdfPath?: string;
+  excelPath?: string;
   location: Location;
   status: FolderStatus;
   createdAt: Date;
@@ -109,6 +111,7 @@ export interface Settings {
   logSaklamaSuresi: number;
   yedeklemeKlasoru: string;
   pdfKayitKlasoru: string;
+  excelKayitKlasoru: string;
   iadeUyarisiGun: number;
 
   // NEW: automatic backup config

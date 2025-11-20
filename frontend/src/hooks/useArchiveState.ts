@@ -5,7 +5,7 @@ import {
   ALL_DEPARTMENTS,
   INITIAL_STORAGE_STRUCTURE,
 } from '@/constants';
-import { getAllData, getFolders } from '@/api';
+import { getAllData, getAllFoldersForAnalysis } from '@/api';
 import { toast } from '@/lib/toast';
 
 const parseDates = (items: any[], dateKeys: string[]) =>
@@ -26,8 +26,9 @@ export const useArchiveState = () => {
     try {
       const data = await getAllData();
       
-      // Klasörleri de yükle
-      const foldersResponse = await getFolders();
+      // TÜM klasörleri yükle (doluluk hesaplaması için)
+      // Not: getAllFoldersForAnalysis sadece lokasyon ve folderType bilgisini içerir (hafif)
+      const allFoldersForOccupancy = await getAllFoldersForAnalysis();
 
       dispatch({
         type: 'SET_ALL_DATA',
@@ -35,7 +36,7 @@ export const useArchiveState = () => {
           settings: { ...DEFAULT_SETTINGS, ...data.settings },
           departments: data.departments || ALL_DEPARTMENTS,
           storageStructure: data.storageStructure || INITIAL_STORAGE_STRUCTURE,
-          folders: parseDates(foldersResponse.folders || [], ['createdAt', 'updatedAt']),
+          folders: allFoldersForOccupancy || [],
           checkouts: parseDates(data.checkouts || [], ['checkoutDate', 'plannedReturnDate', 'actualReturnDate']),
           disposals: parseDates(data.disposals || [], ['disposalDate']),
           logs: parseDates(data.logs || [], ['timestamp']),

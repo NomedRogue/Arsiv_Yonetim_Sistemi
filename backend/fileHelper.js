@@ -11,7 +11,7 @@ function ensureDirExists(dirPath) {
   try {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
-      console.log(`[SAFE MKDIR] Dizin oluşturuldu: ${dirPath}`);
+      if (process.env.NODE_ENV !== 'production') console.log(`[SAFE MKDIR] Dizin oluşturuldu: ${dirPath}`);
     }
   } catch (err) {
     console.error('[SAFE MKDIR] Dizin oluşturulamadı', err);
@@ -21,7 +21,7 @@ function ensureDirExists(dirPath) {
 function safeCopyFileSync(src, dest) {
   try {
     fs.copyFileSync(src, dest);
-    console.log(`[SAFE COPY] Dosya kopyalandı: ${src} -> ${dest}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[SAFE COPY] Dosya kopyalandı: ${src} -> ${dest}`);
   } catch (err) {
     console.error('[SAFE COPY] Dosya kopyalanamadı', err);
   }

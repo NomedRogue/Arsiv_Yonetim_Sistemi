@@ -10,7 +10,7 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, 'arsiv.db');
 if (!fs.existsSync(dbPath)) {
   try {
     new Database(dbPath).close();
-    if (isDev) console.log('[DB INIT] Yeni boş veritabanı oluşturuldu: ' + dbPath);
+    if (isDev && process.env.NODE_ENV !== 'production') console.log('[DB INIT] Yeni boş veritabanı oluşturuldu: ' + dbPath);
   } catch (dbCreateErr) {
     console.error('[DB INIT] Veritabanı oluşturulamadı', dbCreateErr);
   }
@@ -53,7 +53,7 @@ logger.info('[SERVER] Environment setup:', {
 (async () => {
   try {
     await dbManager.getDbInstance(); // Bu fonksiyon migrationı da çalıştırır
-    if (isDev) console.log('[SERVER] Database migration completed');
+    if (isDev && process.env.NODE_ENV !== 'production') console.log('[SERVER] Database migration completed');
     logger.info('[DB] Veritabanı şeması başarıyla kontrol edildi/güncellendi.');
   } catch (e) {
     console.error('[SERVER] Database migration FAILED:', e);
@@ -66,17 +66,30 @@ logger.info('[SERVER] Environment setup:', {
 
 const app = express();
 
-console.log('[SERVER] Setting up CORS...');
+if (process.env.NODE_ENV !== 'production') console.log('[SERVER] Setting up CORS...');
 const corsOptions = {
   origin: (origin, callback) => {
-    // Development: Vite server ve localhost
-    // Production: file:// protokolü (origin null olur) ve localhost
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:4173'];
-    if (!origin || allowedOrigins.includes(origin) || 
-        origin === 'null' || origin?.startsWith('file://')) {
-      callback(null, true);
+    const allowedOrigins = [
+      'http://localhost:5173',  // Vite dev
+      'http://localhost:4173',  // Vite preview
+    ];
+    
+    // Production: Sadece file:// ve electron (origin null)
+    if (process.env.NODE_ENV === 'production') {
+      if (!origin || origin === 'null' || origin?.startsWith('file://')) {
+        callback(null, true);
+      } else {
+        logger.warn('[CORS] Production modda izinsiz origin engellendi:', origin);
+        callback(new Error('Not allowed by CORS in production'));
+      }
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Development: localhost allowed + null origin (Electron dev)
+      if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn('[CORS] Development modda bilinmeyen origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -201,9 +214,9 @@ function startServer() {
 }
 
 // Server'ı başlat
-console.log('[SERVER] About to call startServer()...');
+if (process.env.NODE_ENV !== 'production') console.log('[SERVER] About to call startServer()...');
 startServer().then((server) => {
-  console.log('[SERVER] startServer() completed successfully, server is listening');
+  if (process.env.NODE_ENV !== 'production') console.log('[SERVER] startServer() completed successfully, server is listening');
 }).catch((error) => {
   console.error('[SERVER] startServer() failed with error:', error);
   logger.error('Server başlatma exception:', error);
