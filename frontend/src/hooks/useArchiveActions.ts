@@ -26,10 +26,10 @@ import * as api from '@/api';
 const formatLocation = (location: Location) => {
   if (!location || !location.storageType) return 'Konumsuz';
   if (location.storageType === StorageType.Kompakt) {
-    return `Ünite ${location.unit}-${location.face?.charAt(0)}/${location.section}/${location.shelf}`;
+    return `Ünite ${location.unit} - ${location.face} - ${location.section}.Bölüm - ${location.shelf}.Raf`;
   }
   if (location.storageType === StorageType.Stand) {
-    return `Stand ${location.stand}/${location.shelf}`;
+    return `Stand ${location.stand} - ${location.shelf}.Raf`;
   }
   return 'Bilinmeyen Lokasyon';
 };
