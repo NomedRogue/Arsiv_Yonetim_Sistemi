@@ -2,6 +2,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+const archiver = require('archiver');
 const dbManager = require('./db');
 const { sseBroadcast } = require('./sse');
 const { getUserDataPath, ensureDirExists } = require('./fileHelper');
@@ -34,15 +35,15 @@ async function cleanupOldBackups(folder, keepN) {
     logger.info(`[BACKUP CLEANUP] ${folder} klasöründe temizlik başlıyor. Son ${keepN} yedek tutulacak.`);
 
     const filenames = await fsPromises.readdir(folder);
-    const dbFiles = filenames.filter((f) => f.toLowerCase().endsWith('.db'));
+    const backupFiles = filenames.filter((f) => f.toLowerCase().endsWith('.zip') || f.toLowerCase().endsWith('.db'));
 
-    if (dbFiles.length <= keepN) {
-      logger.info(`[BACKUP CLEANUP] Temizlenecek yedek yok (${dbFiles.length} <= ${keepN}).`);
+    if (backupFiles.length <= keepN) {
+      logger.info(`[BACKUP CLEANUP] Temizlenecek yedek yok (${backupFiles.length} <= ${keepN}).`);
       return;
     }
 
     const filesWithStats = await Promise.all(
-      dbFiles.map(async (f) => {
+      backupFiles.map(async (f) => {
         const full = path.join(folder, f);
         try {
           const stat = await fsPromises.stat(full);
@@ -88,26 +89,81 @@ async function cleanupOldBackups(folder, keepN) {
 async function performBackupToFolder(reason = 'manual') {
   const folder = resolveBackupFolder();
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 15);
-  const dest = path.join(folder, `arsiv_${stamp}.db`);
+  const zipDest = path.join(folder, `arsiv_${stamp}.zip`);
+  const tempDbPath = path.join(folder, `temp_${stamp}.db`);
 
   try {
-    await dbManager.getDbInstance().backup(dest);
-    logger.info(`[BACKUP SUCCESS] ${dest}`);
+    // 1. Veritabanını geçici bir yere yedekle
+    await dbManager.getDbInstance().backup(tempDbPath);
+    logger.info(`[BACKUP] Veritabanı geçici olarak yedeklendi: ${tempDbPath}`);
+
+    // 2. ZIP arşivi oluştur
+    const output = fs.createWriteStream(zipDest);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    await new Promise((resolve, reject) => {
+      output.on('close', resolve);
+      output.on('error', reject);
+      archive.on('error', reject);
+      archive.on('warning', (err) => {
+        if (err.code === 'ENOENT') {
+          logger.warn('[BACKUP] Dosya bulunamadı uyarısı:', { error: err });
+        } else {
+          reject(err);
+        }
+      });
+
+      archive.pipe(output);
+
+      // Veritabanını ekle
+      archive.file(tempDbPath, { name: 'arsiv.db' });
+
+      // PDF ve Excel klasörlerini ekle (varsa)
+      const pdfsPath = getUserDataPath('PDFs');
+      const excelsPath = getUserDataPath('Excels');
+
+      if (fs.existsSync(pdfsPath)) {
+        const pdfFiles = fs.readdirSync(pdfsPath);
+        if (pdfFiles.length > 0) {
+          archive.directory(pdfsPath, 'PDFs');
+          logger.info(`[BACKUP] PDF klasörü eklendi: ${pdfFiles.length} dosya`);
+        }
+      }
+
+      if (fs.existsSync(excelsPath)) {
+        const excelFiles = fs.readdirSync(excelsPath);
+        if (excelFiles.length > 0) {
+          archive.directory(excelsPath, 'Excels');
+          logger.info(`[BACKUP] Excel klasörü eklendi: ${excelFiles.length} dosya`);
+        }
+      }
+
+      archive.finalize();
+    });
+
+    // 3. Geçici DB dosyasını sil
+    await fsPromises.unlink(tempDbPath);
+    logger.info(`[BACKUP SUCCESS] Tam yedek oluşturuldu: ${zipDest}`);
+
+    const stats = fs.statSync(zipDest);
+    const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
     
-    dbManager.addLog({ type: 'backup', details: `Yedek alındı: ${path.basename(dest)} (${reason})` });
+    dbManager.addLog({ 
+      type: 'backup', 
+      details: `Tam yedek alındı: ${path.basename(zipDest)} (${sizeMB} MB, ${reason})` 
+    });
     
     sseBroadcast('backup', { 
       reason,
-      path: dest,
-      filename: path.basename(dest),
+      path: zipDest,
+      filename: path.basename(zipDest),
+      size: stats.size,
       ts: new Date()
     });
 
     const settings = dbManager.getConfig('settings');
     const retentionCount = settings?.backupRetention;
     if (retentionCount && retentionCount > 0) {
-      // Temizliği yedeklemeden hemen sonra çalıştır.
-      // Hata olsa bile ana yedekleme işlemini etkilememesi için try-catch içinde.
       try {
         await cleanupOldBackups(folder, retentionCount);
       } catch (cleanupError) {
@@ -115,10 +171,18 @@ async function performBackupToFolder(reason = 'manual') {
       }
     }
 
-    return dest;
+    return zipDest;
   } catch (e) {
+    // Hata durumunda geçici dosyaları temizle
+    try {
+      if (fs.existsSync(tempDbPath)) await fsPromises.unlink(tempDbPath);
+      if (fs.existsSync(zipDest)) await fsPromises.unlink(zipDest);
+    } catch (cleanupErr) {
+      logger.warn('[BACKUP] Geçici dosya temizleme hatası:', { error: cleanupErr });
+    }
+    
     logger.error('[BACKUP ERROR]', { error: e });
-    throw new Error('Veritabanı yedeklenemedi: ' + e.message);
+    throw new Error('Yedekleme başarısız: ' + e.message);
   }
 }
 

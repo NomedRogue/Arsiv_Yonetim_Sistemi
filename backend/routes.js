@@ -3,6 +3,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3'); // Used for backup operations only
+const extract = require('extract-zip');
 const dbManager = require('./db');
 const { sseBroadcast } = require('./sse');
 const { resolveBackupFolder, performBackupToFolder, getDbInfo } = require('./backup');
@@ -754,11 +755,20 @@ router.get('/list-backups', (req, res, next) => {
 
     const files = fs
       .readdirSync(folder)
-      .filter((f) => f.toLowerCase().endsWith('.db'))
+      .filter((f) => {
+        const lower = f.toLowerCase();
+        return lower.endsWith('.zip') || lower.endsWith('.db');
+      })
       .map((f) => {
         const full = path.join(folder, f);
         const st = fs.statSync(full);
-        return { filename: f, size: st.size, mtimeMs: st.mtimeMs, iso: new Date(st.mtimeMs).toISOString() };
+        return { 
+          filename: f, 
+          size: st.size, 
+          mtimeMs: st.mtimeMs, 
+          iso: new Date(st.mtimeMs).toISOString(),
+          type: f.toLowerCase().endsWith('.zip') ? 'full' : 'database'
+        };
       })
       .sort((a, b) => b.mtimeMs - a.mtimeMs);
 
@@ -769,6 +779,7 @@ router.get('/list-backups', (req, res, next) => {
 });
 
 router.post('/restore-db-from-backup', async (req, res, next) => {
+  let tempExtractDir = null;
   try {
     let backupPath;
     if (req.body.filename) {
@@ -784,35 +795,115 @@ router.post('/restore-db-from-backup', async (req, res, next) => {
       return next(err);
     }
 
-    if (!(await validateDbSchema(backupPath))) {
-      const err = new Error('Geçersiz yedek dosyası. Şema uyumsuz.');
-      err.statusCode = 400;
-      return next(err);
-    }
-
     const before = await getDbInfo().catch(() => null);
+    const isZip = backupPath.toLowerCase().endsWith('.zip');
 
-    const db = dbManager.getDbInstance();
-    if (db && db.open) {
-      db.close();
+    if (isZip) {
+      // ZIP yedeği geri yükleme
+      tempExtractDir = path.join(getUserDataPath(), 'temp_restore_' + Date.now());
+      ensureDirExists(tempExtractDir);
+      
+      logger.info(`[RESTORE] ZIP dosyası çıkartılıyor: ${backupPath}`);
+      await extract(backupPath, { dir: tempExtractDir });
+      
+      const dbPath = path.join(tempExtractDir, 'arsiv.db');
+      if (!fs.existsSync(dbPath)) {
+        throw new Error('ZIP içinde arsiv.db dosyası bulunamadı.');
+      }
+
+      if (!(await validateDbSchema(dbPath))) {
+        throw new Error('Geçersiz yedek dosyası. Şema uyumsuz.');
+      }
+
+      // Veritabanını kapat
+      const db = dbManager.getDbInstance();
+      if (db && db.open) {
+        db.close();
+      }
+      
+      // Veritabanını geri yükle
+      fs.copyFileSync(dbPath, dbManager.DB_FILE);
+      logger.info('[RESTORE] Veritabanı geri yüklendi');
+
+      // PDF ve Excel klasörlerini geri yükle
+      const pdfsSource = path.join(tempExtractDir, 'PDFs');
+      const excelsSource = path.join(tempExtractDir, 'Excels');
+      const pdfsTarget = getUserDataPath('PDFs');
+      const excelsTarget = getUserDataPath('Excels');
+
+      if (fs.existsSync(pdfsSource)) {
+        ensureDirExists(pdfsTarget);
+        // Mevcut dosyaları temizle
+        const existingPdfs = fs.readdirSync(pdfsTarget);
+        existingPdfs.forEach(f => fs.unlinkSync(path.join(pdfsTarget, f)));
+        // Yeni dosyaları kopyala
+        const pdfFiles = fs.readdirSync(pdfsSource);
+        pdfFiles.forEach(f => {
+          fs.copyFileSync(path.join(pdfsSource, f), path.join(pdfsTarget, f));
+        });
+        logger.info(`[RESTORE] ${pdfFiles.length} PDF dosyası geri yüklendi`);
+      }
+
+      if (fs.existsSync(excelsSource)) {
+        ensureDirExists(excelsTarget);
+        // Mevcut dosyaları temizle
+        const existingExcels = fs.readdirSync(excelsTarget);
+        existingExcels.forEach(f => fs.unlinkSync(path.join(excelsTarget, f)));
+        // Yeni dosyaları kopyala
+        const excelFiles = fs.readdirSync(excelsSource);
+        excelFiles.forEach(f => {
+          fs.copyFileSync(path.join(excelsSource, f), path.join(excelsTarget, f));
+        });
+        logger.info(`[RESTORE] ${excelFiles.length} Excel dosyası geri yüklendi`);
+      }
+
+      // Geçici klasörü temizle
+      fs.rmSync(tempExtractDir, { recursive: true, force: true });
+      tempExtractDir = null;
+      
+    } else {
+      // Eski .db yedeği geri yükleme
+      if (!(await validateDbSchema(backupPath))) {
+        const err = new Error('Geçersiz yedek dosyası. Şema uyumsuz.');
+        err.statusCode = 400;
+        return next(err);
+      }
+
+      const db = dbManager.getDbInstance();
+      if (db && db.open) {
+        db.close();
+      }
+      
+      fs.copyFileSync(backupPath, dbManager.DB_FILE);
+      logger.warn('[RESTORE] Sadece veritabanı geri yüklendi. PDF/Excel dosyaları dahil değil.');
     }
-    
-    fs.copyFileSync(backupPath, dbManager.DB_FILE);
     
     dbManager.reconnectDb(); 
 
     const after = await getDbInfo();
 
-    dbManager.addLog({ type: 'restore', details: `Yedekten geri yüklendi: ${path.basename(backupPath)}` });
+    dbManager.addLog({ 
+      type: 'restore', 
+      details: `${isZip ? 'Tam yedekten' : 'Veritabanı yedekten'} geri yüklendi: ${path.basename(backupPath)}` 
+    });
     clearAutoBackupState();
     sseBroadcast('restore', { 
       source: 'backup',
       filename: path.basename(backupPath),
+      type: isZip ? 'full' : 'database',
       ts: new Date()
     });
 
-    res.json({ ok: true, before, after });
+    res.json({ ok: true, before, after, restoredFull: isZip });
   } catch (e) {
+    // Hata durumunda geçici klasörü temizle
+    if (tempExtractDir && fs.existsSync(tempExtractDir)) {
+      try {
+        fs.rmSync(tempExtractDir, { recursive: true, force: true });
+      } catch (cleanupErr) {
+        logger.warn('[RESTORE] Geçici klasör temizlenemedi:', { error: cleanupErr });
+      }
+    }
     dbManager.reconnectDb();
     next(e);
   }

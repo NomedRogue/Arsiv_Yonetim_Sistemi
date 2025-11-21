@@ -112,7 +112,7 @@ const AccordionSection: React.FC<{
   </div>
 );
 
-type BackupRow = { filename: string; size: number; mtimeMs: number; iso: string };
+type BackupRow = { filename: string; size: number; mtimeMs: number; iso: string; type?: 'full' | 'database' };
 
 export const Settings: React.FC = () => {
   const {
@@ -557,6 +557,24 @@ export const Settings: React.FC = () => {
         onToggle={() => toggleSection('backup')}
       >
         <div className="space-y-6">
+          {/* Bilgilendirme Kutusu */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">Tam Yedekleme Hakkında</h4>
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  Yedeklemeler artık <strong>veritabanı + PDF + Excel dosyalarını</strong> içeren tam yedek olarak alınmaktadır. 
+                  Geri yükleme yaptığınızda tüm verileriniz ve dosyalarınız geri gelecektir.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Otomatik Yedekleme</h3>
@@ -610,7 +628,21 @@ export const Settings: React.FC = () => {
                   <tbody>
                     {backups.map((b) => (
                       <tr key={b.filename} className="border-b last:border-0 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="py-3 px-4 font-medium">{b.filename}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{b.filename}</span>
+                            {b.type === 'full' && (
+                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-green-600 rounded">
+                                TAM YEDEK
+                              </span>
+                            )}
+                            {b.type === 'database' && (
+                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-blue-600 rounded">
+                                SADECE VERİTABANI
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-4">{new Date(b.iso).toLocaleString()}</td>
                         <td className="py-3 px-4">{(b.size / (1024 * 1024)).toFixed(2)} MB</td>
                         <td className="py-3 px-4">
@@ -618,6 +650,7 @@ export const Settings: React.FC = () => {
                             <button 
                               onClick={() => handleOpenRestoreModal(b.filename)} 
                               className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm"
+                              title={b.type === 'full' ? 'Veritabanı + PDF + Excel dosyalarını geri yükle' : 'Sadece veritabanını geri yükle'}
                             >
                               Geri Yükle
                             </button>
