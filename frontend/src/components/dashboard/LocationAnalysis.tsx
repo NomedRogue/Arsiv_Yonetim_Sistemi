@@ -90,7 +90,7 @@ const ExpandedShelfView: React.FC<{
             <div className="p-4 pt-8 bg-gray-100 dark:bg-slate-800 rounded-lg my-2 mx-2">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-24">
-                        <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
+                        <Loader2 className="animate-spin w-6 h-6 text-blue-500" />
                     </div>
                 ) : (
                     <>
@@ -109,7 +109,7 @@ const ExpandedShelfView: React.FC<{
                                         style={{ flexBasis: `${widthPercent}%`, cursor: 'pointer' }}
                                         onClick={() => handleFolderClick(folder)}
                                     >
-                                        <div className="flex flex-col justify-between items-center h-full text-center p-1 leading-tight text-[10px] xl:text-[11px] font-normal text-shadow-sm">
+                                        <div className="flex flex-col justify-between items-center h-full text-center p-1 leading-tight text-fluid-2xs font-normal text-shadow-sm">
                                             <span className="font-bold text-xs truncate">{folder.fileCode}</span>
                                             
                                             <div className="flex flex-col items-center">
@@ -272,9 +272,9 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
   
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg flex justify-center items-center min-h-[400px] border border-gray-200 dark:border-slate-700">
+      <div className="card-chart bg-white dark:bg-slate-800 shadow-lg flex justify-center items-center border border-gray-200 dark:border-slate-700">
         <div className="text-center">
-          <Loader2 className="animate-spin h-8 w-8 text-blue-500 mx-auto" />
+          <Loader2 className="animate-spin w-8 h-8 text-blue-500 mx-auto" />
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Lokasyon analizi yükleniyor...</p>
         </div>
       </div>
@@ -283,13 +283,13 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
 
   if (view.level !== 'summary') {
     return (
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px] border border-gray-200 dark:border-slate-700">
+      <div className="card-chart bg-white dark:bg-slate-800 shadow-lg transition-colors duration-300 border border-gray-200 dark:border-slate-700">
         <div className="flex items-center mb-4">
           <button
             onClick={handleBack}
             className="mr-4 p-2 rounded-full text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-slate-600 transition-colors duration-300"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft style={{ width: '1.25em', height: '1.25em' }} />
           </button>
           <h3 className="text-lg font-bold text-gray-800 dark:text-white transition-colors duration-300">
             {renderTitle()}
@@ -347,7 +347,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg transition-colors duration-300 min-h-[400px] border border-gray-200 dark:border-slate-700">
+    <div className="card-chart bg-white dark:bg-slate-800 shadow-lg transition-colors duration-300 border border-gray-200 dark:border-slate-700">
       <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 transition-colors duration-300">
         {renderTitle()}
       </h3>

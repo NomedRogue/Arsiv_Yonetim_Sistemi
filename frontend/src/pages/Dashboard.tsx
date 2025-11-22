@@ -419,7 +419,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         {dashboardCardsData.map((card, index) => {
           const iconColor = getCardIconColor(theme, card.title);
           return (
-            <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[80px] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
+            <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[5rem] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
               <div className="mr-3 flex-shrink-0 transition-colors duration-200" style={{ color: iconColor }}>
                 <card.icon size={24} />
               </div>

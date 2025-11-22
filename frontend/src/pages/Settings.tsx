@@ -104,7 +104,7 @@ const AccordionSection: React.FC<{
         <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200" />
       )}
     </button>
-    <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+    <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[125rem] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
       <div className="p-6">
         {children}
       </div>

@@ -103,7 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div className={`flex items-center gap-3 p-6 rounded-t-xl ${typeStyles.headerBg} transition-colors duration-300`}>
           {showIcon && (
             <div className={`flex-shrink-0 ${typeStyles.iconColor}`}>
-              <IconComponent size={24} />
+              <IconComponent style={{ width: '1.5em', height: '1.5em' }} />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -117,7 +117,7 @@ export const Modal: React.FC<ModalProps> = ({
             aria-label="Kapat"
             title="Kapat"
           >
-            <X size={20} />
+            <X style={{ width: '1.25em', height: '1.25em' }} />
           </button>
         </div>
 

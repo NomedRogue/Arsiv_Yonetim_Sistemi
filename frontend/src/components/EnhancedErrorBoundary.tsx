@@ -109,7 +109,7 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
                 onClick={this.resetErrorBoundary}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <RefreshCw size={20} />
+                <RefreshCw style={{ width: '1.25em', height: '1.25em' }} />
                 Yeniden Dene
               </button>
               
@@ -117,7 +117,7 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
                 onClick={this.reloadPage}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
-                <RefreshCw size={20} />
+                <RefreshCw style={{ width: '1.25em', height: '1.25em' }} />
                 Sayfayı Yenile
               </button>
               
@@ -125,7 +125,7 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
                 onClick={this.goHome}
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                <Home size={20} />
+                <Home style={{ width: '1.25em', height: '1.25em' }} />
                 Ana Sayfaya Dön
               </button>
             </div>

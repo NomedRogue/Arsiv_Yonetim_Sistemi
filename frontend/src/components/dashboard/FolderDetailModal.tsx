@@ -58,7 +58,7 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
       confirmText="Kapat"
       confirmColor="bg-gray-500 hover:bg-gray-600"
     >
-      <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+      <div className="space-y-3 max-h-[85vh] overflow-y-auto pr-2">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b pb-2 mb-3 dark:border-gray-600">{folder.subject}</h3>
         <div className="grid grid-cols-2 gap-3">
           <DetailItem label="Birim" value={getDepartmentName(folder.departmentId)} />
@@ -87,7 +87,7 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
               onClick={() => openFileWithSystem(folder.pdfPath!, 'pdf')}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 text-sm font-medium shadow-sm hover:shadow-md"
             >
-              <FileText size={18} /> PDF Görüntüle
+              <FileText style={{ width: '1.125em', height: '1.125em' }} /> PDF Görüntüle
             </button>
           )}
           
@@ -96,7 +96,7 @@ export const FolderDetailModal: React.FC<FolderDetailModalProps> = ({ isOpen, on
               onClick={() => openFileWithSystem(folder.excelPath!, 'excel')}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm font-medium shadow-sm hover:shadow-md"
             >
-              <FileSpreadsheet size={18} /> Excel Aç
+              <FileSpreadsheet style={{ width: '1.125em', height: '1.125em' }} /> Excel Aç
             </button>
           )}
         </div>

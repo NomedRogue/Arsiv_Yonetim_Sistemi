@@ -40,7 +40,7 @@ export const ToastHost: React.FC = () => {
             key={t.id}
             className={`pointer-events-auto text-white shadow-lg rounded-lg px-4 py-3 flex items-start gap-3 ${colorByType[t.type]}`}
           >
-            <Icon className="mt-[2px]" size={18} />
+            <Icon className="mt-[0.125rem]" style={{ width: '1.125em', height: '1.125em' }} />
             <div className="text-sm">{t.message}</div>
             <button
               onClick={() => dismiss(t.id)}
@@ -48,7 +48,7 @@ export const ToastHost: React.FC = () => {
               aria-label="Kapat"
               title="Kapat"
             >
-              <X size={16} />
+              <X style={{ width: '1em', height: '1em' }} />
             </button>
           </div>
         );

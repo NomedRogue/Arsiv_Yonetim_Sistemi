@@ -1,3 +1,6 @@
+/* Design System Import - DPI-aware responsive değişkenler */
+@import './styles/design-system.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -1,142 +1,121 @@
-/.dashboard-cards-grid {
+/* ============================================
+   📊 DASHBOARD CARDS GRID - DPI-AWARE & RESPONSIVE
+   Sabit px değerler kaldırıldı, REM-based sistem uygulandı
+   ============================================ */
+
+.dashboard-cards-grid {
   display: grid;
-  grid-template-columns: repeat(9, minmax(120px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  /* Auto-fit: Ekran boyutuna göre otomatik kolon sayısı */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+  gap: var(--space-fluid-xs);
+  margin-bottom: var(--space-fluid-sm);
   width: 100%;
-  overflow-x: auto;
 }
 
-/* Large screens - all 9 cards in one row with better spacing */
-@media (min-width: 1920px) {
+/* Large screens - 9 cards in one row */
+@media (min-width: 120rem) { /* 1920px */
   .dashboard-cards-grid {
     grid-template-columns: repeat(9, 1fr);
-    gap: 1rem;
-    overflow-x: visible;
+    gap: var(--space-4); /* 1rem */
   }
 }
 
-/* Medium-large screens - ensure good fit */
-@media (min-width: 1600px) and (max-width: 1919px) {
+/* Medium-large screens - 9 cards fit */
+@media (min-width: 100rem) and (max-width: 119.9375rem) { /* 1600-1919px */
   .dashboard-cards-grid {
     grid-template-columns: repeat(9, 1fr);
-    gap: 0.75rem;
-    overflow-x: visible;
+    gap: var(--space-3); /* 0.75rem */
   }
 }
 
-/* Medium screens - 2 rows (5+4 or 6+3) */
-@media (min-width: 1000px) and (max-width: 1599px) {
+/* Medium screens - 5 columns (2 rows) */
+@media (min-width: 62.5rem) and (max-width: 99.9375rem) { /* 1000-1599px */
   .dashboard-cards-grid {
     grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
+    gap: var(--space-4); /* 1rem */
   }
 }
 
-/* Small-medium screens - 2 rows (4+5 or 5+4) */
-@media (min-width: 768px) and (max-width: 999px) {
+/* Small-medium screens - 4 columns */
+@media (min-width: 48rem) and (max-width: 62.4375rem) { /* 768-999px */
   .dashboard-cards-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.875rem;
+    gap: var(--space-3); /* 0.75rem */
   }
 }
 
 /* Small screens - 2 columns */
-@media (max-width: 767px) {
+@media (max-width: 47.9375rem) { /* <768px */
   .dashboard-cards-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+    gap: var(--space-3); /* 0.75rem */
   }
 }
 
-/* Dashboard card responsive adjustments */
+/* Dashboard card base styles */
 .dashboard-cards-grid .dashboard-card {
-  min-width: 120px;
-  min-height: 100px;
+  min-width: 7.5rem;  /* 120px - REM based */
+  min-height: 6.25rem; /* 100px - REM based */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0.75rem;
+  padding: var(--space-3); /* 0.75rem */
   text-align: center;
-  border: none; /* Remove double border for stats cards */
+  border: none;
 }
 
+/* Card title - fluid typography */
 .dashboard-cards-grid .dashboard-card h3 {
-  font-size: 0.75rem !important;
-  line-height: 1.2;
-  margin-bottom: 0.5rem;
+  font-size: clamp(0.75rem, 0.7rem + 0.15vw, 0.875rem) !important;
+  line-height: 1.3;
+  margin-bottom: var(--space-2);
 }
 
+/* Card value - fluid typography */
 .dashboard-cards-grid .dashboard-card .text-2xl {
-  font-size: 1.25rem !important;
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.875rem) !important;
   font-weight: bold;
 }
 
-/* Responsive text sizing for cards */
-@media (min-width: 1600px) {
+/* Large screens - bigger text */
+@media (min-width: 100rem) { /* 1600px+ */
   .dashboard-cards-grid .dashboard-card h3 {
-    font-size: 0.95rem;
+    font-size: clamp(0.875rem, 0.8rem + 0.2vw, 1rem) !important;
   }
   .dashboard-cards-grid .dashboard-card .text-2xl {
-    font-size: 1.75rem;
+    font-size: clamp(1.5rem, 1.3rem + 0.6vw, 2rem) !important;
   }
 }
 
-@media (min-width: 1000px) and (max-width: 1599px) {
-  .dashboard-cards-grid .dashboard-card h3 {
-    font-size: 0.875rem;
-  }
-  .dashboard-cards-grid .dashboard-card .text-2xl {
-    font-size: 1.5rem;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 999px) {
-  .dashboard-cards-grid .dashboard-card h3 {
-    font-size: 0.875rem;
-  }
-  .dashboard-cards-grid .dashboard-card .text-2xl {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 767px) {
-  .dashboard-cards-grid .dashboard-card {
-    padding: 0.75rem;
-    min-height: 100px;
-  }
-  .dashboard-cards-grid .dashboard-card h3 {
-    font-size: 0.75rem;
-  }
-  .dashboard-cards-grid .dashboard-card .text-2xl {
-    font-size: 1.25rem;
-  }
-}s Carousel Grid */
+/* Stats Carousel Grid */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
 }
 
+/* Dashboard section spacing */
 .dashboard-section {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4); /* 1rem */
 }
 
+/* Mixed content grid - responsive */
 .mixed-content-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-3); /* 0.75rem */
 }
 
+/* Base dashboard card styles */
 .dashboard-card {
-  border-radius: 0.5rem;
-  padding: 0.75rem;
+  border-radius: var(--radius-md); /* 0.5rem */
+  padding: var(--space-3); /* 0.75rem */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease-in-out;
-  min-height: 80px;
+  min-height: 5rem; /* 80px -> 5rem */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -158,11 +137,12 @@ html.dark .dashboard-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Card typography - REM based */
 .card-title {
-  font-size: 0.875rem;
+  font-size: clamp(0.8125rem, 0.75rem + 0.2vw, 0.9375rem); /* 13-15px fluid */
   font-weight: 500;
   color: #374151;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1); /* 0.25rem */
 }
 
 html.dark .card-title {
@@ -170,7 +150,7 @@ html.dark .card-title {
 }
 
 .card-value {
-  font-size: 1.25rem;
+  font-size: clamp(1.125rem, 1rem + 0.4vw, 1.5rem); /* 18-24px fluid */
   font-weight: 600;
   color: #111827;
 }
@@ -179,14 +159,13 @@ html.dark .card-value {
   color: #F9FAFB;
 }
 
-
-
+/* Mixed content grid items */
 .mixed-content-grid > div {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md); /* 0.5rem */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 1rem;
+  padding: var(--space-4); /* 1rem */
   transition: all 0.3s ease-in-out;
 }
 

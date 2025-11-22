@@ -37,7 +37,7 @@ export const CustomizedTreemapContent = (props: any) => {
             pointerEvents: 'none',
           }}
         />
-        <text x={x + 8} y={y + 20} fill={theme === 'dark' ? '#f1f5f9' : '#1e293b'} fontSize={16} fontWeight="bold">
+        <text x={x + 8} y={y + 20} fill={theme === 'dark' ? '#f1f5f9' : '#1e293b'} fontSize="1rem" fontWeight="bold">
           {name}
         </text>
       </g>

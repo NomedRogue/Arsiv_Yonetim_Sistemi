@@ -119,7 +119,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       confirmText={isEditing ? 'Güncelle' : 'Çıkış Ver'}
       confirmColor="bg-status-orange"
     >
-      <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+      <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-2">
         <h3 className="font-bold text-lg text-gray-900 dark:text-white">{folderForDisplay?.subject}</h3>
 
         <div>

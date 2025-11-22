@@ -60,11 +60,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } h-screen sticky top-0 transition-width duration-300 z-40`}
     >
       <div
-        className={`border-b border-gray-200 dark:border-slate-700 flex items-center shrink-0 h-[69px] p-4 transition-colors duration-300 ${
+        className={`layout-header border-b border-gray-200 dark:border-slate-700 px-4 transition-colors duration-300 ${
           isOpen ? 'justify-start' : 'justify-center'
         }`}
       >
-        <ArchiveIcon size={28} className="text-archive-primary flex-shrink-0" />
+        <ArchiveIcon className="text-archive-primary flex-shrink-0" style={{ width: '1.75em', height: '1.75em' }} />
         {isOpen && (
           <h1 className="text-md font-bold ml-3 text-slate-800 dark:text-white transition-colors duration-300 truncate">
             Arşiv Yönetim Sistemi
@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : 'text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
                   } ${!isOpen && 'justify-center'}`}
                 >
-                  <Icon size={20} className="flex-shrink-0" />
+                  <Icon className="flex-shrink-0" style={{ width: '1.25em', height: '1.25em' }} />
                   <span
                     className={`ml-4 whitespace-nowrap transition-opacity ${
                       !isOpen ? 'opacity-0 hidden' : 'opacity-100'
