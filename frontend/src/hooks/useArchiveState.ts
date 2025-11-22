@@ -30,10 +30,16 @@ export const useArchiveState = () => {
       // Not: getAllFoldersForAnalysis sadece lokasyon ve folderType bilgisini içerir (hafif)
       const allFoldersForOccupancy = await getAllFoldersForAnalysis();
 
+      // BUGFIX: Sadece data.settings null/undefined ise DEFAULT_SETTINGS kullan
+      // Eğer data.settings bir obje ise (boş bile olsa), onu kullan ve eksik alanları DEFAULT_SETTINGS ile doldur
+      const mergedSettings = data.settings 
+        ? { ...DEFAULT_SETTINGS, ...data.settings }
+        : DEFAULT_SETTINGS;
+
       dispatch({
         type: 'SET_ALL_DATA',
         payload: {
-          settings: { ...DEFAULT_SETTINGS, ...data.settings },
+          settings: mergedSettings,
           departments: data.departments || ALL_DEPARTMENTS,
           storageStructure: data.storageStructure || INITIAL_STORAGE_STRUCTURE,
           folders: allFoldersForOccupancy || [],
