@@ -11,7 +11,7 @@ const archiver = require('archiver');
 const AdmZip = require('adm-zip');
 const { getDbInstance } = require('../database/connection');
 const { getRepositories } = require('../database/repositories');
-const { getUserDataPath, ensureDirExists } = require('../utils/fileHelper');
+const { getUserDataPath, ensureDirExists, validateFilePath } = require('../utils/fileHelper');
 const logger = require('../utils/logger');
 
 class BackupService {
@@ -221,7 +221,14 @@ class BackupService {
   async deleteBackup(filename) {
     try {
       const backupFolder = this.resolveBackupFolder();
-      const backupPath = path.join(backupFolder, filename);
+      
+      // Path traversal validation
+      const validation = validateFilePath(filename, backupFolder);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Geçersiz dosya adı');
+      }
+      
+      const backupPath = validation.safePath;
 
       if (!fs.existsSync(backupPath)) {
         throw new Error('Yedek dosyası bulunamadı');
@@ -248,7 +255,14 @@ class BackupService {
   async restoreBackup(filename) {
     try {
       const backupFolder = this.resolveBackupFolder();
-      const backupPath = path.join(backupFolder, filename);
+      
+      // Path traversal validation
+      const validation = validateFilePath(filename, backupFolder);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Geçersiz dosya adı');
+      }
+      
+      const backupPath = validation.safePath;
 
       if (!fs.existsSync(backupPath)) {
         throw new Error('Yedek dosyası bulunamadı');

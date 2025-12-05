@@ -75,9 +75,9 @@ const express = require('express');
 const cors = require('cors');
 
 // ADIM 7: Uygulama modüllerini yükle
-const { initSse } = require('./src/utils/sse');
+const { initSse, stopSse } = require('./src/utils/sse');
 const apiRoutes = require('./src/routes');
-const { startAutoBackupScheduler, initAutoBackupState } = require('./backupScheduler');
+const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState } = require('./backupScheduler');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 const { getDbInstance } = require('./src/database/connection');
 const { ensureEnvDefaults: newEnsureEnvDefaults } = require('./src/config/database');
@@ -107,7 +107,11 @@ const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
       'http://localhost:5173',  // Vite dev
+      'http://localhost:5174',  // Vite dev (fallback port)
       'http://localhost:4173',  // Vite preview
+      'http://127.0.0.1:5173',  // Vite dev (IP)
+      'http://127.0.0.1:5174',  // Vite dev (IP fallback port)
+      'http://127.0.0.1:4173',  // Vite preview (IP)
     ];
     
     // Production: Sadece file:// ve electron (origin null)
@@ -251,6 +255,20 @@ function startServer() {
       server.close(() => {
         clearTimeout(forceShutdownTimeout);
         logger.info('[BACKEND] HTTP server closed.');
+        
+        // Stop backup scheduler
+        try {
+          stopAutoBackupScheduler();
+        } catch (schedErr) {
+          logger.error('[BACKEND] Error stopping backup scheduler:', schedErr);
+        }
+        
+        // Stop SSE
+        try {
+          stopSse();
+        } catch (sseErr) {
+          logger.error('[BACKEND] Error stopping SSE:', sseErr);
+        }
         
         // Close database connection
         try {

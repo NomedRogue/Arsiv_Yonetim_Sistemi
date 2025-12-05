@@ -1,24 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useArchive } from '@/context/ArchiveContext';
 
 /**
  * Hook to handle SSE events for disposal-related changes
- * Listens to folder_created, folder_updated, folder_deleted events
+ * Uses ArchiveContext's centralized SSE connection
  */
 export const useDisposalSSE = (onFolderChange: () => void) => {
+  const { sseConnected } = useArchive();
+  const lastConnectedRef = useRef(sseConnected);
+  
+  // Only refresh when SSE connection is established (false -> true transition)
   useEffect(() => {
-    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
-    const eventSource = new EventSource(`${baseUrl}/api/events`);
-
-    const handleFolderChange = () => {
+    // Only trigger on connection establishment, not on every render
+    if (sseConnected && !lastConnectedRef.current) {
       onFolderChange();
-    };
-
-    eventSource.addEventListener('folder_created', handleFolderChange);
-    eventSource.addEventListener('folder_updated', handleFolderChange);
-    eventSource.addEventListener('folder_deleted', handleFolderChange);
-
-    return () => {
-      eventSource.close();
-    };
-  }, [onFolderChange]);
+    }
+    lastConnectedRef.current = sseConnected;
+  }, [sseConnected, onFolderChange]);
 };

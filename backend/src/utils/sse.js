@@ -1,4 +1,5 @@
 const logger = require('./logger');
+const { TIMEOUTS } = require('../config/constants');
 
 const sseClients = new Set();
 
@@ -6,11 +7,11 @@ const sseClients = new Set();
 const clients = new Set();
 let intervalId = null;
 
-// SSE Configuration
-const SSE_TIMEOUT = 30 * 60 * 1000; // 30 dakika
-const HEARTBEAT_INTERVAL = 30000; // 30 saniye
-const PING_INTERVAL = 25000; // 25 saniye
-const MAX_SSE_CLIENTS = 50; // Prevent memory exhaustion
+// SSE Configuration from constants
+const SSE_TIMEOUT = TIMEOUTS.SSE_TIMEOUT_MS;
+const HEARTBEAT_INTERVAL = TIMEOUTS.SSE_HEARTBEAT_MS;
+const PING_INTERVAL = TIMEOUTS.SSE_PING_MS;
+const MAX_SSE_CLIENTS = TIMEOUTS.MAX_SSE_CLIENTS;
 
 function addClient(res) {
   const client = {
@@ -140,7 +141,7 @@ function sseCleanup() {
   // Client interval'larını temizle
   for (const client of clients) {
     try {
-      client.end();
+      client.res.end();
     } catch (e) {
       // Ignore errors during cleanup
     }
@@ -151,6 +152,11 @@ function sseCleanup() {
     clearInterval(intervalId);
     intervalId = null;
   }
+  
+  logger.info('[SSE] All connections closed and intervals cleared');
 }
 
-module.exports = { sseBroadcast, initSse, sseCleanup };
+// Alias for graceful shutdown
+const stopSse = sseCleanup;
+
+module.exports = { sseBroadcast, initSse, sseCleanup, stopSse };

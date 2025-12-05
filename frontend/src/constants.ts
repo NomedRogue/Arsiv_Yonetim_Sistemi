@@ -1,5 +1,22 @@
 import { Department, Category, StorageStructure, Settings } from './types';
 
+// Electron'dan mı yoksa browser'dan mı çalıştığını kontrol et
+const isElectron = typeof window !== 'undefined' && 
+  (window.location.protocol === 'file:' || navigator.userAgent.includes('Electron'));
+
+// API URL - Production (Electron) veya Development için
+export const API_BASE_URL: string = isElectron
+  ? 'http://localhost:3001/api'  // Electron'dan çalışıyorsa direkt backend'e bağlan
+  : '/api';  // Browser'dan çalışıyorsa Vite proxy kullan
+
+// Timeout and interval settings
+export const TIMEOUTS = {
+  SEARCH_DEBOUNCE_MS: 300,           // Search debounce süresi
+  TOAST_DURATION_MS: 5000,           // Toast görünme süresi
+  HEALTH_CHECK_INTERVAL_MS: 1000,    // Backend health check interval
+  HEALTH_CHECK_MAX_ATTEMPTS: 30,     // Max health check denemeleri
+} as const;
+
 // These are used to build the initial default department list.
 export const IDARI_BIRIMLER: Omit<Department, 'id' | 'category'>[] = [
   { name: 'Memur Maaş Mutemetliği' }, { name: 'İşçi Maaş Mutemetliği' },

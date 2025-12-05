@@ -269,6 +269,24 @@ ipcMain.handle('file:openExternal', async (event, filePath) => {
       return { success: false, error: 'Dosya bulunamadı' };
     }
     
+    // Path validation - only allow files from PDFs, Excels, or Downloads directories
+    const allowedDirs = [
+      path.join(userDataPath, 'PDFs'),
+      path.join(userDataPath, 'Excels'),
+      app.getPath('downloads')
+    ];
+    
+    const resolvedPath = path.resolve(filePath);
+    const isAllowed = allowedDirs.some(dir => {
+      const resolvedDir = path.resolve(dir);
+      return resolvedPath.startsWith(resolvedDir + path.sep) || resolvedPath === resolvedDir;
+    });
+    
+    if (!isAllowed) {
+      logger.warn('[SECURITY] Unauthorized file access attempt:', filePath);
+      return { success: false, error: 'Bu dosyaya erişim izni yok' };
+    }
+    
     await shell.openPath(filePath);
     return { success: true };
   } catch (e) {

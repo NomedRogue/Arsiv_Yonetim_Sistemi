@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const folderController = require('../controllers/FolderController');
 const { uploadLimiter } = require('../middleware/rateLimiter');
+const { createFolderValidation, updateFolderValidation, validate } = require('../middleware/validators/folderValidator');
 
 // GET /api/folders/analysis/all - Get lightweight folder data for analysis (MUST BE BEFORE /:id)
 router.get('/analysis/all', folderController.getAllFoldersForAnalysis);
@@ -20,16 +21,20 @@ router.get('/', folderController.getFolders);
 // GET /api/folders/:id - Get single folder by ID
 router.get('/:id', folderController.getFolderById);
 
-// POST /api/folders - Create new folder
+// POST /api/folders - Create new folder (with validation)
 router.post(
   '/',
   uploadLimiter,
+  createFolderValidation,
+  validate,
   folderController.createFolder
 );
 
-// PUT /api/folders/:id - Update existing folder
+// PUT /api/folders/:id - Update existing folder (with validation)
 router.put(
   '/:id',
+  updateFolderValidation,
+  validate,
   folderController.updateFolder
 );
 

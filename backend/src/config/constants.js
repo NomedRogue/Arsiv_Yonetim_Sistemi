@@ -81,6 +81,18 @@ const DATABASE_SETTINGS = {
   WAL_CHECKPOINT_INTERVAL_MS: 30000
 };
 
+// Timeout and interval settings
+const TIMEOUTS = {
+  SSE_TIMEOUT_MS: 30 * 60 * 1000,      // 30 dakika
+  SSE_HEARTBEAT_MS: 30000,              // 30 saniye
+  SSE_PING_MS: 25000,                   // 25 saniye
+  MAX_SSE_CLIENTS: 50,                  // Max SSE connection
+  BACKUP_CHECK_INTERVAL_MS: 60 * 1000,  // 60 saniye
+  SHUTDOWN_TIMEOUT_MS: 10000,           // 10 saniye
+  BACKEND_HEALTH_CHECK_MS: 1000,        // 1 saniye
+  SEARCH_DEBOUNCE_MS: 300               // 300ms debounce
+};
+
 const INITIAL_STORAGE_STRUCTURE = {
   kompakt: Array.from({ length: 11 }, (_, i) => {
     const unit = i + 1;
@@ -114,5 +126,6 @@ module.exports = {
   TIBBI_BIRIMLER,
   FILE_UPLOAD_LIMITS,
   RATE_LIMIT_SETTINGS,
-  DATABASE_SETTINGS
+  DATABASE_SETTINGS,
+  TIMEOUTS
 };

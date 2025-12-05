@@ -1,19 +1,14 @@
 import { useEffect, Dispatch } from 'react';
 import { ArchiveAction } from '@/types';
 import { toast } from '@/lib/toast';
+import { API_BASE_URL } from '@/constants';
 
-// Electron'dan mı yoksa browser'dan mı çalıştığını kontrol et
-const isElectron = window.location.protocol === 'file:' || navigator.userAgent.includes('Electron');
-
-// Production'da (Electron) veya development'da doğru URL kullan
-const api = (p: string) => {
-  const baseUrl = isElectron ? 'http://localhost:3001/api' : '/api';
-  return `${baseUrl}${p.startsWith('/') ? '' : '/'}${p}`;
-};
+// SSE endpoint URL from centralized constants
+const SSE_URL = API_BASE_URL.replace('/api', '') + '/api/events';
 
 export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => Promise<void>) => {
   useEffect(() => {
-    const sse = new EventSource(api('/events'));
+    const sse = new EventSource(SSE_URL);
     sse.onopen = () => dispatch({ type: 'SET_SSE_CONNECTED', payload: true });
     sse.onerror = () => dispatch({ type: 'SET_SSE_CONNECTED', payload: false });
 

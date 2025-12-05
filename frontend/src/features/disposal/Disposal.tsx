@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useArchive } from '@/context/ArchiveContext';
 import { Modal } from '@/components/Modal';
 import { Badge } from '@/components/Badge';
@@ -18,7 +18,7 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
     const [disposableFolders, setDisposableFolders] = useState<Folder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
-    const fetchFolders = async () => {
+    const fetchFolders = useCallback(async () => {
         setIsLoading(true);
         try {
             const data = await api.getDisposableFolders(selectedView);
@@ -32,11 +32,11 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [selectedView]);
     
     useEffect(() => {
         fetchFolders();
-    }, [selectedView]);
+    }, [fetchFolders]);
 
     // Use SSE hook for real-time updates
     useDisposalSSE(fetchFolders);

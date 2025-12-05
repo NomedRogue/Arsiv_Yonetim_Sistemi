@@ -1,7 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-const { getUserDataPath } = require('./fileHelper');
-
 // Simple logger to avoid console.log in production and structure logs.
 // In a real app, use a library like Winston or Pino.
 

@@ -9,7 +9,21 @@ class RateLimiter {
     this.requests = new Map(); // IP -> [{timestamp}]
     
     // Cleanup old entries every minute
-    setInterval(() => this.cleanup(), 60000);
+    this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    
+    // Ensure interval doesn't prevent process exit
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
+  }
+  
+  // Stop the cleanup interval (for graceful shutdown)
+  stop() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.requests.clear();
   }
   
   cleanup() {

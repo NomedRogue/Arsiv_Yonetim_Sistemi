@@ -26,8 +26,8 @@ function clearAutoBackupState() {
 function shouldRunAutoBackup(settings, state, now) {
   const freq = settings?.backupFrequency || 'Kapalı';
   
-  // Her zaman log bas - debug için
-  console.log('[AUTO BACKUP CHECK]', {
+  // Debug log
+  logger.debug('[AUTO BACKUP CHECK]', {
     frequency: freq,
     backupTime: settings?.backupTime,
     folder: settings?.yedeklemeKlasoru ? 'SET' : 'NOT SET',
@@ -36,7 +36,7 @@ function shouldRunAutoBackup(settings, state, now) {
   });
   
   if (freq === 'Kapalı' || !settings?.yedeklemeKlasoru) {
-    console.log('[AUTO BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
+    logger.debug('[AUTO BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
     return false;
   }
 
@@ -47,8 +47,8 @@ function shouldRunAutoBackup(settings, state, now) {
   // scheduledToday saatini kullanıcının yerel saatine göre ayarla
   const scheduledToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
 
-  // Her zaman debug log
-  console.log('[AUTO BACKUP] Time check:', {
+  // Debug log for time check
+  logger.debug('[AUTO BACKUP] Time check:', {
     now: now.toLocaleString('tr-TR'),
     scheduledToday: scheduledToday.toLocaleString('tr-TR'),
     lastAuto: lastAuto.toLocaleString('tr-TR'),
@@ -60,7 +60,7 @@ function shouldRunAutoBackup(settings, state, now) {
 
   // Eğer backup zamanı henüz gelmediyse, backup çalıştırılmamalı
   if (now < scheduledToday) {
-    console.log('[AUTO BACKUP] Skipping: scheduled time not yet reached');
+    logger.debug('[AUTO BACKUP] Skipping: scheduled time not yet reached');
     return false;
   }
 
@@ -69,13 +69,13 @@ function shouldRunAutoBackup(settings, state, now) {
 
   // If the last backup was performed at or after the last applicable scheduled time, no need to run.
   if (lastAuto.getTime() >= lastScheduledTime.getTime()) {
-    console.log('[AUTO BACKUP] Skipping: backup already done today');
+    logger.debug('[AUTO BACKUP] Skipping: backup already done today');
     return false;
   }
 
   // A backup is due. Check frequency.
   if (freq === 'Günlük') {
-    console.log('[AUTO BACKUP] *** RUNNING: frequency is Günlük and conditions met ***');
+    logger.info('[AUTO BACKUP] *** RUNNING: frequency is Günlük and conditions met ***');
     return true;
   }
 
@@ -83,21 +83,23 @@ function shouldRunAutoBackup(settings, state, now) {
     const oneWeekInMillis = 7 * 24 * 60 * 60 * 1000;
     // Using getTime() compares UTC timestamps, which is fine here since we are just checking a duration.
     const shouldRun = (now.getTime() - lastAuto.getTime()) >= (oneWeekInMillis - 60000); // 1-minute buffer
-    console.log('[AUTO BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
+    logger.debug('[AUTO BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
     return shouldRun;
   }
 
-  console.log('[AUTO BACKUP] Skipping: unknown frequency=' + freq);
+  logger.debug('[AUTO BACKUP] Skipping: unknown frequency=' + freq);
   return false;
 }
 
 
 let autoBackupRunning = false;
+let backupSchedulerInterval = null;
+
 function startAutoBackupScheduler() {
   logger.info('[AUTO BACKUP] Scheduler started');
   
   // Check every minute for more precise timing
-  setInterval(async () => {
+  backupSchedulerInterval = setInterval(async () => {
     try {
       if (autoBackupRunning) return;
 
@@ -169,4 +171,13 @@ function initAutoBackupState() {
   }
 }
 
-module.exports = { startAutoBackupScheduler, initAutoBackupState, clearAutoBackupState, shouldRunAutoBackup };
+// Stop the backup scheduler (for graceful shutdown)
+function stopAutoBackupScheduler() {
+  if (backupSchedulerInterval) {
+    clearInterval(backupSchedulerInterval);
+    backupSchedulerInterval = null;
+    logger.info('[AUTO BACKUP] Scheduler stopped');
+  }
+}
+
+module.exports = { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState, clearAutoBackupState, shouldRunAutoBackup };

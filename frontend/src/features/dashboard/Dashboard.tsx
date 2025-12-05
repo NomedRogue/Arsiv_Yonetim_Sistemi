@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import '@/styles/liquid-gauge.css';
 import { useArchive } from '@/context/ArchiveContext';
 import { DashboardCard } from './components/DashboardCard';
@@ -130,33 +130,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     fetchStats(treemapFilter, yearFilter);
   }, [treemapFilter, yearFilter, fetchStats]);
   
-  // SSE listener: Klasör değişikliklerinde otomatik stats ve analiz yenile
+  // Track previous values to detect actual changes
+  const prevSseConnected = useRef(sseConnected);
+  const prevBackupEvent = useRef(lastBackupEvent);
+  const prevRestoreEvent = useRef(lastRestoreEvent);
+  const prevCleanupEvent = useRef(lastBackupCleanupEvent);
+  
+  // ArchiveContext üzerinden SSE eventi geldiğinde stats'ı yenile
+  // Not: sseConnected değiştiğinde veya backup/restore eventi olduğunda yenile
   useEffect(() => {
-    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
-    const eventSource = new EventSource(`${baseUrl}/api/events`);
+    // Sadece gerçek değişikliklerde yenile
+    const connectionChanged = sseConnected && !prevSseConnected.current;
+    const backupChanged = lastBackupEvent !== prevBackupEvent.current;
+    const restoreChanged = lastRestoreEvent !== prevRestoreEvent.current;
+    const cleanupChanged = lastBackupCleanupEvent !== prevCleanupEvent.current;
     
-    const handleDataChange = () => {
-      // Stats ve analiz verilerini yenile
+    if (connectionChanged || backupChanged || restoreChanged || cleanupChanged) {
       fetchStats(treemapFilter, yearFilter);
-      // Analiz verilerini yenile
       api.getAllFoldersForAnalysis().then(setAnalysisFolders).catch(() => {});
-    };
+    }
     
-    eventSource.addEventListener('folder_created', handleDataChange);
-    eventSource.addEventListener('folder_updated', handleDataChange);
-    eventSource.addEventListener('folder_deleted', handleDataChange);
-    eventSource.addEventListener('checkout_created', handleDataChange);
-    eventSource.addEventListener('checkout_updated', handleDataChange);
-    
-    // Yedekleme ve restore sonrası stats'ı yenile
-    eventSource.addEventListener('backup', handleDataChange);
-    eventSource.addEventListener('backup_completed', handleDataChange);
-    eventSource.addEventListener('restore', handleDataChange);
-    
-    return () => {
-      eventSource.close();
-    };
-  }, [treemapFilter, yearFilter, fetchStats]);
+    // Update refs
+    prevSseConnected.current = sseConnected;
+    prevBackupEvent.current = lastBackupEvent;
+    prevRestoreEvent.current = lastRestoreEvent;
+    prevCleanupEvent.current = lastBackupCleanupEvent;
+  }, [sseConnected, lastBackupEvent, lastRestoreEvent, lastBackupCleanupEvent, treemapFilter, yearFilter, fetchStats]);
 
   // Log theme changes in development
   useEffect(() => {

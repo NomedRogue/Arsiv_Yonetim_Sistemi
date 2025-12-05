@@ -1,23 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useArchive } from '@/context/ArchiveContext';
 
 /**
  * Custom hook to handle SSE events for checkout changes
- * Listens to checkout_created and checkout_updated events
+ * Uses ArchiveContext's centralized SSE connection instead of creating a new one
  */
 export const useCheckoutSSE = (onCheckoutChange: () => void) => {
+  const { sseConnected } = useArchive();
+  const lastConnectedRef = useRef(sseConnected);
+  
+  // Only refresh when SSE connection is established (false -> true transition)
   useEffect(() => {
-    const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:3001';
-    const eventSource = new EventSource(`${baseUrl}/api/events`);
-    
-    const handleCheckoutChange = () => {
+    if (sseConnected && !lastConnectedRef.current) {
       onCheckoutChange();
-    };
-    
-    eventSource.addEventListener('checkout_created', handleCheckoutChange);
-    eventSource.addEventListener('checkout_updated', handleCheckoutChange);
-    
-    return () => {
-      eventSource.close();
-    };
-  }, [onCheckoutChange]);
+    }
+    lastConnectedRef.current = sseConnected;
+  }, [sseConnected, onCheckoutChange]);
 };

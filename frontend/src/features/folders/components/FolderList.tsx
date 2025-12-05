@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, memo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, memo, useRef } from 'react';
 import { useArchive } from '@/context/ArchiveContext';
 import { openFileWithSystem } from '@/lib/fileUtils';
 import { Category, Folder, FolderStatus, Checkout, CheckoutStatus } from '@/types';
@@ -8,7 +8,7 @@ import { CheckoutModal } from '@/features/checkout';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
 import { handleApiError } from '@/lib/apiErrorHandler';
-import { RETENTION_CODES } from '@/constants';
+import { RETENTION_CODES, TIMEOUTS } from '@/constants';
 import { formatLocation, getStatusColor, getCategoryColor } from '../utils/folderHelpers';
 import * as apiService from '@/api';
 
@@ -139,6 +139,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     returnCheckout,
     deleteFolder,
     refresh,
+    sseConnected,
   } = useArchive();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -170,6 +171,9 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
 
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedFolderToDelete, setSelectedFolderToDelete] = useState<Folder | null>(null);
+
+  // Debounce timer ref
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Server-side pagination: API'den veri çek
   const fetchFolders = useCallback(async () => {
@@ -209,26 +213,23 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     fetchFolders();
   }, [fetchFolders]);
 
-  // SSE listener: Klasör değişikliklerini dinle ve otomatik refresh yap
+  // ArchiveContext üzerinden SSE eventi geldiğinde otomatik refresh yap
+  // Not: refresh fonksiyonu ArchiveContext'ten gelir ve SSE eventlerini dinler
+  // Bu component mount olduğunda ve sseConnected değiştiğinde refresh yapar
   useEffect(() => {
-    const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:3001';
-    const eventSource = new EventSource(`${baseUrl}/api/events`);
-    
-    const handleFolderChange = () => {
-      // Klasör eklendi, güncellendi, silindi veya imha edildi - listeyi yenile
+    if (sseConnected) {
       fetchFolders();
-    };
-    
-    eventSource.addEventListener('folder_created', handleFolderChange);
-    eventSource.addEventListener('folder_updated', handleFolderChange);
-    eventSource.addEventListener('folder_deleted', handleFolderChange);
-    eventSource.addEventListener('checkout_created', handleFolderChange);
-    eventSource.addEventListener('checkout_updated', handleFolderChange);
-    
+    }
+  }, [sseConnected, fetchFolders]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
     return () => {
-      eventSource.close();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
-  }, [fetchFolders]);
+  }, []);
 
   // Optimized memoized callbacks
   const handleOpenCheckoutModal = useCallback((folder: Folder) => {
@@ -362,7 +363,19 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
             <input
               type="text"
               value={searchCriteria.general}
-              onChange={(e) => setSearchCriteria({ ...searchCriteria, general: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchCriteria({ ...searchCriteria, general: value });
+                
+                // Debounced search
+                if (debounceTimerRef.current) {
+                  clearTimeout(debounceTimerRef.current);
+                }
+                debounceTimerRef.current = setTimeout(() => {
+                  setCurrentPage(1);
+                  fetchFolders();
+                }, TIMEOUTS.SEARCH_DEBOUNCE_MS);
+              }}
               placeholder="Tüm alanlarda ara..."
               className="w-full p-3 pl-10 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
             />

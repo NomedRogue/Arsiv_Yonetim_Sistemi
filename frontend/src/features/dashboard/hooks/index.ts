@@ -1,2 +1,3 @@
 // Dashboard custom hooks
-export * from './useDashboardSSE';
+// Currently empty - hooks moved to Dashboard.tsx inline
+

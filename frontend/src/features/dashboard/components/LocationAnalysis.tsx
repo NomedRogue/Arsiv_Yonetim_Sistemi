@@ -38,37 +38,34 @@ const ExpandedShelfView: React.FC<{
     const [isLoading, setIsLoading] = useState(true);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+    const { sseConnected } = useArchive();
+
+    const fetchFolders = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const shelfFolders = await api.getFoldersByLocation(location);
+            setFolders(shelfFolders);
+        } catch (error: any) {
+            // Sadece gerçek hataları göster, boş veri durumunu değil
+            if (error.message && !error.message.includes('Failed to fetch')) {
+                toast.error(`Raf içeriği alınamadı: ${error.message}`);
+            }
+            setFolders([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [location]);
 
     useEffect(() => {
-        const fetchFolders = async () => {
-            setIsLoading(true);
-            try {
-                const shelfFolders = await api.getFoldersByLocation(location);
-                setFolders(shelfFolders);
-            } catch (error: any) {
-                // Sadece gerçek hataları göster, boş veri durumunu değil
-                if (error.message && !error.message.includes('Failed to fetch')) {
-                    toast.error(`Raf içeriği alınamadı: ${error.message}`);
-                }
-                setFolders([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         fetchFolders();
-        
-        // SSE listener: Klasör değişikliklerinde otomatik refresh
-        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
-        const eventSource = new EventSource(`${baseUrl}/api/events`);
-        
-        eventSource.addEventListener('folder_created', fetchFolders);
-        eventSource.addEventListener('folder_updated', fetchFolders);
-        eventSource.addEventListener('folder_deleted', fetchFolders);
-        
-        return () => {
-            eventSource.close();
-        };
-    }, [location]);
+    }, [fetchFolders]);
+    
+    // SSE bağlantısı değiştiğinde otomatik refresh
+    useEffect(() => {
+        if (sseConnected) {
+            fetchFolders();
+        }
+    }, [sseConnected, fetchFolders]);
 
     const handleFolderClick = (folder: Folder) => {
         setSelectedFolder(folder);

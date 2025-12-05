@@ -194,10 +194,14 @@ class FolderRepository extends BaseRepository {
       const countResult = db.prepare(countQuery).get(...params);
       const total = countResult.count;
 
-      // Get paginated results
+      // Get paginated results with explicit columns
       const offset = (page - 1) * limit;
       const orderClause = `ORDER BY ${sortBy} ${order.toUpperCase()}`;
-      const query = `SELECT * FROM ${this.tableName} ${whereClause} ${orderClause} LIMIT ? OFFSET ?`;
+      const columns = `id, category, departmentId, clinic, unitCode, fileCode, subject, specialInfo, 
+                       retentionPeriod, retentionCode, fileYear, fileCount, folderType, pdfPath, excelPath,
+                       locationStorageType, locationUnit, locationFace, locationSection, locationShelf, locationStand,
+                       status, createdAt, updatedAt`;
+      const query = `SELECT ${columns} FROM ${this.tableName} ${whereClause} ${orderClause} LIMIT ? OFFSET ?`;
       
       const rows = db.prepare(query).all(...params, limit, offset);
       const items = rows.map(row => this.deserialize(row));
