@@ -12,7 +12,7 @@ export const openFileWithSystem = async (filename: string, fileType: 'pdf' | 'ex
     // Electron API mevcut mu kontrol et
     if (window.electronAPI && window.electronAPI.openFile) {
       // Dosya yolunu backend'den al
-      const endpoint = fileType === 'pdf' ? '/pdf-path/' : '/excel-path/';
+      const endpoint = fileType === 'pdf' ? '/pdf/pdf-path/' : '/excel/excel-path/';
       const response = await fetch(getApiUrl(`${endpoint}${filename}`));
       
       if (!response.ok) {
@@ -29,7 +29,7 @@ export const openFileWithSystem = async (filename: string, fileType: 'pdf' | 'ex
       }
     } else {
       // Web versiyonu için - tarayıcıda aç
-      const endpoint = fileType === 'pdf' ? '/serve-pdf/' : '/serve-excel/';
+      const endpoint = fileType === 'pdf' ? '/pdf/serve-pdf/' : '/excel/serve-excel/';
       window.open(getApiUrl(`${endpoint}${filename}`), '_blank');
     }
   } catch (error) {
@@ -44,6 +44,7 @@ declare global {
     electronAPI?: {
       openFolderDialog: () => Promise<string | null>;
       openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+      savePdfToDownloads: (fileName: string, base64Data: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
     };
   }
 }

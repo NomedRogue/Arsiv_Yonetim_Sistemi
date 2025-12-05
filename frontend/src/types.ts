@@ -33,6 +33,7 @@ export enum CheckoutStatus {
 export interface Department {
   id: number;
   name: string;
+  code: string;
   category: Category;
 }
 
@@ -288,4 +289,5 @@ export interface DashboardStats {
   clinicDistributionData: any[];
   monthlyData: any[];
   availableYears: number[];
+  disposalSchedule: { year: number; count: number; isCurrentYear: boolean; isOverdue: boolean }[];
 }

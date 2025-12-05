@@ -5,10 +5,11 @@ import {
   Folder,
   FileSpreadsheet,
   FileOutput,
-  Trash2,
   Settings,
   Archive as ArchiveIcon,
   FolderPlus,
+  FileText,
+  Trash2,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,10 +22,11 @@ interface SidebarProps {
 const navItems = [
   { name: 'Anasayfa', icon: LayoutDashboard },
   { name: 'Arşiv', icon: Folder },
-  { name: 'Yeni Klasör Ekle', icon: FolderPlus },
-  { name: 'Excel Arama', icon: FileSpreadsheet },
+  { name: 'Klasör Ekle', icon: FolderPlus },
+  { name: 'Arama', icon: FileSpreadsheet },
   { name: 'Çıkış/İade Takip', icon: FileOutput },
   { name: 'İmha', icon: Trash2 },
+  { name: 'Raporlar', icon: FileText },
   { name: 'Ayarlar', icon: Settings },
 ] as const;
 
@@ -82,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (item.name === 'Yeni Klasör Ekle') onAddNewFolder();
+                    if (item.name === 'Klasör Ekle') onAddNewFolder();
                     else setActivePage(item.name);
                   }}
                   onMouseEnter={(e) => handleMouseEnter(item.name, e)}

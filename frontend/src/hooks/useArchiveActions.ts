@@ -137,7 +137,7 @@ export const useArchiveActions = (
       const folder = getFolderById(folderId) ?? (state.folders || []).find(f => f.id === folderId);
       if (!folder) return;
       if (folder.status === FolderStatus.Cikista) {
-        toast.error('Çıkışta olan bir klasör silinemez.');
+        toast.error('Bu klasör şu anda kullanıcıda olduğu için silinemez. Önce iade edilmesi gerekiyor.');
         return;
       }
       
@@ -151,7 +151,14 @@ export const useArchiveActions = (
         toast.success('Klasör ve ilişkili kayıtlar silindi.');
         addLog({ type: 'delete', folderId, details: `Klasör kalıcı olarak silindi: ${getFolderLogDetails(folder)}` });
       } catch (e: any) {
-        toast.error(`Klasör silinemedi: ${e.message}`);
+        // Extract clean error message from API response
+        let errorMessage = 'Klasör silinemedi';
+        if (e.response?.data?.error) {
+          errorMessage = e.response.data.error;
+        } else if (e.message && !e.message.includes('{')) {
+          errorMessage = e.message;
+        }
+        toast.error(errorMessage);
         dispatch({ type: 'SET_FOLDERS', payload: previousState.folders });
         dispatch({ type: 'SET_CHECKOUTS', payload: previousState.checkouts });
         dispatch({ type: 'SET_DISPOSALS', payload: previousState.disposals });
@@ -259,7 +266,6 @@ export const useArchiveActions = (
       
       const previousState = { folders: state.folders, disposals: state.disposals };
       
-      const foldersToUpdate = foldersToDispose.map(f => ({ ...f, status: FolderStatus.Imha }));
       const now = new Date();
       const newDisposals = foldersToDispose.map((f, i) => ({ 
         id: `disposal_${Date.now()}_${i}`, // TEXT olarak ID oluştur
@@ -272,17 +278,18 @@ export const useArchiveActions = (
         if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
       }
       
-      dispatch({ type: 'SET_FOLDERS', payload: state.folders.map(f => foldersToUpdate.find(u => u.id === f.id) || f) });
+      // Klasörleri state'den SİL (sadece status güncelleme değil)
+      const remainingFolders = state.folders.filter(f => 
+        !folderIds.some(id => String(f.id) === String(id) || f.id === id || Number(f.id) === Number(id))
+      );
+      dispatch({ type: 'SET_FOLDERS', payload: remainingFolders });
       dispatch({ type: 'SET_DISPOSALS', payload: [...newDisposals, ...state.disposals] });
       
       try {
         if (process.env.NODE_ENV === 'development') {
-          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] About to update folders...');
+          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] Creating disposals (folder will be deleted on backend)...');
         }
-        await Promise.all(foldersToUpdate.map(api.updateFolder));
-        if (process.env.NODE_ENV === 'development') {
-          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] Folders updated, now creating disposals...');
-        }
+        // Backend'de disposal oluşturulurken klasör otomatik silinecek
         await Promise.all(newDisposals.map(api.createDisposal));
         if (process.env.NODE_ENV === 'development') {
           if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] All API calls successful!');
@@ -426,11 +433,17 @@ export const useArchiveActions = (
   const addStorageUnit = useCallback(
     async (type: StorageType, config?: KompaktUnitConfig) => {
       const previousStructure = state.storageStructure;
-      const newStructure = JSON.parse(JSON.stringify(previousStructure));
+      // Defensive: storageStructure null/undefined kontrolü
+      const safeStructure = {
+        kompakt: previousStructure?.kompakt || [],
+        stand: previousStructure?.stand || [],
+      };
+      const newStructure = JSON.parse(JSON.stringify(safeStructure));
       let unitName = '';
 
       if (type === StorageType.Kompakt && config) {
-        const newUnitId = (newStructure.kompakt.at(-1)?.unit || 0) + 1;
+        const lastKompakt = newStructure.kompakt.length > 0 ? newStructure.kompakt[newStructure.kompakt.length - 1] : null;
+        const newUnitId = (lastKompakt?.unit || 0) + 1;
         unitName = `Kompakt Ünite ${newUnitId}`;
         const faces: KompaktFace[] = [];
         if (config.hasFaceA) faces.push({ name: 'A Yüzü', sections: [] });
@@ -445,7 +458,8 @@ export const useArchiveActions = (
         });
         newStructure.kompakt.push({ unit: newUnitId, faces });
       } else if (type === StorageType.Stand) {
-        const newStandId = (newStructure.stand.at(-1)?.stand || 0) + 1;
+        const lastStand = newStructure.stand.length > 0 ? newStructure.stand[newStructure.stand.length - 1] : null;
+        const newStandId = (lastStand?.stand || 0) + 1;
         unitName = `Stand ${newStandId}`;
         newStructure.stand.push({ stand: newStandId, shelves: [1, 2, 3, 4, 5] });
       }

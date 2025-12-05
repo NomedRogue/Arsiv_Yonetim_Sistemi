@@ -6,6 +6,9 @@ module.exports = (api) => {
       ['@babel/preset-react', { runtime: isTest ? 'classic' : 'automatic' }],
       '@babel/preset-typescript',
     ],
-    plugins: isTest ? ['babel-plugin-transform-vite-meta-env'] : [],
+    plugins: [
+      // Always use this plugin to transform import.meta.env
+      'babel-plugin-transform-vite-meta-env',
+    ],
   };
 };

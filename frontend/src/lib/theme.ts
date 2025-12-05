@@ -1,7 +1,6 @@
 // frontend/src/lib/theme.ts
-export type Theme = 'light' | 'dark';
-
-let themeChangeTimer: number;
+// Theme type is now exported from ThemeContext
+export type { Theme } from '@/context/ThemeContext';
 
 // Merkezi Tema Renkleri - TÜM UYGULAMA
 export const THEME_COLORS = {
@@ -57,11 +56,108 @@ export const THEME_COLORS = {
       good: 'text-emerald-600',
     },
   },
+  // Department colors for treemap - comprehensive palette ensuring no black colors
+  departmentColors: {
+    dark: {
+      tibbi: ['#064e3b', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'],
+      idari: ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'],
+    },
+    light: {
+      tibbi: ['#a7f3d0', '#6ee7b7', '#34d399', '#10b981', '#059669', '#047857', '#065f46', '#064e3b'],
+      idari: ['#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'],
+    },
+  },
+  // Chart color palettes
+  charts: {
+    // Sunburst/Pie chart colors - vivid palette
+    sunburst: [
+      '#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c',
+      '#d0ed57', '#ffc658', '#fd7f6f', '#7eb0d5', '#b2e061',
+      '#ffb55a', '#ffee65', '#beb9db', '#fdcce5', '#8bd3c7',
+    ],
+    // Treemap depth1 category colors
+    treemap: {
+      dark: {
+        categoryStroke: {
+          tibbi: '#10b981', // Green for medical
+          idari: '#3b82f6', // Blue for administrative
+        },
+        categoryText: '#f1f5f9',
+        itemText: '#ffffff',
+        itemStroke: '#334155',
+      },
+      light: {
+        categoryStroke: {
+          tibbi: '#059669', // Green for medical
+          idari: '#2563eb', // Blue for administrative
+        },
+        categoryText: '#1e293b',
+        itemText: '#ffffff',
+        itemStroke: '#ffffff',
+      },
+    },
+  },
 };
 
+// Get department color for treemap based on percentage (higher % = darker color)
+// Her departman index'ine göre palette'ten farklı ton alır
+export function getDepartmentColor(theme: string, category: string, index: number, percentage?: number, allPercentages?: number[]): string {
+  const isTibbi = category?.toLowerCase().includes('tıbbi') || category?.toLowerCase().includes('tibbi');
+  const palette = isTibbi
+    ? THEME_COLORS.departmentColors[theme === 'dark' ? 'dark' : 'light'].tibbi
+    : THEME_COLORS.departmentColors[theme === 'dark' ? 'dark' : 'light'].idari;
+  
+  // Index bazlı renk seçimi - her departman palette boyunca dağıtılır
+  // Bu sayede her departman farklı bir ton alır (koyu → açık veya açık → koyu)
+  const colorIndex = index % palette.length;
+  
+  return palette[colorIndex];
+}
+
+// Get chart colors by type
+export function getChartColors(type: 'sunburst'): string[] {
+  if (type === 'sunburst') {
+    return THEME_COLORS.charts.sunburst;
+  }
+  return [];
+}
+
+// Get PIE chart colors based on theme and occupancy
+export function getPieChartColors(theme: string, occupancyRate: number): string[] {
+  const isDark = theme === 'dark';
+  
+  const colors = isDark ? {
+    empty: '#10B981', // Green for available space
+    used: occupancyRate > 80 ? '#EF4444' : occupancyRate > 60 ? '#F59E0B' : '#6B7280'
+  } : {
+    empty: '#059669', // Green for available space
+    used: occupancyRate > 80 ? '#DC2626' : occupancyRate > 60 ? '#D97706' : '#6B7280'
+  };
+  
+  return [colors.used, colors.empty];
+}
+
+// Get treemap colors based on theme
+export function getTreemapColors(theme: string, category: string, isDepth1: boolean = false) {
+  const isTibbi = category?.toLowerCase().includes('tıbbi') || category?.toLowerCase().includes('tibbi');
+  const colors = THEME_COLORS.charts.treemap[theme === 'dark' ? 'dark' : 'light'];
+  
+  if (isDepth1) {
+    return {
+      stroke: isTibbi ? colors.categoryStroke.tibbi : colors.categoryStroke.idari,
+      text: colors.categoryText,
+    };
+  }
+  
+  return {
+    stroke: colors.itemStroke,
+    text: colors.itemText,
+  };
+}
+
 // Dashboard Card renk mapping (title'a göre doğru rengi döndür)
-export function getCardIconColor(theme: Theme, title: string): string {
-  const colors = THEME_COLORS[theme].card;
+export function getCardIconColor(theme: string, title: string): string {
+  const colors = THEME_COLORS[theme === 'dark' ? 'dark' : 'light'].card;
   
   if (title.includes('Toplam') || title.includes('İdari')) return colors.primary;
   if (title.includes('Tıbbi')) return colors.success;
@@ -74,8 +170,8 @@ export function getCardIconColor(theme: Theme, title: string): string {
 }
 
 // Helper function to get occupancy color based on percentage
-export function getOccupancyColor(theme: Theme, occupancy: number): string {
-  const colors = THEME_COLORS[theme].occupancy;
+export function getOccupancyColor(theme: string, occupancy: number): string {
+  const colors = THEME_COLORS[theme === 'dark' ? 'dark' : 'light'].occupancy;
   if (occupancy > 85) return colors.critical;
   if (occupancy > 70) return colors.warning;
   if (occupancy > 50) return colors.moderate;
@@ -83,51 +179,10 @@ export function getOccupancyColor(theme: Theme, occupancy: number): string {
 }
 
 // Helper function to get occupancy text class based on percentage
-export function getOccupancyTextClass(theme: Theme, occupancy: number): string {
-  const classes = THEME_COLORS[theme].occupancyText;
+export function getOccupancyTextClass(theme: string, occupancy: number): string {
+  const classes = THEME_COLORS[theme === 'dark' ? 'dark' : 'light'].occupancyText;
   if (occupancy > 85) return classes.critical;
   if (occupancy > 70) return classes.warning;
   if (occupancy > 50) return classes.moderate;
   return classes.good;
-}
-
-// This function can be called once, right when the app loads.
-// It is independent of React and applies the theme class instantly.
-export function initTheme(): Theme {
-  const storedTheme = window.localStorage.getItem('theme') as Theme | null;
-  const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  const theme = storedTheme || preferredTheme;
-  
-  const root = window.document.documentElement;
-  root.classList.remove('light', 'dark');
-  root.classList.add(theme);
-
-  return theme;
-}
-
-// This function handles changing the theme and persisting it.
-export function applyTheme(theme: Theme) {
-  const root = window.document.documentElement;
-  
-  // Add a class to disable transitions for an instantaneous switch
-  root.classList.add('theme-changing');
-
-  // Change the theme class
-  root.classList.remove('light', 'dark');
-  root.classList.add(theme);
-  window.localStorage.setItem('theme', theme);
-
-  // Force reflow to ensure the class change takes effect immediately
-  root.offsetHeight;
-
-  // IMMEDIATELY dispatch theme-changed event for React components
-  const event = new CustomEvent('theme-changed', { detail: { theme } });
-  window.dispatchEvent(event);
-
-  // Remove the transition-disabling class after a brief moment.
-  // This allows transitions to work for subsequent user interactions (e.g., hover).
-  clearTimeout(themeChangeTimer);
-  themeChangeTimer = window.setTimeout(() => {
-    root.classList.remove('theme-changing');
-  }, 50);
 }

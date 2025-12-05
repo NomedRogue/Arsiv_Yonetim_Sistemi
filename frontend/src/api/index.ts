@@ -13,14 +13,17 @@ const API: string = isElectron
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const res = await fetch(input, init);
   if (!res.ok) {
-    let errorBody = '';
+    let errorMessage = 'Bir hata oluştu';
     try {
       const jsonError = await res.json();
-      errorBody = jsonError.error?.message || JSON.stringify(jsonError);
+      // Extract clean error message
+      errorMessage = jsonError.error || jsonError.message || errorMessage;
     } catch {
-      errorBody = await res.text().catch(() => res.statusText);
+      errorMessage = await res.text().catch(() => res.statusText);
     }
-    throw new Error(errorBody);
+    const error: any = new Error(errorMessage);
+    error.response = { data: { error: errorMessage } };
+    throw error;
   }
   if (res.status === 204) return undefined as unknown as T;
   const ct = res.headers.get('content-type') || '';
@@ -33,7 +36,12 @@ export const getDashboardStats = (treemapFilter?: string, yearFilter?: string): 
   const params = new URLSearchParams();
   if (treemapFilter) params.append('treemapFilter', treemapFilter);
   if (yearFilter) params.append('yearFilter', yearFilter);
-  return http<DashboardStats>(`${API}/dashboard-stats?${params.toString()}`);
+  return http<DashboardStats>(`${API}/stats/dashboard?${params.toString()}`);
+};
+
+// Get folders for a specific disposal year
+export const getDisposalYearFolders = (year: number | string): Promise<Folder[]> => {
+  return http<Folder[]>(`${API}/stats/disposal-year/${year}`);
 };
 
 export const getAllData = () => http(`${API}/all-data`);
@@ -45,8 +53,8 @@ export const updateFolder = (folder: Folder) => http<Folder>(`${API}/folders/${f
 export const removeFolder = (folderId: number) => http(`${API}/folders/${folderId}`, { method: 'DELETE' });
 export const getFolder = (folderId: number) => http<Folder>(`${API}/folders/${folderId}`);
 export const getFolders = (params?: URLSearchParams) => http(`${API}/folders${params ? `?${params.toString()}` : ''}`);
-export const getAllFoldersForAnalysis = () => http<Folder[]>(`${API}/all-folders-for-analysis`);
-export const getFoldersByLocation = (location: Location) => http<Folder[]>(`${API}/folders-by-location`, {
+export const getAllFoldersForAnalysis = () => http<Folder[]>(`${API}/folders/analysis/all`);
+export const getFoldersByLocation = (location: Location) => http<Folder[]>(`${API}/folders/by-location`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(location)
@@ -77,29 +85,40 @@ export const addLogEntry = (log: Omit<Log, 'id' | 'timestamp'>) => http(`${API}/
 export async function uploadPdf(file: File) {
   const form = new FormData();
   form.append('pdf', file);
-  return http<{filename: string}>(`${API}/upload-pdf`, { method: 'POST', body: form });
+  return http<{filename: string}>(`${API}/pdf/upload-pdf`, { method: 'POST', body: form });
 }
 
 export async function deletePdf(filename: string) {
-  return http(`${API}/delete-pdf/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+  return http(`${API}/pdf/delete-pdf/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+}
+
+// Excel Actions
+export async function uploadExcel(file: File) {
+  const form = new FormData();
+  form.append('excel', file);
+  return http<{filename: string}>(`${API}/excel/upload-excel`, { method: 'POST', body: form });
+}
+
+export async function deleteExcel(filename: string) {
+  return http(`${API}/excel/delete-excel/${encodeURIComponent(filename)}`, { method: 'DELETE' });
 }
 
 export async function deleteBackup(filename: string) {
-  return http(`${API}/delete-backup/${encodeURIComponent(filename)}`, {
+  return http(`${API}/backups/${encodeURIComponent(filename)}`, {
     method: 'DELETE',
   });
 }
 
 export async function getBackups() {
-  return http<{backups: any[], folder: string}>(`${API}/list-backups`);
+  return http<{backups: any[], folder: string}>(`${API}/backups`);
 }
 
 export async function backupDbToFolder() {
-  return http(`${API}/backup-db-to-folder`, { method: 'POST' });
+  return http(`${API}/backups`, { method: 'POST' });
 }
 
 export async function restoreDbFromBackup(filename: string) {
-  return http(`${API}/restore-db-from-backup`, {
+  return http(`${API}/backups/${encodeURIComponent(filename)}/restore`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ filename })

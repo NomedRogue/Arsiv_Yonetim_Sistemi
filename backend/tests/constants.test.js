@@ -3,7 +3,7 @@ const {
   ALL_DEPARTMENTS,
   INITIAL_STORAGE_STRUCTURE,
   RETENTION_CODES
-} = require('../constants');
+} = require('../src/config/constants');
 
 describe('Constants', () => {
   describe('DEFAULT_SETTINGS', () => {

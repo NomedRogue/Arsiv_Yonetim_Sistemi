@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import '@/lib/errorLogger'; // Initialize global error handlers FIRST
 import App from './App';
 import '@/index.css';
 import { ErrorFallback } from './components/ErrorBoundary';

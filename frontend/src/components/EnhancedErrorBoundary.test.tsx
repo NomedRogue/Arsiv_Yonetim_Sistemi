@@ -125,8 +125,8 @@ describe('EnhancedErrorBoundary', () => {
       </EnhancedErrorBoundary>
     );
 
-    // 'Geliştirici Bilgileri' summary elementini bulup tıkla
-    const summary = screen.getByText('Geliştirici Bilgileri');
+    // 'Hata Detayları' summary elementini bulup tıkla
+    const summary = screen.getByText('Hata Detayları');
     fireEvent.click(summary);
 
     // Hata mesajı ve stack trace açıldı mı kontrol et
@@ -134,21 +134,22 @@ describe('EnhancedErrorBoundary', () => {
     expect(screen.getByText('Stack Trace:')).toBeInTheDocument();
   });
 
-  it('should hide error details when "Detayları Gizle" is clicked', () => {
+  it('should toggle error details visibility when summary is clicked', () => {
     render(
       <EnhancedErrorBoundary>
         <ThrowError shouldThrow={true} />
       </EnhancedErrorBoundary>
     );
 
-    // Önce summary'yi bulup tıkla (detayları aç)
-    const summary = screen.getByText('Geliştirici Bilgileri');
+    // Details elementi başlangıçta açık (open attribute var)
+    const details = document.querySelector('details');
+    expect(details).toHaveAttribute('open');
+    
+    // Summary'ye tıklayarak kapat
+    const summary = screen.getByText('Hata Detayları');
     fireEvent.click(summary);
-    expect(screen.getByText('Hata Mesajı:')).toBeInTheDocument();
-
-  // Sonra tekrar summary'yi tıkla (detayları kapat)
-  fireEvent.click(summary);
-  const hataMesaji = screen.getByText('Hata Mesajı:');
-  expect(hataMesaji).not.toBeVisible();
+    
+    // Details kapandı mı kontrol et
+    expect(details).not.toHaveAttribute('open');
   });
 });

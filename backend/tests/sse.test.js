@@ -1,4 +1,4 @@
-const { initSse, sseBroadcast, sseCleanup } = require('../sse');
+const { initSse, sseBroadcast, sseCleanup } = require('../src/utils/sse');
 
 describe('SSE (Server-Sent Events)', () => {
   let mockApp;

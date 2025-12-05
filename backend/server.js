@@ -1,62 +1,98 @@
-// Tüm modüller en başta tanımlanır
+// ============================================================
+// BACKEND SERVER - ARŞİV YÖNETİM SİSTEMİ
+// ============================================================
+
+// ADIM 1: Core Node.js modülleri
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
 
+// ADIM 2: Environment değişkenlerini ayarla
 const isDev = process.env.NODE_ENV !== 'production';
 
-// DB dosyası yoksa otomatik oluştur
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'arsiv.db');
-if (!fs.existsSync(dbPath)) {
-  try {
-    new Database(dbPath).close();
-    if (isDev && process.env.NODE_ENV !== 'production') console.log('[DB INIT] Yeni boş veritabanı oluşturuldu: ' + dbPath);
-  } catch (dbCreateErr) {
-    console.error('[DB INIT] Veritabanı oluşturulamadı', dbCreateErr);
-  }
+// Ortam değişkenlerini guarantee et
+if (!process.env.DB_PATH) {
+  process.env.DB_PATH = isDev 
+    ? path.join(__dirname, 'arsiv.db')
+    : path.join(process.env.USER_DATA_PATH || __dirname, 'arsiv.db');
+}
+if (!process.env.USER_DATA_PATH) {
+  process.env.USER_DATA_PATH = __dirname;
+}
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
 }
 
+const dbPath = process.env.DB_PATH;
+const userDataPath = process.env.USER_DATA_PATH;
+
+// ADIM 3: Logger'ı yükle (DB'den bağımsız)
+const logger = require('./src/utils/logger');
+
+logger.info('='.repeat(60));
+logger.info('[STARTUP] Backend server başlatılıyor...');
+logger.info('[STARTUP] Environment:', {
+  NODE_ENV: process.env.NODE_ENV,
+  DB_PATH: dbPath,
+  USER_DATA_PATH: userDataPath,
+  __dirname: __dirname,
+  cwd: process.cwd()
+});
+
+// ADIM 4: Veritabanı klasörünün var olduğundan emin ol
+try {
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    logger.info(`[DB INIT] Veritabanı klasörü oluşturuldu: ${dbDir}`);
+  }
+} catch (err) {
+  logger.error('[DB INIT] Veritabanı klasörü oluşturulamadı:', err);
+  throw err;
+}
+
+// ADIM 5: better-sqlite3'ü yükle ve DB'yi initialize et
+const Database = require('better-sqlite3');
+
+let db;
+try {
+  // Veritabanını aç veya oluştur
+  db = new Database(dbPath, {
+    verbose: isDev ? (msg) => logger.debug('[SQL]', msg) : undefined
+  });
+  
+  // WAL mode'u etkinleştir (daha iyi concurrency)
+  db.pragma('journal_mode = WAL');
+  
+  logger.info(`[DB INIT] Veritabanı bağlantısı kuruldu: ${dbPath}`);
+  
+} catch (dbErr) {
+  logger.error('[DB INIT] Veritabanı başlatılamadı:', dbErr);
+  throw dbErr;
+}
+
+// ADIM 6: Express ve diğer bağımlılıkları yükle
 const express = require('express');
 const cors = require('cors');
-const { initSse } = require('./sse');
-const apiRoutes = require('./routes');
+
+// ADIM 7: Uygulama modüllerini yükle
+const { initSse } = require('./src/utils/sse');
+const apiRoutes = require('./src/routes');
 const { startAutoBackupScheduler, initAutoBackupState } = require('./backupScheduler');
-const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
-const logger = require('./logger');
-const dbManager = require('./db');
+const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+const { getDbInstance } = require('./src/database/connection');
+const { ensureEnvDefaults: newEnsureEnvDefaults } = require('./src/config/database');
 
-// --- ENVIRONMENT SETUP ---
-
-// Kritik: Ortam değişkenleri eksikse default değer atanmalı
-function ensureEnvDefaults() {
-  if (!process.env.DB_PATH) {
-    process.env.DB_PATH = path.join(__dirname, 'arsiv.db');
-  }
-  if (!process.env.USER_DATA_PATH) {
-    process.env.USER_DATA_PATH = __dirname;
-  }
-  if (!process.env.NODE_ENV) {
-    process.env.NODE_ENV = 'development';
-  }
-}
-ensureEnvDefaults();
-
-logger.info('[SERVER] Environment setup:', {
-  DB_PATH: process.env.DB_PATH,
-  USER_DATA_PATH: process.env.USER_DATA_PATH,
-  NODE_ENV: process.env.NODE_ENV
-});
+// Config system'i de çalıştır
+newEnsureEnvDefaults();
 
 // --- DB MIGRATION ---
 
 // Sunucu başlamadan önce veritabanı geçişlerini çalıştır.
 (async () => {
   try {
-    await dbManager.getDbInstance(); // Bu fonksiyon migrationı da çalıştırır
-    if (isDev && process.env.NODE_ENV !== 'production') console.log('[SERVER] Database migration completed');
+    await getDbInstance(); // Bu fonksiyon migrationı da çalıştırır
     logger.info('[DB] Veritabanı şeması başarıyla kontrol edildi/güncellendi.');
   } catch (e) {
-    console.error('[SERVER] Database migration FAILED:', e);
     logger.error('[FATAL] Veritabanı geçişi başarısız oldu. Uygulama durduruluyor.', { error: e });
     process.exit(1);
   }
@@ -96,6 +132,15 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// Security headers
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
@@ -111,23 +156,34 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Rotaları
+// API Rotaları (NEW: Using modular src/routes/)
 app.use('/api', apiRoutes);
+
+// Error handlers (must be after routes)
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Production'da static file serving
 if (process.env.NODE_ENV === 'production') {
-  const staticPath = path.join(__dirname, '..', 'frontend', 'dist');
+  // Production build'de dist doğrudan app klasöründe
+  const staticPaths = [
+    path.join(__dirname, '..', 'dist'),           // app/dist (production)
+    path.join(__dirname, '..', 'frontend', 'dist') // fallback
+  ];
   
-  if (fs.existsSync(staticPath)) {
+  let staticPath = null;
+  for (const p of staticPaths) {
+    if (fs.existsSync(p)) {
+      staticPath = p;
+      break;
+    }
+  }
+  
+  if (staticPath) {
     app.use(express.static(staticPath));
-    
-    // SPA fallback - tüm diğer istekleri index.html'e yönlendir
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(staticPath, 'index.html'));
-    });
     logger.info('[STATIC] Serving static files from:', staticPath);
   } else {
-    logger.warn('[STATIC] Static path not found:', staticPath);
+    logger.warn('[STATIC] No static path found. Tried:', staticPaths);
   }
 }
 
@@ -136,7 +192,7 @@ initAutoBackupState();
 startAutoBackupScheduler();
 
 // PDF ve Backup klasörlerini startup'ta oluştur
-const { getUserDataPath, ensureDirExists } = require('./fileHelper');
+const { getUserDataPath, ensureDirExists } = require('./src/utils/fileHelper');
 const pdfPath = getUserDataPath('PDFs');
 const backupPath = getUserDataPath('Backups');
 const tmpPath = getUserDataPath('tmp');
@@ -183,42 +239,67 @@ function startServer() {
     });
     
     // Graceful shutdown handlers
-    process.on('SIGTERM', () => {
-      logger.info('[BACKEND] Received SIGTERM signal. Shutting down gracefully...');
+    const gracefulShutdown = (signal) => {
+      logger.info(`[BACKEND] Received ${signal} signal. Shutting down gracefully...`);
+      
+      // Set a timeout for forceful shutdown
+      const forceShutdownTimeout = setTimeout(() => {
+        logger.error('[BACKEND] Graceful shutdown timeout. Forcing exit...');
+        process.exit(1);
+      }, 10000); // 10 seconds timeout
+      
       server.close(() => {
-        logger.info('[BACKEND] Server closed.');
-        dbManager.closeDb();
+        clearTimeout(forceShutdownTimeout);
+        logger.info('[BACKEND] HTTP server closed.');
+        
+        // Close database connection
+        try {
+          const { closeDb } = require('./src/database/connection');
+          closeDb();
+          logger.info('[BACKEND] Database connection closed.');
+        } catch (dbErr) {
+          logger.error('[BACKEND] Error closing database:', dbErr);
+        }
+        
+        logger.info('[BACKEND] Cleanup complete. Exiting...');
         process.exit(0);
       });
-    });
+    };
 
-    process.on('SIGINT', () => {
-      logger.info('[BACKEND] Received SIGINT signal. Shutting down gracefully...');
-      server.close(() => {
-        logger.info('[BACKEND] Server closed.');
-        dbManager.closeDb();
-        process.exit(0);
-      });
-    });
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // Unhandled errors
     process.on('uncaughtException', (error) => {
-      logger.error('[BACKEND] Uncaught Exception:', error);
-      process.exit(1);
+      logger.error('[BACKEND] Uncaught Exception:', { error });
+      // Graceful shutdown
+      server.close(() => {
+        try {
+          const { closeDb } = require('./src/database/connection');
+          closeDb();
+        } catch (e) { /* ignore */ }
+        process.exit(1);
+      });
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      logger.error('[BACKEND] Unhandled Rejection at:', promise, 'reason:', reason);
+      logger.error('[BACKEND] Unhandled Rejection:', { reason: String(reason) });
+      // Don't exit on unhandled rejection, just log
     });
   });
 }
 
-// Server'ı başlat
-if (process.env.NODE_ENV !== 'production') console.log('[SERVER] About to call startServer()...');
-startServer().then((server) => {
-  if (process.env.NODE_ENV !== 'production') console.log('[SERVER] startServer() completed successfully, server is listening');
-}).catch((error) => {
-  console.error('[SERVER] startServer() failed with error:', error);
-  logger.error('Server başlatma exception:', error);
-  process.exit(1);
-});
+// Server'ı export et veya doğrudan başlat
+module.exports = { startServer, app };
+
+// Eğer doğrudan çalıştırılıyorsa (node server.js)
+if (require.main === module) {
+  if (process.env.NODE_ENV !== 'production') console.log('[SERVER] About to call startServer()...');
+  startServer().then((server) => {
+    if (process.env.NODE_ENV !== 'production') console.log('[SERVER] startServer() completed successfully, server is listening');
+  }).catch((error) => {
+    console.error('[SERVER] startServer() failed with error:', error);
+    logger.error('Server başlatma exception:', error);
+    process.exit(1);
+  });
+}

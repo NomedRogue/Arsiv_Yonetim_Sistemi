@@ -3,7 +3,7 @@ import { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { CheckoutModal } from './CheckoutModal';
+import { CheckoutModal } from '@/features/checkout';
 import { Folder, CheckoutType, Checkout } from '@/types';
 
 const mockFolder: Folder = {
@@ -45,7 +45,7 @@ describe('CheckoutModal Bileşeni', () => {
     );
     expect(screen.getByText('Klasör Çıkış Formu')).toBeTruthy();
     expect(screen.getByText(mockFolder.subject)).toBeTruthy();
-    expect((screen.getByLabelText('Alan Kişi Adı (Zorunlu)') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('Ad *') as HTMLInputElement).value).toBe('');
     expect(screen.getByRole('button', { name: 'Çıkış Ver' })).toBeTruthy();
   });
 
@@ -59,8 +59,8 @@ describe('CheckoutModal Bileşeni', () => {
       />
     );
     expect(screen.getByText('Çıkış Bilgilerini Düzenle')).toBeTruthy();
-    expect((screen.getByLabelText('Alan Kişi Adı (Zorunlu)') as HTMLInputElement).value).toBe('Jane');
-    expect((screen.getByLabelText('Alan Kişi Soyadı (Zorunlu)') as HTMLInputElement).value).toBe('Doe');
+    expect((screen.getByLabelText('Ad *') as HTMLInputElement).value).toBe('Jane');
+    expect((screen.getByLabelText('Soyad *') as HTMLInputElement).value).toBe('Doe');
     expect(screen.getByText(/Specific document/i)).toBeTruthy(); // Description is visible
     expect(screen.getByRole('button', { name: 'Güncelle' })).toBeTruthy();
   });
@@ -75,22 +75,22 @@ describe('CheckoutModal Bileşeni', () => {
         onConfirm={onConfirmMock}
       />
     );
-    // Initially, description is not visible
-    expect(screen.queryByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeNull();
+    // Initially, description is not visible (Tam is selected by default)
+    expect(screen.queryByLabelText(/çıkarılan belgeler/i)).toBeNull();
     // Click 'Kısmi'
     const kismiRadio = screen.getByLabelText('Kısmi');
     await act(async () => {
       await user.click(kismiRadio);
     });
     // Now it should be visible
-    expect(screen.getByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeTruthy();
+    expect(screen.getByLabelText(/çıkarılan belgeler/i)).toBeTruthy();
     // Click 'Tam'
     const tamRadio = screen.getByLabelText('Tam');
     await act(async () => {
       await user.click(tamRadio);
     });
     // It should be hidden again
-    expect(screen.queryByLabelText(/çıkarılan belgelerin açıklaması/i)).toBeNull();
+    expect(screen.queryByLabelText(/çıkarılan belgeler/i)).toBeNull();
   });
 
   it('gönderildiğinde onConfirm fonksiyonunu doğru verilerle çağırır', async () => {
@@ -104,12 +104,12 @@ describe('CheckoutModal Bileşeni', () => {
       />
     );
     await act(async () => {
-      await user.type(screen.getByLabelText('Alan Kişi Adı (Zorunlu)'), 'John');
-      await user.type(screen.getByLabelText('Alan Kişi Soyadı (Zorunlu)'), 'Smith');
+      await user.type(screen.getByLabelText('Ad *'), 'John');
+      await user.type(screen.getByLabelText('Soyad *'), 'Smith');
     });
     // userEvent.type does not work reliably with date inputs in JSDOM, use fireEvent.change
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Planlanan İade Tarihi (Zorunlu)'), {
+      fireEvent.change(screen.getByLabelText('İade Tarihi *'), {
         target: { value: '2025-02-15' },
       });
     });

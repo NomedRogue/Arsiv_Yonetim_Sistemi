@@ -1,8 +1,8 @@
 const crypto = require('crypto');
-const dbManager = require('./db');
+const dbManager = require('./dbAdapter'); // Legacy compatibility
 const { performBackupToFolder } = require('./backup');
-const logger = require('./logger');
-const { sseBroadcast } = require('./sse');
+const logger = require('./src/utils/logger');
+const { sseBroadcast } = require('./src/utils/sse');
 
 function parseHHMM(str) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(str || '');
@@ -25,10 +25,18 @@ function clearAutoBackupState() {
  */
 function shouldRunAutoBackup(settings, state, now) {
   const freq = settings?.backupFrequency || 'Kapalı';
+  
+  // Her zaman log bas - debug için
+  console.log('[AUTO BACKUP CHECK]', {
+    frequency: freq,
+    backupTime: settings?.backupTime,
+    folder: settings?.yedeklemeKlasoru ? 'SET' : 'NOT SET',
+    currentTime: now.toLocaleString('tr-TR'),
+    lastBackup: state?.lastAutoIso || 'never'
+  });
+  
   if (freq === 'Kapalı' || !settings?.yedeklemeKlasoru) {
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('[DEBUG BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
-    }
+    console.log('[AUTO BACKUP] Skipping: frequency=' + freq + ', folder=' + (settings?.yedeklemeKlasoru ? 'set' : 'not set'));
     return false;
   }
 
@@ -39,22 +47,20 @@ function shouldRunAutoBackup(settings, state, now) {
   // scheduledToday saatini kullanıcının yerel saatine göre ayarla
   const scheduledToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
 
-  if (process.env.NODE_ENV === 'development') {
-    logger.info('[DEBUG BACKUP] Debug values:', {
-      now: now.toLocaleString(),
-      scheduledToday: scheduledToday.toLocaleString(),
-      lastAuto: lastAuto.toLocaleString(),
-      nowTime: now.getTime(),
-      scheduledTime: scheduledToday.getTime(),
-      lastAutoTime: lastAuto.getTime()
-    });
-  }
+  // Her zaman debug log
+  console.log('[AUTO BACKUP] Time check:', {
+    now: now.toLocaleString('tr-TR'),
+    scheduledToday: scheduledToday.toLocaleString('tr-TR'),
+    lastAuto: lastAuto.toLocaleString('tr-TR'),
+    nowTime: now.getTime(),
+    scheduledTime: scheduledToday.getTime(),
+    isTimeReached: now >= scheduledToday,
+    wasAlreadyDone: lastAuto.getTime() >= scheduledToday.getTime()
+  });
 
   // Eğer backup zamanı henüz gelmediyse, backup çalıştırılmamalı
   if (now < scheduledToday) {
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('[DEBUG BACKUP] Skipping: scheduled time not yet reached');
-    }
+    console.log('[AUTO BACKUP] Skipping: scheduled time not yet reached');
     return false;
   }
 
@@ -63,17 +69,13 @@ function shouldRunAutoBackup(settings, state, now) {
 
   // If the last backup was performed at or after the last applicable scheduled time, no need to run.
   if (lastAuto.getTime() >= lastScheduledTime.getTime()) {
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('[DEBUG BACKUP] Skipping: backup already done today (lastAuto >= scheduled)');
-    }
+    console.log('[AUTO BACKUP] Skipping: backup already done today');
     return false;
   }
 
   // A backup is due. Check frequency.
   if (freq === 'Günlük') {
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('[DEBUG BACKUP] Running backup: frequency is Günlük and conditions met');
-    }
+    console.log('[AUTO BACKUP] *** RUNNING: frequency is Günlük and conditions met ***');
     return true;
   }
 
@@ -81,15 +83,11 @@ function shouldRunAutoBackup(settings, state, now) {
     const oneWeekInMillis = 7 * 24 * 60 * 60 * 1000;
     // Using getTime() compares UTC timestamps, which is fine here since we are just checking a duration.
     const shouldRun = (now.getTime() - lastAuto.getTime()) >= (oneWeekInMillis - 60000); // 1-minute buffer
-    if (process.env.NODE_ENV === 'development') {
-      logger.info('[DEBUG BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
-    }
+    console.log('[AUTO BACKUP] Weekly check:', { shouldRun, timeDiff: now.getTime() - lastAuto.getTime() });
     return shouldRun;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    logger.info('[DEBUG BACKUP] Skipping: unknown frequency=' + freq);
-  }
+  console.log('[AUTO BACKUP] Skipping: unknown frequency=' + freq);
   return false;
 }
 
@@ -106,6 +104,17 @@ function startAutoBackupScheduler() {
       const settings = dbManager.getConfig('settings') || {};
       const state = dbManager.getConfig('autoBackupState') || {};
       const now = new Date();
+
+      // Her 5 dakikada bir durum logu
+      if (now.getMinutes() % 5 === 0) {
+        logger.info('[AUTO BACKUP] Status check:', {
+          frequency: settings.backupFrequency || 'not set',
+          time: settings.backupTime || 'not set',
+          folder: settings.yedeklemeKlasoru ? 'set' : 'NOT SET',
+          lastBackup: state.lastAutoIso || 'never',
+          currentTime: now.toLocaleString('tr-TR')
+        });
+      }
 
       if (shouldRunAutoBackup(settings, state, now)) {
         autoBackupRunning = true;

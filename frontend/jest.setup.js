@@ -1,3 +1,6 @@
+// Ensure we're in test/development mode for React testing
+process.env.NODE_ENV = 'test';
+
 // jest-dom gibi eklentileri etkinleştirir
 require('@testing-library/jest-dom');
 
@@ -5,7 +8,7 @@ require('@testing-library/jest-dom');
 global.import = global.import || {};
 global.import.meta = {
   env: {
-    DEV: false,
+    DEV: true,
     MODE: 'test',
     PROD: false,
     SSR: false,

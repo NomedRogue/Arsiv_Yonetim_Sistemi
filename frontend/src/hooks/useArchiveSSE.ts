@@ -30,7 +30,12 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => 
       const data = JSON.parse(e.data);
       dispatch({
         type: 'SET_LAST_BACKUP_EVENT',
-        payload: { ...data, ts: new Date(data.ts) },
+        payload: { 
+          ...data, 
+          ts: new Date(data.timestamp || data.ts),
+          reason: data.type === 'Otomatik' ? 'auto' : 'manual',
+          filename: data.file ? data.file.split(/[\\/]/).pop() : 'bilinmiyor'
+        },
       });
       
       // Otomatik yedekleme bildirimi

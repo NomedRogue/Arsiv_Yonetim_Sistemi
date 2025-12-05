@@ -1,6 +1,6 @@
 // Mock dependencies BEFORE they are imported by any module. Jest hoists these calls.
-jest.mock('../db');
-jest.mock('../sse');
+jest.mock('../dbAdapter');
+jest.mock('../src/utils/sse');
 
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
 const fs = require('fs');
@@ -22,7 +22,7 @@ describe('Backup Utilities', () => {
     // Reset modules to ensure fileHelper picks up the new USER_DATA_PATH
     jest.resetModules();
 
-    dbManager = require('../db');
+    dbManager = require('../dbAdapter');
     backupUtils = require('../backup');
     
     // Setup a default mock behavior for getDbInstance().backup()

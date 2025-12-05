@@ -1,4 +1,4 @@
-const logger = require('../logger');
+const logger = require('../src/utils/logger');
 
 describe('Logger', () => {
   let consoleSpy;

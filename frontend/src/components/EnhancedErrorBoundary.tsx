@@ -30,6 +30,11 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Console'a yaz - production'da da görelim
+    console.error('[ERROR_BOUNDARY] Caught error:', error.name, error.message);
+    console.error('[ERROR_BOUNDARY] Stack:', error.stack);
+    console.error('[ERROR_BOUNDARY] Component Stack:', errorInfo.componentStack);
+    
     // Log to our error logger
     errorLogger.logError(error, errorInfo.componentStack || undefined);
     
@@ -87,7 +92,7 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
           <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full">
             <AlertTriangle className="mx-auto h-20 w-20 text-red-500 mb-6" />
             
-            <h1 className="text-3xl font-bold mb-4">Bir Sorun Oluştu</h1>
+            <h1 className="text-xl font-bold mb-4">Bir Sorun Oluştu</h1>
             
             <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
               Uygulamada beklenmedik bir hatayla karşılaşıldı. Bu sorun otomatik olarak raporlandı.
@@ -139,30 +144,28 @@ export class EnhancedErrorBoundary extends React.Component<Props, State> {
               </div>
             )}
 
-            {/* Development mode error details */}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="mt-6 p-4 bg-gray-100 dark:bg-slate-700 rounded-lg text-left">
-                <summary className="cursor-pointer font-medium text-lg mb-2">
-                  Geliştirici Bilgileri
-                </summary>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">Hata Mesajı:</h4>
-                    <p className="text-sm bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-800">
-                      {this.state.error.message}
-                    </p>
-                  </div>
-                  {this.state.error.stack && (
-                    <div>
-                      <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">Stack Trace:</h4>
-                      <pre className="text-xs bg-gray-50 dark:bg-slate-800 p-3 rounded border overflow-auto max-h-64">
-                        <code>{this.state.error.stack}</code>
-                      </pre>
-                    </div>
-                  )}
+            {/* Error details - always show for debugging */}
+            <details className="mt-6 p-4 bg-gray-100 dark:bg-slate-700 rounded-lg text-left" open>
+              <summary className="cursor-pointer font-medium text-lg mb-2">
+                Hata Detayları
+              </summary>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">Hata Mesajı:</h4>
+                  <p className="text-sm bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-800">
+                    {this.state.error.message}
+                  </p>
                 </div>
-              </details>
-            )}
+                {this.state.error.stack && (
+                  <div>
+                    <h4 className="font-semibold text-red-600 dark:text-red-400 mb-2">Stack Trace:</h4>
+                    <pre className="text-xs bg-gray-50 dark:bg-slate-800 p-3 rounded border overflow-auto max-h-64">
+                      <code>{this.state.error.stack}</code>
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
         </div>
       );

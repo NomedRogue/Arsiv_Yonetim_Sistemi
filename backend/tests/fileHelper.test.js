@@ -24,12 +24,12 @@ describe('fileHelper', () => {
 
   describe('getUserDataPath', () => {
     it('should return the base user data path when no segments are provided', () => {
-      const { getUserDataPath } = require('../fileHelper');
+      const { getUserDataPath } = require('../src/utils/fileHelper');
       expect(getUserDataPath()).toBe(tempDir);
     });
 
     it('should join segments to the base user data path', () => {
-      const { getUserDataPath } = require('../fileHelper');
+      const { getUserDataPath } = require('../src/utils/fileHelper');
       const expectedPath = path.join(tempDir, 'sub', 'folder');
       expect(getUserDataPath('sub', 'folder')).toBe(expectedPath);
     });
@@ -37,7 +37,7 @@ describe('fileHelper', () => {
 
   describe('ensureDirExists', () => {
     it('should create a directory if it does not exist', () => {
-      const { ensureDirExists } = require('../fileHelper');
+      const { ensureDirExists } = require('../src/utils/fileHelper');
       const dirToCreate = path.join(tempDir, 'new-dir');
       expect(fs.existsSync(dirToCreate)).toBe(false);
       
@@ -47,7 +47,7 @@ describe('fileHelper', () => {
     });
 
     it('should not throw an error if the directory already exists', () => {
-      const { ensureDirExists } = require('../fileHelper');
+      const { ensureDirExists } = require('../src/utils/fileHelper');
       const dirToCreate = path.join(tempDir, 'existing-dir');
       fs.mkdirSync(dirToCreate);
       
@@ -55,7 +55,7 @@ describe('fileHelper', () => {
     });
 
     it('should create nested directories recursively', () => {
-      const { ensureDirExists } = require('../fileHelper');
+      const { ensureDirExists } = require('../src/utils/fileHelper');
       const nestedDir = path.join(tempDir, 'parent', 'child');
       expect(fs.existsSync(nestedDir)).toBe(false);
       

@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => {
     },
 
     build: {
+      chunkSizeWarningLimit: 1500, // Font base64 verisi nedeniyle limiti 1.5MB'a yükselt
       rollupOptions: {
         output: {
           manualChunks: {
@@ -98,7 +99,6 @@ export default defineConfig(({ mode }) => {
     define: {
       // Production'da her zaman localhost:3001 kullan (Electron için)
       'process.env.API_BASE': JSON.stringify('http://localhost:3001'),
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
       // React development özelliklerini devre dışı bırak
       '__DEV__': mode === 'development',

@@ -98,7 +98,7 @@ export const Modal: React.FC<ModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="relative z-[10001] bg-white dark:bg-archive-dark-panel rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
+      <div className="relative z-[10001] bg-white dark:bg-archive-dark-panel rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
         {/* Header */}
         <div className={`flex items-center gap-3 p-6 rounded-t-xl ${typeStyles.headerBg} transition-colors duration-300`}>
           {showIcon && (

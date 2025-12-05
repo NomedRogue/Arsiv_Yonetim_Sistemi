@@ -19,9 +19,10 @@ describe('API Routes Integration Tests', () => {
     jest.resetModules(); // This is key to ensure modules use the new DB path
     
     // Require modules AFTER resetting cache and setting env var
-    apiRoutes = require('../routes');
-    dbManager = require('../db');
-    resolveBackupFolder = require('../backup').resolveBackupFolder;
+    apiRoutes = require('../src/routes');
+    dbManager = require('../dbAdapter');
+    const { getBackupService } = require('../src/services/BackupService');
+    resolveBackupFolder = () => getBackupService().resolveBackupFolder();
 
     // Apply routes to app instance
     app.use('/api', apiRoutes);
@@ -41,9 +42,9 @@ describe('API Routes Integration Tests', () => {
     db.exec('DELETE FROM logs');
 
     // Seed data for consistent tests
-    dbManager.insertFolder({ id: 'f1', subject: 'Finance Report 2022', category: 'İdari', departmentId: 1, fileCode: 'FIN-01', fileYear: 2022, location: {} });
-    dbManager.insertFolder({ id: 'f2', subject: 'Medical Records 2023', category: 'Tıbbi', departmentId: 21, fileCode: 'MED-01', fileYear: 2023, clinic: 'Cardiology', location: {} });
-    dbManager.insertFolder({ id: 'f3', subject: 'HR Policies', category: 'İdari', departmentId: 8, fileCode: 'HR-01', fileYear: 2023, location: {} });
+    dbManager.insertFolder({ id: 'f1', subject: 'Finance Report 2022', category: 'İdari', departmentId: 1, fileCode: 'FIN-01', fileYear: 2022, retentionPeriod: 5, retentionCode: 'A', fileCount: 1, folderType: 'Dar', location: {}, status: 'Arşivde' });
+    dbManager.insertFolder({ id: 'f2', subject: 'Medical Records 2023', category: 'Tıbbi', departmentId: 21, fileCode: 'MED-01', fileYear: 2023, retentionPeriod: 5, retentionCode: 'B', fileCount: 1, folderType: 'Dar', clinic: 'Cardiology', location: {}, status: 'Arşivde' });
+    dbManager.insertFolder({ id: 'f3', subject: 'HR Policies', category: 'İdari', departmentId: 8, fileCode: 'HR-01', fileYear: 2023, retentionPeriod: 5, retentionCode: 'A', fileCount: 1, folderType: 'Dar', location: {}, status: 'Arşivde' });
   });
 
   afterAll(() => {
@@ -115,7 +116,7 @@ describe('API Routes Integration Tests', () => {
 
   describe('Dashboard Stats (/api/dashboard-stats)', () => {
       it('should return dashboard statistics', async () => {
-          const res = await request(app).get('/api/dashboard-stats');
+          const res = await request(app).get('/api/stats/dashboard');
           expect(res.statusCode).toBe(200);
           expect(res.body.totalFolders).toBe(3);
           expect(res.body.tibbiCount).toBe(1);
@@ -139,15 +140,15 @@ describe('API Routes Integration Tests', () => {
       });
 
     it('should list backup files', async () => {
-      // Create a dummy backup file
+      // Create a dummy backup file (.zip to match BackupService filter)
       const backupFolder = resolveBackupFolder();
-      fs.writeFileSync(path.join(backupFolder, 'test.db'), 'data');
+      fs.writeFileSync(path.join(backupFolder, 'test-backup.zip'), 'mock backup data');
 
-        const res = await request(app).get('/api/list-backups');
+        const res = await request(app).get('/api/backups');
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(res.body.backups)).toBe(true);
         expect(res.body.backups.length).toBeGreaterThanOrEqual(1);
-        expect(res.body.backups.some(f => f.filename === 'test.db')).toBe(true);
+        expect(res.body.backups.some(f => f.filename === 'test-backup.zip')).toBe(true);
     });
   });
 });

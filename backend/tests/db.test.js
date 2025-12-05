@@ -1,6 +1,6 @@
 // backend/tests/db.test.js
 const { describe, it, expect, beforeAll, afterAll, beforeEach } = require('@jest/globals');
-const { ALL_DEPARTMENTS } = require('../constants');
+const { ALL_DEPARTMENTS } = require('../src/config/constants');
 
 // dbManager'ı dinamik olarak yükleyeceğiz
 let dbManager;
@@ -10,7 +10,7 @@ describe('dbManager with in-memory DB', () => {
   beforeAll(() => {
     process.env.DB_PATH = ':memory:';
     jest.resetModules(); // Ortam değişkenini okuması için modül önbelleğini sıfırla
-    dbManager = require('../db');
+    dbManager = require('../dbAdapter');
     dbManager.getDbInstance();
     dbManager.migrate();
   });
@@ -67,10 +67,10 @@ describe('dbManager with in-memory DB', () => {
 
   describe('getFolders', () => {
     it('should return all non-disposed folders with pagination', () => {
-      const result = dbManager.getFolders({ page: 1, limit: 3 });
+      const result = dbManager.getFolders({ page: 1, limit: 3, sortBy: 'createdAt', order: 'desc' });
       expect(result.items).toHaveLength(3);
       expect(result.total).toBe(4);
-      // default sort is createdAt desc
+      // sort by createdAt desc (newest first: f4, f3, f2, f1)
       expect(result.items[0].subject).toBe('D Checked Out');
       expect(result.items[1].subject).toBe('C Another Test');
     });
@@ -113,7 +113,7 @@ describe('dbManager with in-memory DB', () => {
           expect(stats.idariCount).toBe(3);
           expect(stats.arsivDisindaCount).toBe(2); // Based on folder status (f2, f4)
           expect(stats.iadeGecikenCount).toBe(1); // Based on checkouts table (c1)
-          expect(stats.imhaEdilenCount).toBe(1);
+          expect(stats.imhaEdilenCount).toBe(0); // No folders with status='İmha'
           // fileYear + retentionPeriod + 1 = currentYear
           // f1: 2022+5+1=2028 (no)
           // f2: 2023+10+1=2034 (no)

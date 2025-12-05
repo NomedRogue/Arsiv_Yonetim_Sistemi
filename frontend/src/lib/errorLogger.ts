@@ -168,12 +168,34 @@ class ErrorLogger {
 
 export const errorLogger = new ErrorLogger();
 
+// Known errors to suppress (library issues that don't affect functionality)
+const SUPPRESSED_ERRORS = [
+  'dragEvent is not defined',  // Recharts internal error in production builds
+  'ResizeObserver loop limit exceeded',  // Benign browser warning
+  'ResizeObserver loop completed with undelivered notifications',  // Benign browser warning
+];
+
+function shouldSuppressError(message: string): boolean {
+  return SUPPRESSED_ERRORS.some(suppressed => message.includes(suppressed));
+}
+
 // Global error handler for unhandled promises
 window.addEventListener('unhandledrejection', (event) => {
+  const errorMessage = String(event.reason);
+  if (shouldSuppressError(errorMessage)) {
+    console.debug('[SUPPRESSED] Unhandled Promise Rejection:', errorMessage);
+    event.preventDefault();
+    return;
+  }
   errorLogger.logError(new Error(`Unhandled Promise Rejection: ${event.reason}`));
 });
 
 // Global error handler for uncaught errors
 window.addEventListener('error', (event) => {
+  if (shouldSuppressError(event.message)) {
+    console.debug('[SUPPRESSED] Error:', event.message);
+    event.preventDefault();
+    return;
+  }
   errorLogger.logError(new Error(event.message), `${event.filename}:${event.lineno}:${event.colno}`);
 });

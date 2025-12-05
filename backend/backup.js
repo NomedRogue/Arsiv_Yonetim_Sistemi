@@ -3,10 +3,10 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const archiver = require('archiver');
-const dbManager = require('./db');
-const { sseBroadcast } = require('./sse');
-const { getUserDataPath, ensureDirExists } = require('./fileHelper');
-const logger = require('./logger');
+const dbManager = require('./dbAdapter'); // Legacy compatibility
+const { sseBroadcast } = require('./src/utils/sse');
+const { getUserDataPath, ensureDirExists } = require('./src/utils/fileHelper');
+const logger = require('./src/utils/logger');
 
 function resolveBackupFolder() {
   let folderPath = '';
