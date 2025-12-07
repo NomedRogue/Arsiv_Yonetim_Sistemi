@@ -13,6 +13,29 @@ const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <ArchiveProvider>{children}</ArchiveProvider>;
 };
 
+// Mock useAuth
+jest.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { role: 'admin' },
+    isAuthenticated: true,
+  }),
+}));
+
+// Mock useAccordionState
+jest.mock('../hooks', () => ({
+  ...(jest.requireActual('../hooks') as object),
+  useAccordionState: () => ({
+    openSections: { system: true },
+    toggleSection: jest.fn(),
+  }),
+}));
+
+// Mock UserManagement component
+jest.mock('../components/UserManagement', () => ({
+  UserManagement: () => <div>User Management Component</div>
+}));
+
+
 describe('Ayarlar Sayfası', () => {
 
   beforeEach(() => {
@@ -32,12 +55,14 @@ describe('Ayarlar Sayfası', () => {
   });
 
   it('ayarlar yükleniyor smoke test', async () => {
+    // Mock scrollIntoView
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+
     await act(async () => {
       render(<Settings />, { wrapper: AllTheProviders });
     });
     await waitFor(() => {
-      // Birden fazla "Ayarlar" metni olabileceği için getAllByText ile kontrol
-      expect(screen.getAllByText(/Ayarlar/).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Sistem Ayarları/)).toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,4 @@
-// backend/tests/db.test.js
-const { describe, it, expect, beforeAll, afterAll, beforeEach } = require('@jest/globals');
+// @ts-nocheck
 const { ALL_DEPARTMENTS } = require('../src/config/constants');
 
 // dbManager'ı dinamik olarak yükleyeceğiz

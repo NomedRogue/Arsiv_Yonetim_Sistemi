@@ -52,13 +52,13 @@ Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı - Yataklı ve Yataksız Teda
 
 ### 🎯 Temel Hedefler
 
-| Hedef | Açıklama |
-|-------|----------|
-| 📂 **Organizasyon** | Hiyerarşik klasör yapısı ile sistematik arşivleme |
-| 🔍 **Erişilebilirlik** | Gelişmiş arama ve filtreleme özellikleri |
-| 📤 **Takip** | Çıkış/iade ve imha süreçlerinin yönetimi |
-| 💾 **Güvenlik** | Otomatik yedekleme ve veri koruma |
-| 📊 **Raporlama** | Kapsamlı istatistik ve PDF rapor araçları |
+| Hedef                  | Açıklama                                          |
+| ---------------------- | ------------------------------------------------- |
+| 📂 **Organizasyon**    | Hiyerarşik klasör yapısı ile sistematik arşivleme |
+| 🔍 **Erişilebilirlik** | Gelişmiş arama ve filtreleme özellikleri          |
+| 📤 **Takip**           | Çıkış/iade ve imha süreçlerinin yönetimi          |
+| 💾 **Güvenlik**        | Otomatik yedekleme ve veri koruma                 |
+| 📊 **Raporlama**       | Kapsamlı istatistik ve PDF rapor araçları         |
 
 ---
 
@@ -69,7 +69,7 @@ Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı - Yataklı ve Yataksız Teda
 - **Hiyerarşik Klasör Yapısı**: Tıbbi ve İdari birimler bazında klasör organizasyonu
   - Tıbbi birimler: Dahiliye, Cerrahi, Pediatri, Kardiyoloji vb.
   - İdari birimler: İnsan Kaynakları, Mali İşler, Satın Alma vb.
-- **PDF Belge Yönetimi**: 
+- **PDF Belge Yönetimi**:
   - PDF upload ve güvenli saklama
   - Tarayıcı içi PDF görüntüleme
   - Dosya boyutu ve sayfa bilgisi
@@ -219,43 +219,47 @@ Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı - Yataklı ve Yataksız Teda
 ## 🛠️ Teknoloji Stack
 
 ### Frontend
-| Teknoloji | Versiyon | Açıklama |
-|-----------|----------|----------|
-| React | 18.2.0 | Modern komponent tabanlı UI framework |
-| TypeScript | 5.1.6 | Tip güvenli JavaScript geliştirme |
-| Tailwind CSS | 3.3.2 | Utility-first CSS framework |
-| Vite | 7.1.5 | Hızlı geliştirme ve build aracı |
-| Recharts | 2.7.3 | Data visualization kütüphanesi |
-| React Window | 1.8.8 | Performanslı liste render |
-| Lucide React | 0.263.1 | Modern ikon kütüphanesi |
-| jsPDF | 3.0.4 | PDF oluşturma |
-| SWR | 2.2.0 | Data fetching |
+
+| Teknoloji    | Versiyon | Açıklama                              |
+| ------------ | -------- | ------------------------------------- |
+| React        | 18.2.0   | Modern komponent tabanlı UI framework |
+| TypeScript   | 5.1.6    | Tip güvenli JavaScript geliştirme     |
+| Tailwind CSS | 3.3.2    | Utility-first CSS framework           |
+| Vite         | 7.1.5    | Hızlı geliştirme ve build aracı       |
+| Recharts     | 2.7.3    | Data visualization kütüphanesi        |
+| React Window | 1.8.8    | Performanslı liste render             |
+| Lucide React | 0.263.1  | Modern ikon kütüphanesi               |
+| jsPDF        | 3.0.4    | PDF oluşturma                         |
+| SWR          | 2.2.0    | Data fetching                         |
 
 ### Backend
-| Teknoloji | Versiyon | Açıklama |
-|-----------|----------|----------|
-| Node.js | ≥18.0.0 | JavaScript runtime |
-| Express.js | 4.19.2 | Web application framework |
-| better-sqlite3 | 11.7.0 | Hızlı SQLite veritabanı |
-| Multer | 1.4.5 | Dosya upload middleware |
-| Winston | - | Logging framework |
-| XLSX | 0.18.5 | Excel dosya işleme |
-| UUID | 9.0.0 | Benzersiz ID oluşturma |
+
+| Teknoloji      | Versiyon | Açıklama                  |
+| -------------- | -------- | ------------------------- |
+| Node.js        | ≥18.0.0  | JavaScript runtime        |
+| Express.js     | 4.19.2   | Web application framework |
+| better-sqlite3 | 11.7.0   | Hızlı SQLite veritabanı   |
+| Multer         | 1.4.5    | Dosya upload middleware   |
+| Winston        | -        | Logging framework         |
+| XLSX           | 0.18.5   | Excel dosya işleme        |
+| UUID           | 9.0.0    | Benzersiz ID oluşturma    |
 
 ### Desktop
-| Teknoloji | Versiyon | Açıklama |
-|-----------|----------|----------|
-| Electron | 28.3.3 | Cross-platform desktop framework |
-| Electron Builder | 24.13.3 | Build ve packaging aracı |
-| Electron Log | 5.1.6 | Electron loglama |
-| Concurrently | 8.2.2 | Çoklu process yönetimi |
+
+| Teknoloji        | Versiyon | Açıklama                         |
+| ---------------- | -------- | -------------------------------- |
+| Electron         | 28.3.3   | Cross-platform desktop framework |
+| Electron Builder | 24.13.3  | Build ve packaging aracı         |
+| Electron Log     | 5.1.6    | Electron loglama                 |
+| Concurrently     | 8.2.2    | Çoklu process yönetimi           |
 
 ### Test & Kalite
-| Teknoloji | Açıklama |
-|-----------|----------|
-| Jest | Unit ve integration test framework |
-| Testing Library | React component testing |
-| Supertest | API endpoint testing |
+
+| Teknoloji       | Açıklama                           |
+| --------------- | ---------------------------------- |
+| Jest            | Unit ve integration test framework |
+| Testing Library | React component testing            |
+| Supertest       | API endpoint testing               |
 
 ---
 
@@ -303,12 +307,12 @@ npm run rebuild
 npm run dev
 ```
 
-| Script | Açıklama |
-|--------|----------|
-| `npm run dev` | Tüm sistemi başlatır (rebuild dahil) |
-| `npm run backend` | Sadece backend server |
-| `npm run frontend` | Sadece frontend dev server |
-| `npm run electron` | Sadece Electron uygulaması |
+| Script             | Açıklama                             |
+| ------------------ | ------------------------------------ |
+| `npm run dev`      | Tüm sistemi başlatır (rebuild dahil) |
+| `npm run backend`  | Sadece backend server                |
+| `npm run frontend` | Sadece frontend dev server           |
+| `npm run electron` | Sadece Electron uygulaması           |
 
 ### 4️⃣ Production Build
 
@@ -568,6 +572,7 @@ Arsiv_Yonetim_Sistemi/
 ### Tablolar
 
 #### folders
+
 ```sql
 CREATE TABLE folders (
     id TEXT PRIMARY KEY,                    -- UUID
@@ -598,6 +603,7 @@ CREATE TABLE folders (
 ```
 
 #### checkouts
+
 ```sql
 CREATE TABLE checkouts (
     id TEXT PRIMARY KEY,
@@ -617,6 +623,7 @@ CREATE TABLE checkouts (
 ```
 
 #### disposals
+
 ```sql
 CREATE TABLE disposals (
     id TEXT PRIMARY KEY,
@@ -630,6 +637,7 @@ CREATE TABLE disposals (
 ```
 
 #### configs
+
 ```sql
 CREATE TABLE configs (
     key TEXT PRIMARY KEY,
@@ -638,6 +646,7 @@ CREATE TABLE configs (
 ```
 
 #### logs
+
 ```sql
 CREATE TABLE logs (
     id TEXT PRIMARY KEY,
@@ -650,15 +659,15 @@ CREATE TABLE logs (
 
 ### 🏷️ Saklama Kodları (Retention Codes)
 
-| Kod | Açıklama | İmha Durumu |
-|:---:|----------|:-----------:|
-| **A** | Devlet Arşivlerine Gönderilir | ❌ İmha Edilemez |
-| **A1** | Örnek Yıllar Devlet Arşivlerine Gönderilir | ❌ İmha Edilemez |
-| **A2** | Örnek Seçilenler Devlet Arşivlerine Gönderilir | ❌ İmha Edilemez |
-| **A3** | Özellikli Olanlar Devlet Arşivlerine Gönderilir | ❌ İmha Edilemez |
-| **B** | Kurumunda Saklanır | ⏳ Süresiz Saklama |
-| **C** | Ayıklama İmha Komisyonunca Değerlendirilir | ⚠️ Değerlendirme Sonrası |
-| **D** | Devlet Arşivlerine Gönderilmez | ✅ Süre Sonunda İmha |
+|  Kod   | Açıklama                                        |       İmha Durumu        |
+| :----: | ----------------------------------------------- | :----------------------: |
+| **A**  | Devlet Arşivlerine Gönderilir                   |     ❌ İmha Edilemez     |
+| **A1** | Örnek Yıllar Devlet Arşivlerine Gönderilir      |     ❌ İmha Edilemez     |
+| **A2** | Örnek Seçilenler Devlet Arşivlerine Gönderilir  |     ❌ İmha Edilemez     |
+| **A3** | Özellikli Olanlar Devlet Arşivlerine Gönderilir |     ❌ İmha Edilemez     |
+| **B**  | Kurumunda Saklanır                              |    ⏳ Süresiz Saklama    |
+| **C**  | Ayıklama İmha Komisyonunca Değerlendirilir      | ⚠️ Değerlendirme Sonrası |
+| **D**  | Devlet Arşivlerine Gönderilmez                  |   ✅ Süre Sonunda İmha   |
 
 ---
 
@@ -668,81 +677,97 @@ CREATE TABLE logs (
 
 ### Folders API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `GET` | `/folders` | Tüm klasörleri listele (pagination, filter) |
-| `GET` | `/folders/:id` | Klasör detayı |
-| `POST` | `/folders` | Yeni klasör oluştur |
-| `PUT` | `/folders/:id` | Klasör güncelle |
-| `DELETE` | `/folders/:id` | Klasör sil |
+| Method   | Endpoint       | Açıklama                                    |
+| -------- | -------------- | ------------------------------------------- |
+| `GET`    | `/folders`     | Tüm klasörleri listele (pagination, filter) |
+| `GET`    | `/folders/:id` | Klasör detayı                               |
+| `POST`   | `/folders`     | Yeni klasör oluştur                         |
+| `PUT`    | `/folders/:id` | Klasör güncelle                             |
+| `DELETE` | `/folders/:id` | Klasör sil                                  |
 
 ### Checkouts API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `GET` | `/checkouts` | Tüm çıkışları listele |
-| `GET` | `/checkouts/active` | Aktif çıkışlar |
-| `POST` | `/checkouts` | Yeni çıkış oluştur |
-| `PUT` | `/checkouts/:id/return` | İade işlemi |
+| Method | Endpoint                | Açıklama              |
+| ------ | ----------------------- | --------------------- |
+| `GET`  | `/checkouts`            | Tüm çıkışları listele |
+| `GET`  | `/checkouts/active`     | Aktif çıkışlar        |
+| `POST` | `/checkouts`            | Yeni çıkış oluştur    |
+| `PUT`  | `/checkouts/:id/return` | İade işlemi           |
 
 ### Disposals API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `GET` | `/disposals` | İmha listesi |
-| `GET` | `/disposals/pending` | Bekleyen imhalar |
-| `GET` | `/disposals/by-year` | Yıl bazlı imha verileri |
-| `POST` | `/disposals` | İmha kaydı oluştur |
+| Method | Endpoint             | Açıklama                |
+| ------ | -------------------- | ----------------------- |
+| `GET`  | `/disposals`         | İmha listesi            |
+| `GET`  | `/disposals/pending` | Bekleyen imhalar        |
+| `GET`  | `/disposals/by-year` | Yıl bazlı imha verileri |
+| `POST` | `/disposals`         | İmha kaydı oluştur      |
 
 ### Backups API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `GET` | `/backups` | Yedek listesi |
-| `POST` | `/backups` | Manuel yedek al |
-| `POST` | `/backups/restore` | Yedekten geri yükle |
-| `DELETE` | `/backups/:filename` | Yedek sil |
+| Method   | Endpoint             | Açıklama            |
+| -------- | -------------------- | ------------------- |
+| `GET`    | `/backups`           | Yedek listesi       |
+| `POST`   | `/backups`           | Manuel yedek al     |
+| `POST`   | `/backups/restore`   | Yedekten geri yükle |
+| `DELETE` | `/backups/:filename` | Yedek sil           |
 
 ### Stats API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `GET` | `/stats` | Genel istatistikler |
-| `GET` | `/stats/location-analysis` | Lokasyon doluluk analizi |
-| `GET` | `/stats/department-distribution` | Departman dağılımı |
+| Method | Endpoint                         | Açıklama                 |
+| ------ | -------------------------------- | ------------------------ |
+| `GET`  | `/stats`                         | Genel istatistikler      |
+| `GET`  | `/stats/location-analysis`       | Lokasyon doluluk analizi |
+| `GET`  | `/stats/department-distribution` | Departman dağılımı       |
 
 ### PDF API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `POST` | `/pdf/upload` | PDF yükle |
-| `GET` | `/pdf/:filename` | PDF görüntüle |
-| `DELETE` | `/pdf/:filename` | PDF sil |
+| Method   | Endpoint         | Açıklama      |
+| -------- | ---------------- | ------------- |
+| `POST`   | `/pdf/upload`    | PDF yükle     |
+| `GET`    | `/pdf/:filename` | PDF görüntüle |
+| `DELETE` | `/pdf/:filename` | PDF sil       |
 
 ### Excel API
 
-| Method | Endpoint | Açıklama |
-|--------|----------|----------|
-| `POST` | `/excel/upload` | Excel yükle |
-| `GET` | `/excel/search` | Excel içerik ara |
-| `GET` | `/excel/:filename` | Excel indir |
-| `DELETE` | `/excel/:filename` | Excel sil |
+| Method   | Endpoint           | Açıklama         |
+| -------- | ------------------ | ---------------- |
+| `POST`   | `/excel/upload`    | Excel yükle      |
+| `GET`    | `/excel/search`    | Excel içerik ara |
+| `GET`    | `/excel/:filename` | Excel indir      |
+| `DELETE` | `/excel/:filename` | Excel sil        |
 
 ### SSE (Server-Sent Events)
 
 ```javascript
 // Bağlantı
-const eventSource = new EventSource('http://localhost:3001/api/events');
+const eventSource = new EventSource("http://localhost:3001/api/events");
 
 // Event türleri
-eventSource.addEventListener('folder-created', (e) => { /* ... */ });
-eventSource.addEventListener('folder-updated', (e) => { /* ... */ });
-eventSource.addEventListener('folder-deleted', (e) => { /* ... */ });
-eventSource.addEventListener('checkout-created', (e) => { /* ... */ });
-eventSource.addEventListener('checkout-returned', (e) => { /* ... */ });
-eventSource.addEventListener('disposal-created', (e) => { /* ... */ });
-eventSource.addEventListener('backup-completed', (e) => { /* ... */ });
-eventSource.addEventListener('stats-updated', (e) => { /* ... */ });
+eventSource.addEventListener("folder-created", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("folder-updated", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("folder-deleted", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("checkout-created", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("checkout-returned", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("disposal-created", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("backup-completed", (e) => {
+  /* ... */
+});
+eventSource.addEventListener("stats-updated", (e) => {
+  /* ... */
+});
 ```
 
 ---
@@ -770,24 +795,24 @@ npm test -- --coverage
 
 ### Test İstatistikleri
 
-| Kategori | Test Sayısı | Durum |
-|----------|:-----------:|:-----:|
-| Backend | 60 | ✅ |
-| Frontend | 30 | ✅ |
-| **Toplam** | **90** | **✅** |
+| Kategori   | Test Sayısı | Durum  |
+| ---------- | :---------: | :----: |
+| Backend    |     60      |   ✅   |
+| Frontend   |     30      |   ✅   |
+| **Toplam** |   **90**    | **✅** |
 
 ### Backend Test Dosyaları
 
-| Dosya | Test Sayısı | Açıklama |
-|-------|:-----------:|----------|
-| backup.test.js | 8 | Yedekleme fonksiyonları |
-| backupScheduler.test.js | 7 | Otomatik yedekleme |
-| constants.test.js | 5 | Sabit değerler |
-| db.test.js | 12 | Veritabanı işlemleri |
-| fileHelper.test.js | 6 | Dosya yardımcıları |
-| logger.test.js | 4 | Loglama sistemi |
-| routes.test.js | 15 | API endpoints |
-| sse.test.js | 5 | Server-Sent Events |
+| Dosya                   | Test Sayısı | Açıklama                |
+| ----------------------- | :---------: | ----------------------- |
+| backup.test.js          |      8      | Yedekleme fonksiyonları |
+| backupScheduler.test.js |      7      | Otomatik yedekleme      |
+| constants.test.js       |      5      | Sabit değerler          |
+| db.test.js              |     12      | Veritabanı işlemleri    |
+| fileHelper.test.js      |      6      | Dosya yardımcıları      |
+| logger.test.js          |      4      | Loglama sistemi         |
+| routes.test.js          |     15      | API endpoints           |
+| sse.test.js             |      5      | Server-Sent Events      |
 
 ---
 
@@ -835,27 +860,27 @@ release/
 
 ### Uygulanan Güvenlik Önlemleri
 
-| Özellik | Açıklama |
-|---------|----------|
+| Özellik                    | Açıklama                                       |
+| -------------------------- | ---------------------------------------------- |
 | 🚫 Path Traversal Koruması | Dosya yolları validate edilir, `..` engellenir |
-| ⏱️ Rate Limiting | API istekleri sınırlandırılır (100 req/15 min) |
-| 🔄 Transaction Wrapper | Veritabanı işlemleri atomic olarak çalışır |
-| 💾 Disk Space Check | Yedekleme öncesi disk alanı kontrolü |
-| 🔐 Sensitive Data Masking | Log dosyalarında hassas veri maskelenir |
-| 🛑 Graceful Shutdown | Düzgün kapatma mekanizması (10s timeout) |
-| ⏰ Database Busy Timeout | SQLite busy handling (5000ms) |
-| 🎯 Async Error Handler | Tüm async hatalar yakalanır |
-| 📝 Winston Logger | Yapılandırılmış loglama |
+| ⏱️ Rate Limiting           | API istekleri sınırlandırılır (100 req/15 min) |
+| 🔄 Transaction Wrapper     | Veritabanı işlemleri atomic olarak çalışır     |
+| 💾 Disk Space Check        | Yedekleme öncesi disk alanı kontrolü           |
+| 🔐 Sensitive Data Masking  | Log dosyalarında hassas veri maskelenir        |
+| 🛑 Graceful Shutdown       | Düzgün kapatma mekanizması (10s timeout)       |
+| ⏰ Database Busy Timeout   | SQLite busy handling (5000ms)                  |
+| 🎯 Async Error Handler     | Tüm async hatalar yakalanır                    |
+| 📝 Winston Logger          | Yapılandırılmış loglama                        |
 
 ### 📍 Veri Konumları
 
-| Veri | Geliştirme Modu | Production Modu |
-|------|-----------------|-----------------|
-| **Veritabanı** | `backend/arsiv.db` | `%APPDATA%\arsiv-yonetim-sistemi\arsiv.db` |
-| **PDF Dosyaları** | `backend/PDFs/` | `backend/PDFs/` |
-| **Excel Dosyaları** | `backend/Excels/` | `backend/Excels/` |
-| **Yedekler** | `backend/Backups/` veya özel klasör | Kullanıcının seçtiği klasör |
-| **Loglar** | Konsol | `%APPDATA%\arsiv-yonetim-sistemi\` |
+| Veri                | Geliştirme Modu                     | Production Modu                            |
+| ------------------- | ----------------------------------- | ------------------------------------------ |
+| **Veritabanı**      | `backend/arsiv.db`                  | `%APPDATA%\arsiv-yonetim-sistemi\arsiv.db` |
+| **PDF Dosyaları**   | `backend/PDFs/`                     | `backend/PDFs/`                            |
+| **Excel Dosyaları** | `backend/Excels/`                   | `backend/Excels/`                          |
+| **Yedekler**        | `backend/Backups/` veya özel klasör | Kullanıcının seçtiği klasör                |
+| **Loglar**          | Konsol                              | `%APPDATA%\arsiv-yonetim-sistemi\`         |
 
 ### Yedekleme Stratejisi
 
@@ -871,6 +896,7 @@ release/
 ### 🔴 "Backend Hatası - better-sqlite3 module version mismatch"
 
 **Hata Mesajı:**
+
 ```
 The module was compiled against a different Node.js version using
 NODE_MODULE_VERSION 115. This version of Node.js requires
@@ -878,6 +904,7 @@ NODE_MODULE_VERSION 119.
 ```
 
 **Çözüm:**
+
 ```bash
 # better-sqlite3'ü yeniden derle
 npm run rebuild
@@ -891,6 +918,7 @@ npm rebuild better-sqlite3 --build-from-source
 **Sebep:** Veritabanı dosyası başka bir process tarafından kullanılıyor.
 
 **Çözüm:**
+
 ```bash
 # Tüm Node ve Electron processlerini kapat
 Stop-Process -Name "node","electron" -Force -ErrorAction SilentlyContinue
@@ -902,6 +930,7 @@ npm run dev
 ### 🔴 "npm run package" başarısız oluyor
 
 **Çözüm:**
+
 ```bash
 # 1. Çalışan uygulamaları kapat
 Stop-Process -Name "node","electron","Arşiv Yönetim Sistemi" -Force -ErrorAction SilentlyContinue
@@ -919,12 +948,14 @@ npm run package
 ### 🔴 Python veya Build Tools hatası
 
 **Hata Mesajı:**
+
 ```
 gyp ERR! find Python
 gyp ERR! find VS
 ```
 
 **Çözüm:**
+
 ```bash
 # 1. Python 3.x yükle
 # https://www.python.org/downloads/
@@ -942,6 +973,7 @@ npm run rebuild
 ### 🔴 Port 3001 kullanımda
 
 **Çözüm:**
+
 ```bash
 # Windows'ta portu kullanan process'i bul ve kapat
 netstat -ano | findstr :3001
@@ -951,6 +983,7 @@ taskkill /PID <PID> /F
 ### 🔴 Electron penceresi açılmıyor
 
 **Çözüm:**
+
 1. Backend'in başladığından emin ol (http://localhost:3001/api/health)
 2. Frontend'in başladığından emin ol (http://localhost:5173)
 3. Tüm processleri kapatıp `npm run dev` ile yeniden başlat
@@ -958,11 +991,13 @@ taskkill /PID <PID> /F
 ### 🔴 PDF/Excel yüklenemiyor
 
 **Olası Sebepler:**
+
 - Dosya boyutu çok büyük (max 50MB)
 - Dosya formatı desteklenmiyor
 - backend/PDFs veya backend/Excels klasörü yok
 
 **Çözüm:**
+
 ```bash
 # Klasörleri oluştur
 mkdir backend\PDFs
@@ -972,6 +1007,7 @@ mkdir backend\Excels
 ### 🔴 Otomatik yedekleme çalışmıyor
 
 **Kontrol Et:**
+
 1. Ayarlar → Yedekleme → Otomatik Yedekleme aktif mi?
 2. Yedekleme klasörü seçilmiş mi?
 3. Seçilen klasöre yazma izni var mı?

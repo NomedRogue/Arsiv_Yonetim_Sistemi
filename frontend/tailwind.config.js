@@ -75,32 +75,42 @@ export default {
         '2xl': '1.5rem',
       },
       colors: {
-        "archive-primary": "#0078D4",
-        "archive-secondary": "#E5F3FF",
-        "archive-light-bg": "#F5F5F5",
-        "archive-dark-bg": "#1e293b",
-        "archive-dark-panel": "#334155",
-        "archive-dark-text": "#f1f5f9",
-        "archive-light-text": "#000000",
-        "status-green": "#28A745",
-        "status-yellow": "#FFC107",
-        "status-red": "#DC3545",
-        "status-orange": "#FD7E14",
-        "status-blue": "#007BFF",
+        // Hospital Theme Palette
+        "archive-primary": "#0F766E", // Teal-700
+        "archive-secondary": "#CCFBF1", // Teal-100
+        "archive-accent": "#0D9488", // Teal-600 (Action buttons)
+        
+        // Backgrounds
+        "archive-light-bg": "#F0F9FF", // Light Blue-50 (Softer than gray)
+        "archive-dark-bg": "#0F172A", // Slate-900
+        "archive-dark-panel": "#1E293B", // Slate-800
+        
+        // Text
+        "archive-dark-text": "#F1F5F9", // Slate-100
+        "archive-light-text": "#1E293B", // Slate-800
+        "archive-muted-text": "#64748B", // Slate-500
+
+        // Status Colors (Hospital Standard)
+        "status-green": "#10B981", // Emerald-500
+        "status-yellow": "#F59E0B", // Amber-500
+        "status-red": "#EF4444", // Red-500
+        "status-orange": "#F97316", // Orange-500
+        "status-blue": "#3B82F6", // Blue-500
+
         // Chart colors for different themes
         "chart-light": {
-          "primary": "#0078D4",
-          "secondary": "#E5F3FF",
-          "accent": "#8884d8",
-          "success": "#82ca9d",
-          "warning": "#FD7E14"
-        },
-        "chart-dark": {
-          "primary": "#3B82F6",
-          "secondary": "#1F2937",
-          "accent": "#3B82F6",
+          "primary": "#0F766E",
+          "secondary": "#CCFBF1",
+          "accent": "#0D9488",
           "success": "#10B981",
           "warning": "#F59E0B"
+        },
+        "chart-dark": {
+          "primary": "#14B8A6",
+          "secondary": "#0F172A",
+          "accent": "#2DD4BF",
+          "success": "#34D399",
+          "warning": "#FBBF24"
         }
       },
       gap: {

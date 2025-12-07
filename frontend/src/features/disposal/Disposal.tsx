@@ -135,9 +135,9 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
                 </div>
             </Modal>
             <div className="flex space-x-2 border-b dark:border-gray-600 mb-4 transition-colors duration-300">
-                <button onClick={() => setSelectedView('thisYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'thisYear' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Bu Yıl İmha Edilecekler</button>
-                <button onClick={() => setSelectedView('nextYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'nextYear' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>Gelecek Yıl İmha Edilecekler</button>
-                <button onClick={() => setSelectedView('overdue')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'overdue' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Süresi Geçenler</button>
+                <button onClick={() => setSelectedView('thisYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'thisYear' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>Bu Yıl İmha Edilecekler</button>
+                <button onClick={() => setSelectedView('nextYear')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'nextYear' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>Gelecek Yıl İmha Edilecekler</button>
+                <button onClick={() => setSelectedView('overdue')} className={`px-4 py-2 text-sm font-medium transition-colors duration-300 ${selectedView === 'overdue' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Süresi Geçenler</button>
             </div>
             <div className="flex justify-between items-center mb-4">
                  <p className="text-sm text-gray-700 dark:text-gray-400 transition-colors duration-300">{disposableFolders.length} klasör bulundu.</p>
@@ -161,7 +161,7 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
                                 type="checkbox" 
                                 onChange={handleSelectAll} 
                                 checked={selectedFolderIds.length === disposableFolders.length}
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
                             />
                             <span className="ml-3 text-xs font-semibold text-gray-700 uppercase dark:text-gray-400">
                                 Tümünü Seç ({selectedFolderIds.length} / {disposableFolders.length})
@@ -313,8 +313,8 @@ export const Disposal: React.FC<{ initialTab?: DisposalTabType, initialFilter?: 
                 </div>
 
                 <div className="flex space-x-1 border-b dark:border-gray-600 mb-3 transition-colors duration-300">
-                    <button onClick={() => setActiveTab('disposable')} className={`px-3 py-1.5 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposable' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Bekleyenler</button>
-                    <button onClick={() => setActiveTab('disposed')} className={`px-3 py-1.5 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposed' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Edilenler</button>
+                    <button onClick={() => setActiveTab('disposable')} className={`px-3 py-1.5 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposable' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Bekleyenler</button>
+                    <button onClick={() => setActiveTab('disposed')} className={`px-3 py-1.5 text-sm font-medium transition-colors duration-300 ${activeTab === 'disposed' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Edilenler</button>
                 </div>
                 
                 {activeTab === 'disposable' ? <DisposableFoldersView initialFilter={initialFilter} /> : <DisposedFoldersView />}

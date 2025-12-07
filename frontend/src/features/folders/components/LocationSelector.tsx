@@ -94,7 +94,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
           onClick={() => handleTabChange(StorageType.Kompakt)}
           className={`px-3 py-1 text-xs -mb-px border-b-2 transition-colors duration-300 ${
             locationTab === StorageType.Kompakt
-              ? 'border-blue-500 text-blue-600'
+              ? 'border-teal-500 text-teal-600'
               : 'border-transparent text-gray-500 dark:text-gray-400'
           }`}
         >
@@ -105,7 +105,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
           onClick={() => handleTabChange(StorageType.Stand)}
           className={`px-3 py-1 text-xs -mb-px border-b-2 transition-colors duration-300 ${
             locationTab === StorageType.Stand
-              ? 'border-blue-500 text-blue-600'
+              ? 'border-teal-500 text-teal-600'
               : 'border-transparent text-gray-500 dark:text-gray-400'
           }`}
         >

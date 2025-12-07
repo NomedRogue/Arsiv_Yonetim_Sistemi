@@ -10,7 +10,8 @@ import {
   useStorageManagement, 
   useAccordionState 
 } from './hooks';
-import { SettingInput, FilePathInput, AccordionSection } from './components';
+import { SettingInput, FilePathInput, AccordionSection, UserManagement, UpdateManagement } from './components';
+import { useAuth } from '@/context/AuthContext';
 import { Modal } from '@/components/Modal';
 import { Edit, Trash2, HardDrive } from 'lucide-react';
 import { toast } from '@/lib/toast';
@@ -36,8 +37,11 @@ export const Settings: React.FC = () => {
     setCurrentSettings(settings);
   }, [settings]);
 
+
   // Custom hooks for state management
   const { openSections, toggleSection } = useAccordionState();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const {
     backups,
@@ -189,7 +193,7 @@ export const Settings: React.FC = () => {
       </Modal>
 
       {/* Kompakt Ünite Ekleme Modal */}
-      <Modal isOpen={isKompaktAddModalOpen} onClose={handleCloseKompaktModal} title="Yeni Kompakt Ünite Ekle" onConfirm={handleKompaktSubmit} confirmText="Ünite Ekle" confirmColor="bg-blue-600">
+      <Modal isOpen={isKompaktAddModalOpen} onClose={handleCloseKompaktModal} title="Yeni Kompakt Ünite Ekle" onConfirm={handleKompaktSubmit} confirmText="Ünite Ekle" confirmColor="bg-teal-600">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Yüz Seçimi</label>
@@ -251,7 +255,7 @@ export const Settings: React.FC = () => {
       </Modal>
 
       {/* Stand Ekleme Modal */}
-      <Modal isOpen={isStandAddModalOpen} onClose={handleCloseStandModal} title="Yeni Stand Ekle" onConfirm={handleStandSubmit} confirmText="Stand Ekle" confirmColor="bg-blue-600">
+      <Modal isOpen={isStandAddModalOpen} onClose={handleCloseStandModal} title="Yeni Stand Ekle" onConfirm={handleStandSubmit} confirmText="Stand Ekle" confirmColor="bg-teal-600">
         <div>
           <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Raf Sayısı</label>
           <input 
@@ -304,7 +308,7 @@ export const Settings: React.FC = () => {
       >
         <div className="space-y-6">
           {/* Bilgilendirme Kutusu */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -349,7 +353,7 @@ export const Settings: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-3 mt-4">
-              <button onClick={handleServerSideBackup} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800" title="Ayarlar > Yedekleme Klasörü'ne kopyalar">
+              <button onClick={handleServerSideBackup} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-teal-600 text-white hover:bg-teal-700 shadow-sm transition-all" title="Ayarlar > Yedekleme Klasörü'ne kopyalar">
                 <HardDrive size={16} /> Sunucuda Yedekle
               </button>
             </div>
@@ -378,12 +382,12 @@ export const Settings: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{b.filename}</span>
                             {b.type === 'full' && (
-                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-green-600 rounded">
+                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-teal-600 rounded">
                                 TAM YEDEK
                               </span>
                             )}
                             {b.type === 'database' && (
-                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-blue-600 rounded">
+                              <span className="px-2 py-0.5 text-xs font-semibold text-white bg-teal-600 rounded">
                                 SADECE VERİTABANI
                               </span>
                             )}
@@ -395,14 +399,14 @@ export const Settings: React.FC = () => {
                           <div className="flex gap-2">
                             <button 
                               onClick={() => handleOpenRestoreModal(b.filename)} 
-                              className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm"
+                              className="px-3 py-1 rounded-md bg-teal-600 text-white hover:bg-teal-700 text-sm shadow-sm transition-colors"
                               title={b.type === 'full' ? 'Veritabanı + PDF + Excel dosyalarını geri yükle' : 'Sadece veritabanını geri yükle'}
                             >
                               Geri Yükle
                             </button>
                             <button 
                               onClick={() => openBackupDeleteModal(b.filename)} 
-                              className="px-3 py-1 rounded-md bg-rose-600 text-white hover:bg-rose-700 text-sm"
+                              className="px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 text-sm shadow-sm transition-colors"
                             >
                               Sil
                             </button>
@@ -427,7 +431,7 @@ export const Settings: React.FC = () => {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-semibold">Birimler</h3>
-            <button onClick={handleOpenDepartmentModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+            <button onClick={handleOpenDepartmentModal} className="px-4 py-2 text-sm text-white bg-teal-600 rounded-md hover:bg-teal-700">
               Yeni Birim Ekle
             </button>
           </div>
@@ -436,7 +440,7 @@ export const Settings: React.FC = () => {
               <div key={dept.id} className="flex justify-between items-center p-3 border-b last:border-0 dark:border-gray-700">
                 <div>
                   <span className="font-medium">{dept.name}</span>
-                  <span className={`ml-2 text-sm px-2 py-0.5 rounded-full ${dept.category === Category.Tibbi ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                  <span className={`ml-2 text-sm px-2 py-0.5 rounded-full ${dept.category === Category.Tibbi ? 'bg-green-100 text-green-800' : 'bg-teal-100 text-teal-800'}`}>
                     {dept.category === Category.Tibbi ? 'Tıbbi' : 'İdari'}
                   </span>
                 </div>
@@ -454,6 +458,17 @@ export const Settings: React.FC = () => {
         </div>
       </AccordionSection>
 
+      {/* Kullanıcı Yönetimi */}
+      {isAdmin && (
+        <AccordionSection
+            title="Kullanıcı Yönetimi"
+            isOpen={openSections.users}
+            onToggle={() => toggleSection('users')}
+        >
+            <UserManagement />
+        </AccordionSection>
+      )}
+
       {/* Lokasyon Yönetimi */}
       <AccordionSection
         title="Lokasyon Yönetimi"
@@ -464,7 +479,7 @@ export const Settings: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Kompakt Üniteler</h3>
-              <button onClick={handleOpenKompaktModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+              <button onClick={handleOpenKompaktModal} className="px-4 py-2 text-sm text-white bg-teal-600 rounded-md hover:bg-teal-700">
                 Ünite Ekle
               </button>
             </div>
@@ -494,7 +509,7 @@ export const Settings: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Standlar</h3>
-              <button onClick={handleOpenStandModal} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700">
+              <button onClick={handleOpenStandModal} className="px-4 py-2 text-sm text-white bg-teal-600 rounded-md hover:bg-teal-700">
                 Stand Ekle
               </button>
             </div>
@@ -523,9 +538,18 @@ export const Settings: React.FC = () => {
         </div>
       </AccordionSection>
 
+      {/* Güncelleme Yönetimi */}
+      <AccordionSection
+        title="Güncelleme Yönetimi"
+        isOpen={openSections.updates}
+        onToggle={() => toggleSection('updates')}
+      >
+        <UpdateManagement />
+      </AccordionSection>
+
       {/* Kaydet Butonu */}
       <div className="flex justify-end">
-        <button onClick={handleSave} className="px-6 py-2.5 text-white bg-green-600 rounded-md hover:bg-green-700 font-semibold text-sm">
+        <button onClick={handleSave} className="px-6 py-2.5 text-white bg-teal-600 rounded-md hover:bg-teal-700 font-semibold text-sm">
           Ayarları Kaydet
         </button>
       </div>

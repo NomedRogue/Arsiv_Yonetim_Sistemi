@@ -116,16 +116,16 @@ class FolderRepository extends BaseRepository {
       }
 
       // General search (searches across multiple fields)
+      // General search (searches across multiple fields) using FTS5
       if (general && general.trim()) {
-        const searchTerm = `%${general.trim()}%`;
-        whereClauses.push(`(
-          fileCode LIKE ? OR 
-          subject LIKE ? OR 
-          clinic LIKE ? OR 
-          specialInfo LIKE ? OR 
-          unitCode LIKE ?
-        )`);
-        params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+        const searchTerm = general.trim();
+        // FTS syntax: wrap in quotes for phrase, append * for prefix matching
+        // Simple sanitization: remove quotes to prevent syntax errors
+        const sanitizedTerm = searchTerm.replace(/"/g, '');
+        const ftsQuery = `"${sanitizedTerm}"*`;
+        
+        whereClauses.push(`id IN (SELECT id FROM folders_fts WHERE folders_fts MATCH ?)`);
+        params.push(ftsQuery);
       }
 
       // Specific filters

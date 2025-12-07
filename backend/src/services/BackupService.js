@@ -321,6 +321,46 @@ class BackupService {
         if (fs.existsSync(walPath)) await fsPromises.unlink(walPath);
         if (fs.existsSync(shmPath)) await fsPromises.unlink(shmPath);
 
+        // Restore PDF and Excel files if they exist in backup
+        const pdfFolderInBackup = path.join(tempDir, 'PDFs');
+        const excelFolderInBackup = path.join(tempDir, 'Excels');
+        const pdfDestination = getUserDataPath('PDFs');
+        const excelDestination = getUserDataPath('Excels');
+
+        // Clear existing PDF and Excel folders
+        if (fs.existsSync(pdfDestination)) {
+          await fsPromises.rm(pdfDestination, { recursive: true, force: true });
+        }
+        if (fs.existsSync(excelDestination)) {
+          await fsPromises.rm(excelDestination, { recursive: true, force: true });
+        }
+
+        // Recreate folders
+        ensureDirExists(pdfDestination);
+        ensureDirExists(excelDestination);
+
+        // Restore PDFs if they exist in backup
+        if (fs.existsSync(pdfFolderInBackup)) {
+          const pdfFiles = await fsPromises.readdir(pdfFolderInBackup);
+          for (const file of pdfFiles) {
+            const srcPath = path.join(pdfFolderInBackup, file);
+            const destPath = path.join(pdfDestination, file);
+            await fsPromises.copyFile(srcPath, destPath);
+          }
+          logger.info(`[BACKUP_SERVICE] Restored ${pdfFiles.length} PDF files`);
+        }
+
+        // Restore Excels if they exist in backup
+        if (fs.existsSync(excelFolderInBackup)) {
+          const excelFiles = await fsPromises.readdir(excelFolderInBackup);
+          for (const file of excelFiles) {
+            const srcPath = path.join(excelFolderInBackup, file);
+            const destPath = path.join(excelDestination, file);
+            await fsPromises.copyFile(srcPath, destPath);
+          }
+          logger.info(`[BACKUP_SERVICE] Restored ${excelFiles.length} Excel files`);
+        }
+
         // Reinitialize database connection
         const { reconnectDb } = require('../database/connection');
         reconnectDb();

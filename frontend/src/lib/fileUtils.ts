@@ -45,6 +45,13 @@ declare global {
       openFolderDialog: () => Promise<string | null>;
       openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
       savePdfToDownloads: (fileName: string, base64Data: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      updater?: {
+        checkForUpdates: () => Promise<{ success: boolean; updateInfo?: any; error?: string }>;
+        downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+        installUpdate: () => void;
+        getVersion: () => Promise<string>;
+        onUpdateStatus: (callback: (data: { status: string; version?: string; percent?: number; message?: string }) => void) => () => void;
+      };
     };
   }
 }

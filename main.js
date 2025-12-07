@@ -3,6 +3,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./backend/src/utils/logger');
+const { autoUpdater } = require('electron-updater');
 
 // Tek instance kilidi
 const gotTheLock = app.requestSingleInstanceLock();
@@ -315,4 +316,118 @@ ipcMain.handle('pdf:saveToDownloads', async (event, fileName, base64Data) => {
     logger.error('[PDF ERROR]', { error: e.message, fileName });
     return { success: false, error: e.message };
   }
+});
+
+// =============================================
+// AUTO-UPDATER AYARLARI
+// =============================================
+
+// Auto-updater ayarları
+autoUpdater.autoDownload = false; // Kullanıcı onayı ile indir
+autoUpdater.autoInstallOnAppQuit = true; // Kapanışta otomatik kur
+autoUpdater.logger = logger;
+
+// Güncelleme kontrolü başlat (sadece production'da)
+function checkForUpdates() {
+  if (isDev) {
+    logger.info('[UPDATER] Development modda - güncelleme kontrolü atlanıyor');
+    return;
+  }
+  
+  logger.info('[UPDATER] Güncelleme kontrol ediliyor...');
+  autoUpdater.checkForUpdates().catch((err) => {
+    logger.error('[UPDATER] Güncelleme kontrolü başarısız:', err);
+  });
+}
+
+// Güncelleme olayları
+autoUpdater.on('checking-for-update', () => {
+  logger.info('[UPDATER] Güncelleme kontrol ediliyor...');
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'checking' });
+  }
+});
+
+autoUpdater.on('update-available', (info) => {
+  logger.info('[UPDATER] Yeni güncelleme mevcut:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      status: 'available', 
+      version: info.version,
+      releaseNotes: info.releaseNotes 
+    });
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  logger.info('[UPDATER] Uygulama güncel:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'not-available' });
+  }
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  logger.info(`[UPDATER] İndirme: ${progress.percent.toFixed(1)}%`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      status: 'downloading', 
+      percent: progress.percent,
+      transferred: progress.transferred,
+      total: progress.total
+    });
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  logger.info('[UPDATER] Güncelleme indirildi:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      status: 'downloaded', 
+      version: info.version 
+    });
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  logger.error('[UPDATER] Güncelleme hatası:', err);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      status: 'error', 
+      message: err.message 
+    });
+  }
+});
+
+// IPC handlers - Güncelleme komutları
+ipcMain.handle('updater:check', async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { success: true, updateInfo: result?.updateInfo };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('updater:download', async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('updater:install', () => {
+  autoUpdater.quitAndInstall(false, true);
+});
+
+ipcMain.handle('updater:getVersion', () => {
+  return app.getVersion();
+});
+
+// Uygulama başladıktan 5 saniye sonra güncelleme kontrolü
+app.whenReady().then(() => {
+  setTimeout(() => {
+    checkForUpdates();
+  }, 5000);
 });

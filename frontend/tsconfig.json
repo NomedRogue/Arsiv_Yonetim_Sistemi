@@ -30,7 +30,7 @@
     "resolveJsonModule": true,
     
     // Suppress baseUrl deprecation warning until TS 7.0 migration
-    "ignoreDeprecations": "6.0"
+
   },
   "include": [
     "src",

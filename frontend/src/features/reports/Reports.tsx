@@ -218,7 +218,7 @@ export const Reports: React.FC = () => {
       doc.setTextColor(60, 60, 60);
       doc.text(`Toplam: ${folders.length}  |  Tıbbi: ${tibbi}  |  İdari: ${idari}`, pageWidth / 2, 36, { align: 'center' });
 
-      // Tablo verisi - A4 dikey için optimize edilmiş
+      // Tablo verisi - A4 dikey için optimize edilmiş (UI ile aynı başlıklar)
       const tableData = folders.map((f, i) => {
         const locationStr = getFullLocationString(f.location);
         const disposalYear = f.disposalYear || (f.fileYear + f.retentionPeriod + 1);
@@ -229,11 +229,13 @@ export const Reports: React.FC = () => {
           f.subject || '-',
           f.fileCode || '-',
           f.fileYear?.toString() || '-',
-          `${f.retentionPeriod}-${f.retentionCode}`,
+          f.retentionPeriod ? `${f.retentionPeriod} yıl` : '-',
+          f.retentionCode || '-',
           disposalYear.toString(),
           f.clinic || '-',
+          f.specialInfo || '-',
           locationStr,
-          f.status || 'Arsivde'
+          f.status || 'Arşivde'
         ];
       });
 
@@ -245,43 +247,49 @@ export const Reports: React.FC = () => {
           'Kategori', 
           'Departman', 
           'Konu', 
-          'Kod', 
-          'Yılı', 
-          'Saklama', 
-          'İmha', 
+          'Dosya Kodu', 
+          'Dosya Yılı', 
+          'Saklama Süresi', 
+          'Saklama Kodu', 
+          'İmha Yılı', 
           'Klinik', 
+          'Özel Bilgi', 
           'Lokasyon', 
           'Durum'
         ]],
         body: tableData,
         styles: { 
           font: 'DejaVu',
-          fontSize: 5, 
-          cellPadding: 1, 
-          overflow: 'hidden',
+          fontSize: 6, 
+          cellPadding: 1.5, 
+          overflow: 'linebreak',
           lineColor: [220, 220, 220],
-          lineWidth: 0.1
+          lineWidth: 0.1,
+          minCellHeight: 4
         },
         headStyles: { 
           fillColor: isOverdue ? [185, 28, 28] : [30, 58, 138], 
           textColor: 255, 
           fontStyle: 'normal', 
-          fontSize: 5,
-          halign: 'center'
+          fontSize: 6,
+          halign: 'center',
+          minCellHeight: 5
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         columnStyles: {
-          0: { cellWidth: 5, halign: 'center' },   // #
-          1: { cellWidth: 10 },                     // Kategori
-          2: { cellWidth: 16 },                     // Departman
-          3: { cellWidth: 54 },                     // Konu (genişletildi)
-          4: { cellWidth: 10 },                     // Kod
-          5: { cellWidth: 7, halign: 'center' },    // Yıl
-          6: { cellWidth: 12, halign: 'center' },   // Saklama
-          7: { cellWidth: 7, halign: 'center' },    // İmha
-          8: { cellWidth: 12 },                     // Klinik
-          9: { cellWidth: 55 },                     // Lokasyon
-          10: { cellWidth: 10, halign: 'center' }   // Durum
+          0: { cellWidth: 6, halign: 'center' },   // #
+          1: { cellWidth: 12 },                     // Kategori
+          2: { cellWidth: 18 },                     // Departman
+          3: { cellWidth: 'auto', minCellWidth: 30 },  // Konu - otomatik genişlik
+          4: { cellWidth: 12 },                     // Dosya Kodu
+          5: { cellWidth: 10, halign: 'center' },   // Dosya Yılı
+          6: { cellWidth: 14, halign: 'center' },   // Saklama Süresi
+          7: { cellWidth: 12, halign: 'center' },   // Saklama Kodu
+          8: { cellWidth: 10, halign: 'center' },   // İmha Yılı
+          9: { cellWidth: 14 },                     // Klinik
+          10: { cellWidth: 'auto', minCellWidth: 20 }, // Özel Bilgi - otomatik genişlik
+          11: { cellWidth: 'auto', minCellWidth: 30 }, // Lokasyon - otomatik genişlik
+          12: { cellWidth: 12, halign: 'center' }   // Durum
         },
         margin: { left: 6, right: 6 },
         tableWidth: 'auto',
@@ -380,7 +388,7 @@ export const Reports: React.FC = () => {
       doc.setTextColor(60, 60, 60);
       doc.text(`Toplam: ${disposedFolders.length}  |  Tıbbi: ${tibbi}  |  İdari: ${idari}`, pageWidth / 2, 36, { align: 'center' });
 
-      // Tablo verisi - Portrait için optimize
+      // Tablo verisi - Portrait için optimize (UI ile aynı başlıklar)
       const tableData = disposedFolders.map((d, i) => {
         const f = d.originalFolderData;
         const locationStr = getFullLocationString(f?.location);
@@ -391,12 +399,14 @@ export const Reports: React.FC = () => {
           f?.subject || '-',
           f?.fileCode || '-',
           f?.fileYear?.toString() || '-',
+          f?.retentionPeriod ? `${f.retentionPeriod} yıl` : '-',
+          f?.retentionCode || '-',
           new Date(d.disposalDate).toLocaleDateString('tr-TR'),
           locationStr
         ];
       });
 
-      // Tablo - Portrait A4 için optimize edilmiş, küçük font
+      // Tablo - Portrait A4 için optimize edilmiş, küçük font (UI ile aynı başlıklar)
       autoTable(doc, {
         startY: 42,
         head: [[
@@ -404,37 +414,43 @@ export const Reports: React.FC = () => {
           'Kategori', 
           'Departman', 
           'Konu', 
-          'Kod', 
-          'Yılı', 
+          'Dosya Kodu', 
+          'Dosya Yılı', 
+          'Saklama Süresi', 
+          'Saklama Kodu', 
           'İmha Tarihi', 
           'Lokasyon'
         ]],
         body: tableData,
         styles: { 
           font: 'DejaVu',
-          fontSize: 5, 
-          cellPadding: 1, 
-          overflow: 'hidden',
+          fontSize: 6, 
+          cellPadding: 1.5, 
+          overflow: 'linebreak',
           lineColor: [220, 220, 220],
-          lineWidth: 0.1
+          lineWidth: 0.1,
+          minCellHeight: 4
         },
         headStyles: { 
           fillColor: [22, 128, 58], 
           textColor: 255, 
           fontStyle: 'normal', 
-          fontSize: 5,
-          halign: 'center'
+          fontSize: 6,
+          halign: 'center',
+          minCellHeight: 5
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         columnStyles: {
           0: { cellWidth: 6, halign: 'center' },   // #
-          1: { cellWidth: 14 },                     // Kategori
-          2: { cellWidth: 22 },                     // Departman
-          3: { cellWidth: 62 },                     // Konu (genişletildi)
-          4: { cellWidth: 12 },                     // Kod
-          5: { cellWidth: 10, halign: 'center' },   // Yıl
-          6: { cellWidth: 18, halign: 'center' },   // İmha Tarihi
-          7: { cellWidth: 54 }                      // Lokasyon
+          1: { cellWidth: 12 },                     // Kategori
+          2: { cellWidth: 20 },                     // Departman
+          3: { cellWidth: 'auto', minCellWidth: 35 },  // Konu - otomatik genişlik
+          4: { cellWidth: 12 },                     // Dosya Kodu
+          5: { cellWidth: 12, halign: 'center' },   // Dosya Yılı
+          6: { cellWidth: 16, halign: 'center' },   // Saklama Süresi
+          7: { cellWidth: 14, halign: 'center' },   // Saklama Kodu
+          8: { cellWidth: 18, halign: 'center' },   // İmha Tarihi
+          9: { cellWidth: 'auto', minCellWidth: 40 }   // Lokasyon - otomatik genişlik
         },
         margin: { left: 6, right: 6 },
         tableWidth: 'auto',

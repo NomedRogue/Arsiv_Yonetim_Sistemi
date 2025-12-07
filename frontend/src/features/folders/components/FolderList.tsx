@@ -179,8 +179,6 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const fetchFolders = useCallback(async () => {
     try {
       setLoading(true);
-      const baseUrl = import.meta.env.DEV ? '/api' : 'http://localhost:3001/api';
-      
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: String(itemsPerPage),
@@ -193,8 +191,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
         }
       });
 
-      const response = await fetch(`${baseUrl}/folders?${params.toString()}`);
-      const data = await response.json();
+      const data: any = await apiService.getFolders(params);
       
       setFolders(Array.isArray(data.folders) ? data.folders : []);
       setTotalItems(data.total || 0);
@@ -387,7 +384,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
               <button
                 type="button"
                 onClick={() => setIsAdvanced(!isAdvanced)}
-                className="text-sm text-blue-600 dark:text-blue-400 transition-colors duration-300"
+                className="text-sm text-teal-600 dark:text-teal-400 transition-colors duration-300"
               >
                 {isAdvanced ? 'Basit Aramaya Geç' : 'Gelişmiş Arama'}
               </button>
@@ -416,7 +413,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors duration-300"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center transition-colors duration-300"
               disabled={loading}
             >
               {loading ? <Loader2 size={18} className="mr-2 animate-spin" /> : <SearchIcon size={18} className="mr-2" />}
@@ -563,7 +560,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                   setCurrentPage(page);
                 }
               }}
-              className="w-16 px-2 py-1 text-center text-sm border border-gray-300 rounded-md dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-16 px-2 py-1 text-center text-sm border border-gray-300 rounded-md dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               disabled={loading}
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">/ {totalPages || 1}</span>

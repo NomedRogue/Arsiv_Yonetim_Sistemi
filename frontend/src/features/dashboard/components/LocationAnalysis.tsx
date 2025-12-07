@@ -87,7 +87,7 @@ const ExpandedShelfView: React.FC<{
             <div className="p-4 pt-8 bg-gray-100 dark:bg-slate-800 rounded-lg my-2 mx-2">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-24">
-                        <Loader2 className="animate-spin w-6 h-6 text-blue-500" />
+                        <Loader2 className="animate-spin w-6 h-6 text-teal-500" />
                     </div>
                 ) : (
                     <>
@@ -154,18 +154,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
   const [view, setView] = useState<ViewState>({ level: 'summary' });
   const [expandedShelfKey, setExpandedShelfKey] = useState<string | null>(null);
 
-  // Defensive: Eğer settings veya storageStructure undefined ise loading göster
-  if (!settings || !storageStructure || !storageStructure.kompakt || !storageStructure.stand) {
-    return (
-      <div className="p-4 bg-white dark:bg-slate-800 rounded-lg">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Konum Analizi</h3>
-        <div className="flex justify-center items-center h-32">
-          <Loader2 className="animate-spin w-6 h-6 text-blue-500" />
-          <span className="ml-2 text-gray-500 dark:text-gray-400">Yükleniyor...</span>
-        </div>
-      </div>
-    );
-  }
+
 
   const handleShelfClick = (key: string) => {
     setExpandedShelfKey(prevKey => (prevKey === key ? null : key));
@@ -173,6 +162,9 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
 
   const getOccupancy = useCallback(
     (location: Location): OccupancyInfo => {
+      // Safety check
+      if (!settings) return { total: 0, used: 0, percentage: 0, folders: [] };
+
       const foldersInLocation = folders.filter(f => {
           if (!f.location || f.status === FolderStatus.Imha) return false;
           if (f.location.storageType !== location.storageType) return false;
@@ -207,7 +199,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
     const stand: Record<string, number> = {};
     
     // Defensive: array kontrolü
-    if (!storageStructure?.kompakt || !storageStructure?.stand) {
+    if (!settings || !storageStructure?.kompakt || !storageStructure?.stand) {
       return { kompakt, stand };
     }
     
@@ -228,7 +220,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
 
   const detailedData: DetailedOccupancyItem[] = useMemo(() => {
     // Defensive: array kontrolü
-    if (!storageStructure?.kompakt || !storageStructure?.stand) {
+    if (!settings || !storageStructure?.kompakt || !storageStructure?.stand) {
       return [];
     }
     
@@ -255,6 +247,8 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
     }
     return [];
   }, [view, folders, settings, storageStructure, getOccupancy]);
+
+
 
   const handleSummaryClick = (type: StorageType, name: string) => {
     const id = parseInt(name.split(' ')[1]);
@@ -295,7 +289,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
     return (
       <div className="card-chart bg-white dark:bg-slate-800 shadow-lg flex justify-center items-center border border-gray-200 dark:border-slate-700">
         <div className="text-center">
-          <Loader2 className="animate-spin w-8 h-8 text-blue-500 mx-auto" />
+          <Loader2 className="animate-spin w-8 h-8 text-teal-500 mx-auto" />
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Lokasyon analizi yükleniyor...</p>
         </div>
       </div>

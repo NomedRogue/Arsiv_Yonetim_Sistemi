@@ -6,8 +6,24 @@ import { API_BASE_URL } from '@/constants';
 const API: string = API_BASE_URL;
 
 // Küçük yardımcı fetch sarmalayıcı
+// Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, init);
+  const token = localStorage.getItem('token');
+  const headers = new Headers(init?.headers || {});
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(input, { ...init, headers });
+  
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.reload(); // Simple way to reset state and show login
+    throw new Error('Oturum süresi doldu');
+  }
+
   if (!res.ok) {
     let errorMessage = 'Bir hata oluştu';
     try {

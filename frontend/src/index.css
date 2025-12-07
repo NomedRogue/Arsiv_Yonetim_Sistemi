@@ -1,5 +1,5 @@
 /* Design System Import - DPI-aware responsive değişkenler */
-@import './styles/design-system.css';
+@import "./styles/design-system.css";
 
 @tailwind base;
 @tailwind components;
@@ -8,8 +8,9 @@
 @layer base {
   /* CSS Custom Properties for better theme support */
   :root {
-    --color-archive-primary: #0078D4;
-    --color-archive-secondary: #E5F3FF;
+    --color-archive-primary: #0f766e; /* Teal-700 */
+    --color-archive-secondary: #ccfbf1; /* Teal-100 */
+    --color-archive-accent: #0d9488; /* Teal-600 */
   }
 
   /* Anlık tema geçişi için geçişleri geçici olarak devre dışı bırak */
@@ -41,7 +42,7 @@
   .theme-changing .recharts-wrapper {
     transition: none !important;
   }
-  
+
   /* Webkit tarayıcılar için özel scrollbar stilleri */
   ::-webkit-scrollbar {
     width: 12px;
@@ -67,7 +68,7 @@
   html.dark ::-webkit-scrollbar-thumb {
     @apply bg-slate-600 border-archive-dark-bg;
   }
-  
+
   html.dark ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-500;
   }
@@ -133,7 +134,7 @@
   .text-shadow-sm {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   }
-  
+
   /* Shimmer animation for disposal schedule bars */
   @keyframes shimmer {
     0% {
@@ -143,7 +144,7 @@
       transform: translateX(100%);
     }
   }
-  
+
   .animate-shimmer {
     animation: shimmer 2s infinite;
   }

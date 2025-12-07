@@ -18,6 +18,7 @@ const logRoutes = require('./logs.routes');
 const configRoutes = require('./config.routes');
 const pdfRoutes = require('./pdf.routes');
 const excelRoutes = require('./excel.routes');
+const authRoutes = require('./auth.routes');
 
 // Root health check endpoint
 router.get('/', (req, res) => {
@@ -63,6 +64,7 @@ router.use('/disposals', disposalRoutes);
 router.use('/logs', logRoutes);
 router.use('/pdf', pdfRoutes);
 router.use('/excel', excelRoutes);
+router.use('/auth', authRoutes);
 router.use('/', configRoutes); // all-data, save-configs at root level
 
 module.exports = router;

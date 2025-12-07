@@ -81,8 +81,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     { title: "Toplam Klasör", value: stats.totalFolders, icon: Folder, onClick: () => onNavigate('Arşiv') },
     { title: "Tıbbi", value: stats.tibbiCount, icon: FileText, onClick: () => onNavigate('Arşiv') },
     { title: "İdari", value: stats.idariCount, icon: FileText, onClick: () => onNavigate('Arşiv') },
-    { title: "Arşiv Dışında", value: stats.arsivDisindaCount, icon: ChevronsRight, onClick: () => onNavigate('Çıkış/İade Takip') },
-    { title: "İade Geciken", value: stats.iadeGecikenCount, icon: AlertTriangle, onClick: () => onNavigate('Çıkış/İade Takip') },
+    { title: "Arşiv Dışında", value: stats.arsivDisindaCount, icon: ChevronsRight, onClick: () => onNavigate('Dosya Talep') },
+    { title: "İade Geciken", value: stats.iadeGecikenCount, icon: AlertTriangle, onClick: () => onNavigate('Dosya Talep') },
     { title: "Bu Yıl İmha Edilecekler", value: stats.buYilImhaEdilenecekCount, icon: BookX, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'thisYear' }) },
     { title: "Gelecek Yıl İmha Edilecekler", value: stats.gelecekYilImhaEdilenecekCount, icon: Calendar, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'nextYear' }) },
     { title: "İmha Süresi Geçenler", value: stats.imhaSuresiGecenCount, icon: Clock, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'overdue' }) },
@@ -304,7 +304,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <HardDrive size={16} className="text-blue-600 dark:text-blue-400 mr-2" />
             <div className="flex-1 min-w-0">
               <h3 className="text-xs font-semibold text-gray-800 dark:text-white mb-1">Son Yedekleme</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <span className="text-xs px-2 py-1 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
                 {finalLastBackup?.label || '—'}
               </span>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -366,7 +366,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <button
             onClick={() => setTreemapFilter('all')}
             className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
-              treemapFilter === 'all' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'
+              treemapFilter === 'all' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
             Tümü
@@ -374,7 +374,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <button
             onClick={() => setTreemapFilter(StorageType.Kompakt)}
             className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
-              treemapFilter === StorageType.Kompakt ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'
+              treemapFilter === StorageType.Kompakt ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
             Kompakt Dolap
@@ -382,7 +382,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <button
             onClick={() => setTreemapFilter(StorageType.Stand)}
             className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
-              treemapFilter === StorageType.Stand ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 dark:text-gray-400'
+              treemapFilter === StorageType.Stand ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
             Stand
@@ -465,21 +465,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div key={`stats-${theme}`} className="grid grid-cols-2 gap-6 w-full max-w-md">
               {/* Dolu Alan Card */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
-                <div className="flex items-center gap-2">
-                  <div key={`dot-filled-${theme}-${stats.overallOccupancy}`} className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors duration-200 ${
+                <div className="flex flex-col items-center justify-center text-center gap-1">
+                  <div key={`dot-filled-${theme}-${stats.overallOccupancy}`} className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 transition-colors duration-200 ${
                     stats.overallOccupancy > 85 
                       ? 'bg-red-500 dark:bg-red-400'
                       : stats.overallOccupancy > 70 
                       ? 'bg-amber-500 dark:bg-amber-400'
                       : stats.overallOccupancy > 50 
-                      ? 'bg-blue-500 dark:bg-blue-400'
+                      ? 'bg-teal-500 dark:bg-teal-400'
                       : 'bg-emerald-500 dark:bg-emerald-400'
                   }`}></div>
-                  <div className="flex-1">
+                  <div>
                     <div className="text-[0.65rem] mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
                       Dolu Alan
                     </div>
-                    <div className="text-base font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
                       {stats.overallOccupancy.toFixed(1)}%
                     </div>
                   </div>
@@ -488,13 +488,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               
               {/* Boş Alan Card */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
-                <div className="flex items-center gap-2">
-                  <div key={`dot-empty-${theme}`} className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
-                  <div className="flex-1">
+                <div className="flex flex-col items-center justify-center text-center gap-1">
+                  <div key={`dot-empty-${theme}`} className="w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
+                  <div>
                     <div className="text-[0.65rem] mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
                       Boş Alan
                     </div>
-                    <div className="text-base font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
                       {(100 - stats.overallOccupancy).toFixed(1)}%
                     </div>
                   </div>
@@ -519,7 +519,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     : stats.overallOccupancy > 70 
                     ? 'bg-amber-500 dark:bg-amber-400'
                     : stats.overallOccupancy > 50 
-                    ? 'bg-blue-500 dark:bg-blue-400'
+                    ? 'bg-teal-500 dark:bg-teal-400'
                     : 'bg-emerald-500 dark:bg-emerald-400'
                 }`}></span>
                 <span className={`relative inline-flex rounded-full h-2 w-2 transition-colors duration-200 ${
@@ -528,7 +528,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     : stats.overallOccupancy > 70 
                     ? 'bg-amber-600 dark:bg-amber-500'
                     : stats.overallOccupancy > 50 
-                    ? 'bg-blue-600 dark:bg-blue-400'
+                    ? 'bg-teal-600 dark:bg-teal-400'
                     : 'bg-emerald-600 dark:bg-emerald-400'
                 }`}></span>
               </span>
@@ -583,30 +583,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               const getBarColor = () => {
                 if (item.isOverdue) return 'from-red-500 to-red-400';
                 if (item.isCurrentYear) return 'from-orange-500 to-amber-400';
-                return 'from-gray-400 to-gray-300 dark:from-slate-500 dark:to-slate-400';
+                return 'from-gray-400 to-gray-300 dark:from-teal-600 dark:to-teal-500';
               };
               
               return (
                 <div 
                   key={item.year}
                   className={`flex items-center gap-2 p-1.5 rounded-md text-xs transition-colors ${
-                    item.isOverdue ? 'bg-red-50 dark:bg-red-900/20' : 
-                    item.isCurrentYear ? 'bg-orange-50 dark:bg-orange-900/20' : 
-                    'hover:bg-gray-50 dark:hover:bg-slate-800/50'
+                    item.isOverdue ? 'bg-red-50 dark:bg-red-500/10 border border-transparent dark:border-red-500/20' : 
+                    item.isCurrentYear ? 'bg-orange-50 dark:bg-orange-500/10 border border-transparent dark:border-orange-500/20' : 
+                    'hover:bg-gray-50 dark:hover:bg-slate-700 border border-transparent'
                   }`}
                 >
                   {/* Year */}
                   <div className={`w-16 font-medium flex items-center gap-1 ${
-                    item.isOverdue ? 'text-red-600 dark:text-red-400' : 
-                    item.isCurrentYear ? 'text-orange-600 dark:text-orange-400' : 
-                    'text-gray-600 dark:text-gray-400'
+                    item.isOverdue ? 'text-red-600 dark:text-red-300' : 
+                    item.isCurrentYear ? 'text-orange-600 dark:text-orange-300' : 
+                    'text-gray-600 dark:text-gray-300'
                   }`}>
                     {item.isOverdue && <AlertTriangle className="w-3 h-3" />}
                     {item.label || item.year}
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
                     <div 
                       className={`h-full bg-gradient-to-r ${getBarColor()} rounded-full transition-all duration-500`}
                       style={{ width: `${Math.max(percentage, item.count > 0 ? 5 : 0)}%` }}

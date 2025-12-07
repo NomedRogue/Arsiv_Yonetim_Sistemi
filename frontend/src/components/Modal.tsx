@@ -71,17 +71,17 @@ export const Modal: React.FC<ModalProps> = ({
         };
       case 'info':
         return {
-          iconColor: 'text-blue-600 dark:text-blue-400',
+          iconColor: 'text-teal-600 dark:text-teal-400',
           icon: Info,
-          headerBg: 'bg-blue-50 dark:bg-blue-900/20',
-          confirmButton: confirmColor || 'bg-blue-600 hover:bg-blue-700',
+          headerBg: 'bg-teal-50 dark:bg-teal-900/20',
+          confirmButton: confirmColor || 'bg-teal-600 hover:bg-teal-700',
         };
       default:
         return {
           iconColor: 'text-gray-600 dark:text-gray-400',
           icon: Info,
           headerBg: 'bg-gray-50 dark:bg-slate-800',
-          confirmButton: confirmColor || 'bg-blue-600 hover:bg-blue-700',
+          confirmButton: confirmColor || 'bg-teal-600 hover:bg-teal-700',
         };
     }
   };

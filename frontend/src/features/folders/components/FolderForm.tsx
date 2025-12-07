@@ -336,13 +336,28 @@ export const FolderForm: React.FC<{
 
     if (isEditing && originalFolder && editingFolderId) {
       await updateFolder({ ...originalFolder, ...payload, id: editingFolderId });
+      setEditingFolderId(null);
+      setActivePage('Arşiv');
+      toast.success('Klasör güncellendi.');
     } else {
       await addFolder(payload);
+      // Yeni kayıt eklendiğinde sayfada kal ve akıllı sıfırlama yap
+      // Birim ve Lokasyon bilgilerini koru, dosya bilgilerini temizle
+      setFormData(prev => ({
+        ...prev,
+        fileCode: '', // Sıfırla
+        subject: '', // Sıfırla
+        specialInfo: '', // Sıfırla
+        fileCount: 1, // Varsayılana dön
+        pdfPath: undefined,
+        // Diğerleri (kategori, birim, lokasyon, yıl, retention vb.) korunsun
+      }));
+      setPdfFile(null);
+      setExcelFile(null);
+      toast.success('Kayıt oluşturuldu. Yeni kayıt ekleyebilirsiniz.');
     }
 
     setIsSubmitting(false);
-    setEditingFolderId(null);
-    setActivePage('Arşiv');
   };
 
   return (
@@ -352,7 +367,7 @@ export const FolderForm: React.FC<{
         className="bg-white dark:bg-archive-dark-panel p-3 rounded-xl shadow-lg max-w-3xl mx-auto space-y-3 transition-colors duration-300"
       >
         <h2 className="text-sm font-bold mb-2 border-b pb-2 dark:border-gray-600 transition-colors duration-300">
-          {isEditing ? 'Klasör Düzenle' : 'Klasör Kayıt'}
+          {isEditing ? 'Klasör Düzenle' : 'Klasör Kayıt Formu'}
         </h2>
 
         <fieldset className="border p-2 rounded-lg dark:border-gray-600 transition-colors duration-300">
@@ -370,7 +385,7 @@ export const FolderForm: React.FC<{
                   name="category"
                   checked={formData.category === Category.Tibbi}
                   onChange={handleCategoryChange}
-                  className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="cat-tibbi">Tıbbi</label>
                 <input
@@ -380,7 +395,7 @@ export const FolderForm: React.FC<{
                   name="category"
                   checked={formData.category === Category.Idari}
                   onChange={handleCategoryChange}
-                  className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="cat-idari">İdari</label>
               </div>
@@ -517,7 +532,7 @@ export const FolderForm: React.FC<{
                   name="folderType"
                   checked={formData.folderType === FolderType.Dar}
                   onChange={handleInputChange}
-                  className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="type-dar">Dar</label>
                 <input
@@ -527,7 +542,7 @@ export const FolderForm: React.FC<{
                   name="folderType"
                   checked={formData.folderType === FolderType.Genis}
                   onChange={handleInputChange}
-                  className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="type-genis">Geniş</label>
               </div>
@@ -662,17 +677,25 @@ export const FolderForm: React.FC<{
             type="button"
             disabled={isSubmitting}
             onClick={() => {
-              setEditingFolderId(null);
-              setActivePage('Arşiv');
+              if (isEditing) {
+                setEditingFolderId(null);
+                setActivePage('Arşiv');
+              } else {
+                // Yeni kayıt modunda 'İptal' formu temizler
+                setFormData(initialFormData);
+                setPdfFile(null);
+                setExcelFile(null);
+                toast.info('Form temizlendi');
+              }
             }}
             className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 font-medium rounded-lg text-xs px-4 py-2 mr-2 dark:bg-slate-700 dark:text-white dark:border-gray-600 dark:hover:bg-slate-600 transition-colors duration-300 disabled:opacity-50"
           >
-            İptal
+            {isEditing ? 'Vazgeç' : 'Temizle'}
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-xs px-4 py-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="text-white bg-teal-600 hover:bg-teal-700 font-medium rounded-lg text-xs px-4 py-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
             {isSubmitting ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}

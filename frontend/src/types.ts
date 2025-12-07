@@ -289,5 +289,5 @@ export interface DashboardStats {
   clinicDistributionData: any[];
   monthlyData: any[];
   availableYears: number[];
-  disposalSchedule: { year: number; count: number; isCurrentYear: boolean; isOverdue: boolean }[];
+  disposalSchedule: { year: number; count: number; isCurrentYear: boolean; isOverdue: boolean; label?: string }[];
 }

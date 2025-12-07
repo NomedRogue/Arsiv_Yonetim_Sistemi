@@ -3,11 +3,13 @@ import { AccordionSections } from '../types';
 
 export const useAccordionState = () => {
   const [openSections, setOpenSections] = useState<AccordionSections>({
-    measurements: true,  // Ölçü Tanımları - default açık
+    measurements: false, // Ölçü Tanımları - default kapalı
     system: false,       // Sistem Ayarları
     departments: false,  // Birim Yönetimi
     storage: false,      // Lokasyon Yönetimi
-    backup: false        // Yedekleme Ayarları
+    backup: false,       // Yedekleme Ayarları
+    users: false,        // Kullanıcı Yönetimi
+    updates: false       // Güncelleme Yönetimi
   });
 
   const toggleSection = (section: keyof AccordionSections) => {

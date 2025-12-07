@@ -32,6 +32,14 @@ function ensureTables(db) {
     CREATE TABLE IF NOT EXISTS checkouts ( id  TEXT PRIMARY KEY, data  TEXT );
     CREATE TABLE IF NOT EXISTS disposals ( id  TEXT PRIMARY KEY, data  TEXT );
     CREATE TABLE IF NOT EXISTS logs      ( id  TEXT PRIMARY KEY, data  TEXT );
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      createdAt TEXT,
+      updatedAt TEXT
+    );
   `);
   
   // Index'ler oluştur - performans için kritik
@@ -42,7 +50,48 @@ function ensureTables(db) {
     CREATE INDEX IF NOT EXISTS idx_folders_fileYear ON folders(fileYear);
     CREATE INDEX IF NOT EXISTS idx_folders_locationStorageType ON folders(locationStorageType);
     CREATE INDEX IF NOT EXISTS idx_folders_composite ON folders(status, category, departmentId);
+
+    -- FTS5 Virtual Table for Fast Search
+    CREATE VIRTUAL TABLE IF NOT EXISTS folders_fts USING fts5(
+        id UNINDEXED, 
+        fileCode, 
+        subject, 
+        clinic, 
+        specialInfo, 
+        unitCode,
+        tokenize='porter unicode61'
+    );
+
+    -- Triggers to sync folders with folders_fts
+    CREATE TRIGGER IF NOT EXISTS folders_ai AFTER INSERT ON folders BEGIN
+      INSERT INTO folders_fts(id, fileCode, subject, clinic, specialInfo, unitCode)
+      VALUES (new.id, new.fileCode, new.subject, new.clinic, new.specialInfo, new.unitCode);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS folders_ad AFTER DELETE ON folders BEGIN
+      DELETE FROM folders_fts WHERE id = old.id;
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS folders_au AFTER UPDATE ON folders BEGIN
+      DELETE FROM folders_fts WHERE id = old.id;
+      INSERT INTO folders_fts(id, fileCode, subject, clinic, specialInfo, unitCode)
+      VALUES (new.id, new.fileCode, new.subject, new.clinic, new.specialInfo, new.unitCode);
+    END;
   `);
+  
+  // Re-populate FTS if empty (migration helper)
+  // This is a simple check; for production might need more robust migration
+  const ftsCount = db.prepare('SELECT count(*) as c FROM folders_fts').get().c;
+  if (ftsCount === 0) {
+      const folderCount = db.prepare('SELECT count(*) as c FROM folders').get().c;
+      if (folderCount > 0) {
+          logger.info('[DB] FTS tablosu boş, mevcut verilerle dolduruluyor...');
+          db.exec(`
+            INSERT INTO folders_fts(id, fileCode, subject, clinic, specialInfo, unitCode)
+            SELECT id, fileCode, subject, clinic, specialInfo, unitCode FROM folders;
+          `);
+      }
+  }
   
   logger.info('[DB] Tablo yapısı kontrol edildi ve index\'ler oluşturuldu.');
 }

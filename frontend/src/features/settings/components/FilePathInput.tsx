@@ -31,7 +31,7 @@ export const FilePathInput: React.FC<FilePathInputProps> = ({
       <button
         type="button"
         onClick={onBrowseClick}
-        className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+        className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors"
       >
         <span>Gözat...</span>
       </button>

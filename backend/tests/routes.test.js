@@ -1,12 +1,16 @@
+// @ts-nocheck
 const request = require('supertest');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../src/middleware/authMiddleware');
 
 // These will be initialized in beforeAll after modules are reset
 let apiRoutes;
 let dbManager;
 let resolveBackupFolder;
+let token;
 
 const app = express();
 app.use(express.json());
@@ -18,14 +22,22 @@ describe('API Routes Integration Tests', () => {
     process.env.DB_PATH = testDbPath;
     jest.resetModules(); // This is key to ensure modules use the new DB path
     
+    // Generate token for tests
+    token = jwt.sign({ id: 999, username: 'test_admin', role: 'admin' }, JWT_SECRET);
+
     // Require modules AFTER resetting cache and setting env var
     apiRoutes = require('../src/routes');
     dbManager = require('../dbAdapter');
     const { getBackupService } = require('../src/services/BackupService');
     resolveBackupFolder = () => getBackupService().resolveBackupFolder();
 
-    // Apply routes to app instance
-    app.use('/api', apiRoutes);
+    // Apply routes to app instance with Auth Middleware simulation or actual implementation
+    // Since we are testing integration, we should use the actual middleware if possible, 
+    // or we can manually mount it here for the test app if server.js logic isn't fully replicated.
+    // However, server.js mounts it. Here we construct a fresh app.
+    // We must manually mount the middleware here to match server.js behavior
+    const { verifyToken } = require('../src/middleware/authMiddleware');
+    app.use('/api', verifyToken, apiRoutes);
     
     // Initialize DB
     const db = dbManager.getDbInstance();
@@ -73,32 +85,50 @@ describe('API Routes Integration Tests', () => {
       };
 
       // 1. Create
-      const createRes = await request(app).post('/api/folders').send(newFolder);
+      const createRes = await request(app)
+        .post('/api/folders')
+        .set('Authorization', `Bearer ${token}`)
+        .send(newFolder);
+        
+      if (createRes.statusCode !== 201) {
+          process.stderr.write(`Create Failed: ${createRes.statusCode} ${JSON.stringify(createRes.body, null, 2)}\n`);
+      }
       expect(createRes.statusCode).toBe(201);
       const createdId = createRes.body.id;
       expect(createdId).toBeDefined();
 
       // 2. Retrieve to confirm creation
-      const getRes = await request(app).get(`/api/folders/${createdId}`);
+      const getRes = await request(app)
+        .get(`/api/folders/${createdId}`)
+        .set('Authorization', `Bearer ${token}`);
       expect(getRes.statusCode).toBe(200);
       expect(getRes.body.subject).toBe('Brand New Folder');
 
       // 3. Update
-      const updateRes = await request(app).put(`/api/folders/${createdId}`).send({ ...getRes.body, subject: 'Updated Folder Title' });
+      const updateRes = await request(app)
+        .put(`/api/folders/${createdId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...getRes.body, subject: 'Updated Folder Title' });
       expect(updateRes.statusCode).toBe(200);
       expect(updateRes.body.subject).toBe('Updated Folder Title');
 
       // 4. Delete
-      const deleteRes = await request(app).delete(`/api/folders/${createdId}`);
+      const deleteRes = await request(app)
+        .delete(`/api/folders/${createdId}`)
+        .set('Authorization', `Bearer ${token}`);
       expect(deleteRes.statusCode).toBe(204);
       
       // 5. Retrieve again to confirm deletion
-      const finalGetRes = await request(app).get(`/api/folders/${createdId}`);
+      const finalGetRes = await request(app)
+        .get(`/api/folders/${createdId}`)
+        .set('Authorization', `Bearer ${token}`);
       expect(finalGetRes.statusCode).toBe(404);
     });
 
     it('should paginate results correctly', async () => {
-        const res = await request(app).get('/api/folders?page=1&limit=2&sortBy=subject&order=asc');
+        const res = await request(app)
+          .get('/api/folders?page=1&limit=2&sortBy=subject&order=asc')
+          .set('Authorization', `Bearer ${token}`);
         expect(res.statusCode).toBe(200);
         expect(res.body.folders).toHaveLength(2);
         expect(res.body.total).toBe(3);
@@ -107,7 +137,9 @@ describe('API Routes Integration Tests', () => {
     });
 
     it('should filter results with a general query', async () => {
-        const res = await request(app).get('/api/folders?general=Medical');
+        const res = await request(app)
+          .get('/api/folders?general=Medical')
+          .set('Authorization', `Bearer ${token}`);
         expect(res.statusCode).toBe(200);
         expect(res.body.folders).toHaveLength(1);
         expect(res.body.folders[0].subject).toBe('Medical Records 2023');
@@ -116,7 +148,9 @@ describe('API Routes Integration Tests', () => {
 
   describe('Dashboard Stats (/api/dashboard-stats)', () => {
       it('should return dashboard statistics', async () => {
-          const res = await request(app).get('/api/stats/dashboard');
+          const res = await request(app)
+            .get('/api/stats/dashboard')
+            .set('Authorization', `Bearer ${token}`);
           expect(res.statusCode).toBe(200);
           expect(res.body.totalFolders).toBe(3);
           expect(res.body.tibbiCount).toBe(1);
@@ -144,7 +178,9 @@ describe('API Routes Integration Tests', () => {
       const backupFolder = resolveBackupFolder();
       fs.writeFileSync(path.join(backupFolder, 'test-backup.zip'), 'mock backup data');
 
-        const res = await request(app).get('/api/backups');
+        const res = await request(app)
+          .get('/api/backups')
+          .set('Authorization', `Bearer ${token}`);
         expect(res.statusCode).toBe(200);
         expect(Array.isArray(res.body.backups)).toBe(true);
         expect(res.body.backups.length).toBeGreaterThanOrEqual(1);

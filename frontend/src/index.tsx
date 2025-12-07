@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { HashRouter } from 'react-router-dom';
 import '@/lib/errorLogger'; // Initialize global error handlers FIRST
 import App from './App';
 import '@/index.css';
@@ -14,7 +15,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorFallback>
-      <App />
+      <HashRouter>
+        <App />
+      </HashRouter>
     </ErrorFallback>
   </React.StrictMode>
 );

@@ -81,6 +81,7 @@ const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState }
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 const { getDbInstance } = require('./src/database/connection');
 const { ensureEnvDefaults: newEnsureEnvDefaults } = require('./src/config/database');
+const authController = require('./src/controllers/authController');
 
 // Config system'i de çalıştır
 newEnsureEnvDefaults();
@@ -92,6 +93,9 @@ newEnsureEnvDefaults();
   try {
     await getDbInstance(); // Bu fonksiyon migrationı da çalıştırır
     logger.info('[DB] Veritabanı şeması başarıyla kontrol edildi/güncellendi.');
+    
+    // Ensure admin user exists
+    await authController.ensureAdminUser();
   } catch (e) {
     logger.error('[FATAL] Veritabanı geçişi başarısız oldu. Uygulama durduruluyor.', { error: e });
     process.exit(1);
@@ -161,7 +165,9 @@ app.get('/', (req, res) => {
 });
 
 // API Rotaları (NEW: Using modular src/routes/)
-app.use('/api', apiRoutes);
+// API Rotaları (NEW: Using modular src/routes/)
+const { verifyToken } = require('./src/middleware/authMiddleware');
+app.use('/api', verifyToken, apiRoutes);
 
 // Error handlers (must be after routes)
 app.use(notFoundHandler);
@@ -195,15 +201,17 @@ if (process.env.NODE_ENV === 'production') {
 initAutoBackupState();
 startAutoBackupScheduler();
 
-// PDF ve Backup klasörlerini startup'ta oluştur
+// PDF, Excel ve Backup klasörlerini startup'ta oluştur
 const { getUserDataPath, ensureDirExists } = require('./src/utils/fileHelper');
 const pdfPath = getUserDataPath('PDFs');
+const excelPath = getUserDataPath('Excels');
 const backupPath = getUserDataPath('Backups');
 const tmpPath = getUserDataPath('tmp');
 ensureDirExists(pdfPath);
+ensureDirExists(excelPath);
 ensureDirExists(backupPath);
 ensureDirExists(tmpPath);
-logger.info('[STARTUP] Required directories ensured:', { pdfPath, backupPath, tmpPath });
+logger.info('[STARTUP] Required directories ensured:', { pdfPath, excelPath, backupPath, tmpPath });
 
 // 404 handler for unmatched routes
 app.use(notFoundHandler);

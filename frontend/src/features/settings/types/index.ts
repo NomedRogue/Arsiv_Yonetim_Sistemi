@@ -1,5 +1,6 @@
 // Re-export types from @/types that are used in settings feature
 export type { Settings, Department, KompaktUnitConfig } from '@/types';
+import { StorageType } from '@/types';
 export { Category, StorageType } from '@/types';
 
 // Settings-specific types
@@ -17,6 +18,8 @@ export interface AccordionSections {
   departments: boolean;
   storage: boolean;
   backup: boolean;
+  users: boolean;
+  updates: boolean;
 }
 
 export interface ItemToDelete {

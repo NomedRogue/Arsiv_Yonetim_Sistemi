@@ -8,6 +8,7 @@ const CheckoutRepository = require('./CheckoutRepository');
 const DisposalRepository = require('./DisposalRepository');
 const LogRepository = require('./LogRepository');
 const ConfigRepository = require('./ConfigRepository');
+const UserRepository = require('./UserRepository');
 
 // Singleton instances
 let folderRepo = null;
@@ -15,6 +16,7 @@ let checkoutRepo = null;
 let disposalRepo = null;
 let logRepo = null;
 let configRepo = null;
+let userRepo = null;
 
 /**
  * Get repository instances (lazy initialization)
@@ -26,6 +28,7 @@ function getRepositories() {
     disposalRepo = new DisposalRepository();
     logRepo = new LogRepository();
     configRepo = new ConfigRepository();
+    userRepo = new UserRepository();
   }
 
   return {
@@ -33,7 +36,8 @@ function getRepositories() {
     checkout: checkoutRepo,
     disposal: disposalRepo,
     log: logRepo,
-    config: configRepo
+    config: configRepo,
+    user: userRepo
   };
 }
 
@@ -46,6 +50,7 @@ function resetRepositories() {
   disposalRepo = null;
   logRepo = null;
   configRepo = null;
+  userRepo = null;
 }
 
 module.exports = {
