@@ -12,7 +12,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -20,30 +20,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if token is valid on startup
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      // Try local storage first (Remember Me)
+      let storedToken = localStorage.getItem('token');
+      let storedUser = localStorage.getItem('user');
+
+      // If not in local, try session storage
+      if (!storedToken || !storedUser) {
+        storedToken = sessionStorage.getItem('token');
+        storedUser = sessionStorage.getItem('user');
+      }
       
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
-        
-        // Optional: Verify token with backend
-        /*
-        try {
-          const res = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { Authorization: `Bearer ${storedToken}` }
-          });
-          if (!res.ok) throw new Error('Invalid token');
-        } catch {
-          logout();
-        }
-        */
       }
       setIsLoading(false);
     };
@@ -51,7 +46,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initAuth();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, rememberMe: boolean = false) => {
     const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,8 +61,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setToken(data.token);
     setUser(data.user);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+
+    if (rememberMe) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+    } else {
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+    }
   };
 
   const logout = () => {
@@ -75,6 +76,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   };
 
   return (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Trash2, UserPlus, Shield, User as UserIcon } from 'lucide-react';
+import { Trash2, UserPlus, Shield, User as UserIcon, KeyRound } from 'lucide-react';
 import { API_BASE_URL } from '@/constants';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
@@ -18,12 +18,17 @@ export const UserManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [userToChangePassword, setUserToChangePassword] = useState<User | null>(null);
 
     // Form states
     const [newUsername, setNewUsername] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
+    
+    // Change password form state (Admin override)
+    const [adminNewPassword, setAdminNewPassword] = useState('');
 
     useEffect(() => {
         fetchUsers();
@@ -90,6 +95,33 @@ export const UserManagement: React.FC = () => {
             toast.error(error.message);
         }
     };
+    
+    const handleAdminChangePassword = async () => {
+        if (!userToChangePassword || !adminNewPassword) return;
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/users/${userToChangePassword.id}/password`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}` 
+                },
+                body: JSON.stringify({ newPassword: adminNewPassword })
+            });
+            
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Şifre güncellenemedi');
+            }
+            
+            toast.success('Şifre başarıyla güncellendi.');
+            setIsChangePasswordModalOpen(false);
+            setAdminNewPassword('');
+            setUserToChangePassword(null);
+        } catch(error: any) {
+            toast.error(error.message);
+        }
+    };
 
     const resetForm = () => {
         setNewUsername('');
@@ -143,14 +175,24 @@ export const UserManagement: React.FC = () => {
                                     {new Date(u.createdAt).toLocaleDateString()}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    {u.id !== currentUser?.id && (
-                                        <button 
-                                            onClick={() => { setUserToDelete(u); setIsDeleteModalOpen(true); }}
-                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 ml-4 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded transition-colors"
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => { setUserToChangePassword(u); setIsChangePasswordModalOpen(true); }}
+                                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded transition-colors"
+                                            title="Şifre Değiştir (Admin)"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <KeyRound className="w-4 h-4" />
                                         </button>
-                                    )}
+                                        
+                                        {u.id !== currentUser?.id && (
+                                            <button 
+                                                onClick={() => { setUserToDelete(u); setIsDeleteModalOpen(true); }}
+                                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -196,6 +238,32 @@ export const UserManagement: React.FC = () => {
                             <option value="user">Kullanıcı (User)</option>
                             <option value="admin">Yönetici (Admin)</option>
                         </select>
+                    </div>
+                </div>
+            </Modal>
+            
+            {/* Admin Change Password Modal */}
+            <Modal
+                isOpen={isChangePasswordModalOpen}
+                onClose={() => setIsChangePasswordModalOpen(false)}
+                title={`Şifre Değiştir: ${userToChangePassword?.username}`}
+                onConfirm={handleAdminChangePassword}
+                confirmText="Güncelle"
+                confirmColor="bg-blue-600"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Bu kullanıcının şifresini yönetici olarak sıfırlıyorsunuz.
+                    </p>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Yeni Şifre</label>
+                        <input 
+                            type="password" 
+                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white"
+                            value={adminNewPassword}
+                            onChange={(e) => setAdminNewPassword(e.target.value)}
+                            placeholder="Yeni şifreyi girin"
+                        />
                     </div>
                 </div>
             </Modal>

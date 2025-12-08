@@ -23,7 +23,16 @@ class ConfigRepository {
     try {
       const db = this.getDb();
       const row = db.prepare('SELECT value FROM configs WHERE key = ?').get(key);
-      return row ? JSON.parse(row.value) : null;
+      const value = row ? JSON.parse(row.value) : null;
+      
+      // Provide defaults for settings if paths are missing
+      if (key === 'settings' && value) {
+        if (!value.yedeklemeKlasoru) value.yedeklemeKlasoru = process.cwd();
+        if (!value.pdfKayitKlasoru) value.pdfKayitKlasoru = process.cwd();
+        if (!value.excelKayitKlasoru) value.excelKayitKlasoru = process.cwd();
+      }
+      
+      return value;
     } catch (error) {
       logger.error('[CONFIG_REPO] get error:', { error, key });
       return null;

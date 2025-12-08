@@ -35,7 +35,7 @@ class StatsService {
       const toplamKlasor = folders.length;
       const arsivde = folders.filter(f => f.status === 'Arşivde').length;
       const arsivDisinda = folders.filter(f => f.status === 'Çıkışta').length;
-      const imhaEdilen = folders.filter(f => f.status === 'İmha').length;
+      const imhaEdilen = disposals.length;
       
       // Checkout stats
       const activeCheckouts = checkouts.filter(c => c.status === 'Çıkışta');

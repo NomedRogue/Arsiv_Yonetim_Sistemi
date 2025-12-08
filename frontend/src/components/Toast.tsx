@@ -21,8 +21,14 @@ export const ToastHost: React.FC = () => {
 
   useEffect(() => {
     const unsub = subscribe((t) => {
-      setItems((prev) => [...prev, t]);
-      setTimeout(() => dismiss(t.id), 3000);
+      setItems((prev) => {
+        // Prevent duplicate messages
+        if (prev.some(i => i.message === t.message)) {
+          return prev;
+        }
+        return [...prev, t];
+      });
+      setTimeout(() => dismiss(t.id), t.duration || 3000);
     });
     // React cleanup: void döner
     return () => { unsub(); };
@@ -38,17 +44,17 @@ export const ToastHost: React.FC = () => {
         return (
           <div
             key={t.id}
-            className={`pointer-events-auto text-white shadow-lg rounded-lg px-4 py-3 flex items-start gap-3 ${colorByType[t.type]}`}
+            className={`pointer-events-auto text-white shadow-md rounded-md px-3 py-2.5 flex items-center gap-2.5 ${colorByType[t.type]} animate-in slide-in-from-right-5 fade-in duration-300`}
           >
-            <Icon className="mt-[0.125rem]" style={{ width: '1.125em', height: '1.125em' }} />
-            <div className="text-sm">{t.message}</div>
+            <Icon className="flex-shrink-0" style={{ width: '1em', height: '1em' }} />
+            <div className="text-xs font-medium leading-normal">{t.message}</div>
             <button
               onClick={() => dismiss(t.id)}
-              className="ml-2 opacity-80 hover:opacity-100 transition"
+              className="ml-1 opacity-70 hover:opacity-100 transition-opacity"
               aria-label="Kapat"
               title="Kapat"
             >
-              <X style={{ width: '1em', height: '1em' }} />
+              <X style={{ width: '0.875em', height: '0.875em' }} />
             </button>
           </div>
         );

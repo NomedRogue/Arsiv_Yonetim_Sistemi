@@ -86,6 +86,28 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => 
       toast.info('Depolama yapısı güncellendi.');
     });
 
+    sse.addEventListener('checkout_created', (e) => {
+      const data = JSON.parse(e.data);
+      toast.success(`Dosya çıkış verildi: ${data.personName || ''}`);
+      refresh();
+    });
+
+    sse.addEventListener('checkout_returned', (e) => {
+      toast.success('Dosya iade alındı');
+      refresh();
+    });
+
+    sse.addEventListener('checkout_updated', (e) => {
+      toast.info('Çıkış kaydı güncellendi');
+      refresh();
+    });
+
+    sse.addEventListener('folder_deleted', (e) => {
+      // Disposal (imha) creates this event
+      toast.info('Dosya imha edildi/silindi');
+      refresh();
+    });
+
     return () => sse.close();
   }, [dispatch, refresh]);
 };

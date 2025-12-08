@@ -10,7 +10,7 @@ import {
   useStorageManagement, 
   useAccordionState 
 } from './hooks';
-import { SettingInput, FilePathInput, AccordionSection, UserManagement, UpdateManagement } from './components';
+import { SettingInput, FilePathInput, AccordionSection, UserManagement, UpdateManagement, ProfileSettings } from './components';
 import { useAuth } from '@/context/AuthContext';
 import { Modal } from '@/components/Modal';
 import { Edit, Trash2, HardDrive } from 'lucide-react';
@@ -458,17 +458,6 @@ export const Settings: React.FC = () => {
         </div>
       </AccordionSection>
 
-      {/* Kullanıcı Yönetimi */}
-      {isAdmin && (
-        <AccordionSection
-            title="Kullanıcı Yönetimi"
-            isOpen={openSections.users}
-            onToggle={() => toggleSection('users')}
-        >
-            <UserManagement />
-        </AccordionSection>
-      )}
-
       {/* Lokasyon Yönetimi */}
       <AccordionSection
         title="Lokasyon Yönetimi"
@@ -538,12 +527,46 @@ export const Settings: React.FC = () => {
         </div>
       </AccordionSection>
 
+      {/* Profil Ayarları */}
+      <AccordionSection
+        title="Profilim"
+        isOpen={openSections.profile}
+        onToggle={() => toggleSection('profile')}
+      >
+        <ProfileSettings />
+      </AccordionSection>
+
+      {/* Kullanıcı Yönetimi */}
+      {isAdmin && (
+        <AccordionSection
+            title="Kullanıcı Yönetimi"
+            isOpen={openSections.users}
+            onToggle={() => toggleSection('users')}
+        >
+            <UserManagement />
+        </AccordionSection>
+      )}
+
       {/* Güncelleme Yönetimi */}
       <AccordionSection
         title="Güncelleme Yönetimi"
         isOpen={openSections.updates}
         onToggle={() => toggleSection('updates')}
       >
+        {isAdmin && (
+          <div className="mb-6 border-b pb-6 dark:border-gray-700">
+            <SettingInput 
+              label="GitHub Access Token" 
+              id="githubToken" 
+              type="text"
+              value={currentSettings.githubToken || ''} 
+              onChange={handleChange} 
+            />
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <strong>Not:</strong> Eğer uygulamanız özel bir (private) GitHub deposunda barınıyorsa, güncellemeleri alabilmek için buraya bir "Personal Access Token" girmelisiniz.
+            </p>
+          </div>
+        )}
         <UpdateManagement />
       </AccordionSection>
 

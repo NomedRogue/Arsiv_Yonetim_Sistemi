@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { 
-  Building2, 
   User, 
   Lock, 
   Eye, 
-  EyeOff, 
-  Activity,
-  Archive 
+  EyeOff
 } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
 export const Login = () => {
     const { login } = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -23,18 +22,31 @@ export const Login = () => {
         setError('');
         setIsLoading(true);
 
+        const cleanUsername = username.trim();
+        const cleanPassword = password.trim();
+
         try {
-            await login(username, password);
+            await login(cleanUsername, cleanPassword, rememberMe);
         } catch (err: any) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
     };
+    
+    const handleForgotPassword = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Şifremi unuttum tıklandı'); // Debug
+        
+        toast.warning(
+            'Güvenlik nedeniyle şifre sıfırlama işlemi sadece sistem yöneticisi tarafından yapılabilir. Lütfen yöneticiniz ile iletişime geçiniz.',
+            { duration: 6000 }
+        );
+    };
 
     return (
         <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900">
-            {/* Left Side - Visual & Branding */}
             {/* Left Side - Visual & Branding */}
             <div className="hidden md:flex md:w-1/2 relative bg-archive-primary overflow-hidden items-center justify-center">
                 <div className="absolute inset-0 bg-gradient-to-br from-teal-800 to-blue-900 opacity-90"></div>
@@ -47,8 +59,8 @@ export const Login = () => {
                 <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
                 
                 <div className="relative z-10 text-white text-center p-12">
-                   <div className="bg-white/10 backdrop-blur-lg p-6 rounded-2xl border border-white/20 inline-block mb-8 shadow-2xl">
-                        <img src="/icon.ico" alt="Logo" className="w-20 h-20 drop-shadow-lg" />
+                    <div className="bg-white/10 backdrop-blur-lg p-6 rounded-2xl border border-white/20 inline-block mb-8 shadow-2xl">
+                        <img src="icon.ico" alt="Logo" className="w-20 h-20 drop-shadow-lg" />
                    </div>
                    <p className="text-xl text-teal-100 max-w-md mx-auto leading-relaxed">
                        Arşiv Yönetim Sistemi
@@ -68,7 +80,7 @@ export const Login = () => {
                 <div className="w-full max-w-md bg-white dark:bg-slate-800 p-10 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700">
                     <div className="text-center mb-10">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white p-2 mb-4 transition-transform hover:scale-110 duration-300">
-                             <img src="/icon.ico" alt="Logo" className="w-full h-full object-contain" />
+                             <img src="icon.ico" alt="Logo" className="w-full h-full object-contain" />
                         </div>
                         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Hoş Geldiniz</h2>
                         <p className="text-slate-500 dark:text-slate-400">Lütfen hesap bilgilerinizle giriş yapın.</p>
@@ -88,7 +100,7 @@ export const Login = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Kullanıcı Adı</label>
-                             <div className="relative group">
+                            <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-teal-500 transition-colors">
                                     <User className="w-5 h-5" />
                                 </div>
@@ -98,6 +110,12 @@ export const Login = () => {
                                     placeholder="Kullanıcı adınızı girin"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
+                                    onBlur={() => setUsername(prev => prev.trim())}
+                                    onKeyDown={(e) => {
+                                        if (e.key === ' ') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     required
                                 />
                              </div>
@@ -117,6 +135,9 @@ export const Login = () => {
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    // Password fields usually allow generated passwords with spaces, but user asked to prevent "troublesome situations".
+                                    // Safe approach: trim on submit, but usually don't mess with password input while typing.
+                                    // I will just trim on submit for password.
                                     required
                                 />
                                 <button
@@ -131,12 +152,21 @@ export const Login = () => {
 
                         <div className="flex items-center justify-between">
                             <label className="flex items-center space-x-2 cursor-pointer group">
-                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 transition-colors cursor-pointer" />
+                                <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 transition-colors cursor-pointer" 
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                />
                                 <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Beni Hatırla</span>
                             </label>
-                            <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+                            <button
+                                type="button" 
+                                onClick={handleForgotPassword}
+                                className="text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors bg-transparent border-none p-0 cursor-pointer"
+                            >
                                 Şifremi Unuttum?
-                            </a>
+                            </button>
                         </div>
 
                         <button

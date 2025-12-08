@@ -7,20 +7,20 @@ export const THEME_COLORS = {
   dark: {
     // Dashboard Card Icon Colors (Dark Mode)
     card: {
-      primary: '#60A5FA',      // Mavi (Toplam Klasör, İdari)
-      success: '#34D399',      // Yeşil (Tıbbi)
-      warning: '#FBBF24',      // Sarı (Arşiv Dışında)
-      danger: '#F87171',       // Kırmızı (İade Geciken, İmha Süresi Geçenler)
-      orange: '#FB923C',       // Turuncu (Bu Yıl İmha, Gelecek Yıl İmha)
-      gray: '#9CA3AF',         // Gri (İmha Edilen)
+      primary: '#38BDF8',      // Daha canlı mavi (Sky 400)
+      success: '#34D399',      // Emerald 400
+      warning: '#FBBF24',      // Amber 400
+      danger: '#F87171',       // Red 400
+      orange: '#FB923C',       // Orange 400
+      gray: '#9CA3AF',         // Gray 400
     },
     // Arşiv Doluluk Durumu - SVG Circle Stroke Colors
     occupancy: {
-      critical: '#DC2626',    // >85% - Kırmızı (Koyu)
-      warning: '#F59E0B',     // >70% - Turuncu (Koyu)
-      moderate: '#3B82F6',    // >50% - Mavi (Koyu)
-      good: '#10B981',        // <=50% - Yeşil (Koyu)
-      background: '#475569',  // Arka plan çember
+      critical: '#EF4444',    // Red 500
+      warning: '#F59E0B',     // Amber 500
+      moderate: '#3B82F6',    // Blue 500
+      good: '#10B981',        // Emerald 500
+      background: '#1E293B',  // Slate 800 - Daha koyu arka plan
     },
     // Text Colors for Percentages
     occupancyText: {
@@ -33,12 +33,12 @@ export const THEME_COLORS = {
   light: {
     // Dashboard Card Icon Colors (Light Mode)
     card: {
-      primary: '#3B82F6',      // Mavi (Toplam Klasör, İdari)
-      success: '#10B981',      // Yeşil (Tıbbi)
-      warning: '#F59E0B',      // Sarı (Arşiv Dışında)
-      danger: '#EF4444',       // Kırmızı (İade Geciken, İmha Süresi Geçenler)
-      orange: '#F97316',       // Turuncu (Bu Yıl İmha, Gelecek Yıl İmha)
-      gray: '#6B7280',         // Gri (İmha Edilen)
+      primary: '#2563EB',      // Mavi (Blue 600)
+      success: '#059669',      // Yeşil (Emerald 600)
+      warning: '#D97706',      // Sarı (Amber 600)
+      danger: '#DC2626',       // Kırmızı (Red 600)
+      orange: '#EA580C',       // Turuncu (Orange 600)
+      gray: '#6B7280',         // Gri (Gray 600)
     },
     // Arşiv Doluluk Durumu - SVG Circle Stroke Colors
     occupancy: {
@@ -59,12 +59,24 @@ export const THEME_COLORS = {
   // Department colors for treemap - comprehensive palette ensuring no black colors
   departmentColors: {
     dark: {
-      tibbi: ['#064e3b', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'],
-      idari: ['#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'],
+      tibbi: [
+        '#059669', '#10B981', '#34D399', '#6EE7B7', // Emerald scale
+        '#0D9488', '#14B8A6', '#2DD4BF', '#5EEAD4'  // Teal scale
+      ],
+      idari: [
+        '#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', // Blue scale
+        '#0284C7', '#0EA5E9', '#38BDF8', '#7DD3FC'  // Sky scale (Replacing Indigo)
+      ],
     },
     light: {
-      tibbi: ['#a7f3d0', '#6ee7b7', '#34d399', '#10b981', '#059669', '#047857', '#065f46', '#064e3b'],
-      idari: ['#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'],
+      tibbi: [
+        '#047857', '#059669', '#10B981', '#34D399', 
+        '#0F766E', '#0D9488', '#14B8A6', '#2DD4BF'
+      ],
+      idari: [
+        '#1D4ED8', '#2563EB', '#3B82F6', '#60A5FA',
+        '#0369A1', '#0284C7', '#0EA5E9', '#38BDF8'
+      ],
     },
   },
   // Chart color palettes
@@ -79,39 +91,43 @@ export const THEME_COLORS = {
     treemap: {
       dark: {
         categoryStroke: {
-          tibbi: '#10b981', // Green for medical
-          idari: '#3b82f6', // Blue for administrative
+          tibbi: '#34D399', 
+          idari: '#60A5FA', 
         },
-        categoryText: '#f1f5f9',
-        itemText: '#ffffff',
-        itemStroke: '#334155',
+        categoryText: '#E2E8F0',
+        itemText: '#F8FAFC',
+        itemStroke: '#1E293B',
       },
       light: {
         categoryStroke: {
-          tibbi: '#059669', // Green for medical
-          idari: '#2563eb', // Blue for administrative
+          tibbi: '#059669', 
+          idari: '#2563EB', 
         },
-        categoryText: '#1e293b',
-        itemText: '#ffffff',
-        itemStroke: '#ffffff',
+        categoryText: '#1E293B',
+        itemText: '#FFFFFF',
+        itemStroke: '#FFFFFF',
       },
     },
   },
 };
 
-// Get department color for treemap based on percentage (higher % = darker color)
-// Her departman index'ine göre palette'ten farklı ton alır
-export function getDepartmentColor(theme: string, category: string, index: number, percentage?: number, allPercentages?: number[]): string {
+// Get department color for treemap based on rank/index (not just percentage)
+// This ensures that even small items with similar percentages get different colors
+// by cycling through the palette.
+export function getDepartmentColor(theme: string, category: string, index: number, percentage: number = 0, allPercentages?: number[]): string {
   const isTibbi = category?.toLowerCase().includes('tıbbi') || category?.toLowerCase().includes('tibbi');
+  // Güvenli tema ve kategori seçimi
+  const safeTheme = theme === 'dark' ? 'dark' : 'light';
   const palette = isTibbi
-    ? THEME_COLORS.departmentColors[theme === 'dark' ? 'dark' : 'light'].tibbi
-    : THEME_COLORS.departmentColors[theme === 'dark' ? 'dark' : 'light'].idari;
+    ? THEME_COLORS.departmentColors[safeTheme].tibbi
+    : THEME_COLORS.departmentColors[safeTheme].idari;
   
-  // Index bazlı renk seçimi - her departman palette boyunca dağıtılır
-  // Bu sayede her departman farklı bir ton alır (koyu → açık veya açık → koyu)
-  const colorIndex = index % palette.length;
+  // RANK BASED COLORING (Index Mapping)
+  // Treemaps often display largest items first. Even if not, mapping index to color
+  // ensures that adjacent items (often similar in size) get different colors from the gradient sequence.
+  // Using modulo ensures we cycle through the palette if we have more items than colors.
   
-  return palette[colorIndex];
+  return palette[index % palette.length];
 }
 
 // Get chart colors by type

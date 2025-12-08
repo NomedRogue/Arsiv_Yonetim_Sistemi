@@ -112,7 +112,7 @@ describe('dbManager with in-memory DB', () => {
           expect(stats.idariCount).toBe(3);
           expect(stats.arsivDisindaCount).toBe(2); // Based on folder status (f2, f4)
           expect(stats.iadeGecikenCount).toBe(1); // Based on checkouts table (c1)
-          expect(stats.imhaEdilenCount).toBe(0); // No folders with status='İmha'
+          expect(stats.imhaEdilenCount).toBe(1); // Based on disposals table (d1)
           // fileYear + retentionPeriod + 1 = currentYear
           // f1: 2022+5+1=2028 (no)
           // f2: 2023+10+1=2034 (no)

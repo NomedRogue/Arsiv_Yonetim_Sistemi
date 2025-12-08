@@ -44,8 +44,11 @@ export const getLogIcon = (log: Log): React.ReactNode => {
     case 'department_delete':
     case 'location_add':
     case 'location_update':
+    case 'location_update':
     case 'location_delete':
       return <FolderCog {...iconProps} className="text-indigo-500" />;
+    case 'report':
+      return <FileText {...iconProps} className="text-purple-600" />;
     default:
       return <FileText {...iconProps} className="text-gray-500 dark:text-gray-400" />;
   }

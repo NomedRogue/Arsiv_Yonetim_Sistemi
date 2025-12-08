@@ -166,7 +166,22 @@ class BackupService {
         });
 
         archive.pipe(output);
+        
+        // Add Database file
         archive.file(checkpointBackupPath, { name: path.basename(checkpointBackupPath) });
+        
+        // Add PDFs folder if exists
+        const pdfPath = getUserDataPath('PDFs');
+        if (fs.existsSync(pdfPath)) {
+          archive.directory(pdfPath, 'PDFs');
+        }
+        
+        // Add Excels folder if exists
+        const excelPath = getUserDataPath('Excels');
+        if (fs.existsSync(excelPath)) {
+          archive.directory(excelPath, 'Excels');
+        }
+
         archive.finalize();
       });
     } catch (error) {

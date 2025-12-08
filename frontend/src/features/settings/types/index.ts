@@ -13,6 +13,7 @@ export interface BackupRow {
 }
 
 export interface AccordionSections {
+  profile: boolean;
   measurements: boolean;
   system: boolean;
   departments: boolean;

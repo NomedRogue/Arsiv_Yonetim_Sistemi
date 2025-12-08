@@ -213,20 +213,77 @@ async function createWindow() {
   logger.info('[ELECTRON] Sayfa yüklendi');
 }
 
+// Splash penceresi global
+let splashWindow = null;
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 480,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
+    show: false
+  });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  
+  splashWindow.once('ready-to-show', () => {
+    splashWindow.show();
+  });
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
 // Uygulama hazır olduğunda
 app.whenReady().then(async () => {
   logger.info('[APP] Uygulama başlatılıyor...');
+  
+  // 1. Splash ekranını göster
+  createSplashWindow();
+  
+  // 2. Veritabanı ve klasörleri hazırla
   prepareDatabase();
+  
+  // 3. Backend'i başlat (Splash görünürken arka planda)
+  // setImmediate kullanarak event loop'un splash'i render etmesine izin ver
+  await new Promise(resolve => setTimeout(resolve, 100)); // Kısa bir nefes al
   
   try {
     await startBackendServer();
     logger.info('[APP] Backend başarıyla başlatıldı');
   } catch (err) {
     logger.error('[APP] Backend başlatılamadı:', err);
-    // Uygulama yine de açılsın, hata dialog ile gösterildi
+    // Hata durumunda bile devam et, pencere hata mesajını gösterir
   }
   
+  // 4. Ana pencereyi oluştur (yüklenmesi zaman alabilir)
   await createWindow();
+  
+  // 5. Ana pencere hazır olduğunda (createWindow içinde show yapmıyoruz, burada yönetelim)
+  // Not: createWindow içinde ready-to-show event'i splash'i kapatmak için kullanılabilir
+  // Ancak createWindow fonksiyonu 'ready-to-show' listener'ı içeriyor.
+  // Biz burada main window show yapıldığında splash'i kapatacağız.
+  
+  if (mainWindow) {
+    // createWindow içinde ready-to-show ile show() çağrılıyor.
+    // Biz sadece splash'i kapatmak için bir check ekleyelim.
+    if (mainWindow.isVisible()) {
+      if (splashWindow) splashWindow.close();
+    } else {
+      mainWindow.once('show', () => {
+        if (splashWindow) splashWindow.close();
+      });
+    }
+  }
+
   logger.info('[APP] Uygulama başlatıldı');
 });
 
@@ -327,12 +384,32 @@ autoUpdater.autoDownload = false; // Kullanıcı onayı ile indir
 autoUpdater.autoInstallOnAppQuit = true; // Kapanışta otomatik kur
 autoUpdater.logger = logger;
 
+// Güncelleme için token ayarla
+function configureUpdaterToken() {
+  try {
+    const { getRepositories } = require('./backend/src/database/repositories');
+    const repos = getRepositories();
+    const settings = repos.config.get('settings');
+    
+    if (settings && settings.githubToken) {
+      process.env.GH_TOKEN = settings.githubToken;
+      // Header olarak da ekle
+      autoUpdater.requestHeaders = { 'Authorization': `token ${settings.githubToken}` };
+      logger.info('[UPDATER] GitHub Token yapılandırıldı');
+    }
+  } catch (err) {
+    logger.error('[UPDATER] Token yapılandırma hatası:', err);
+  }
+}
+
 // Güncelleme kontrolü başlat (sadece production'da)
 function checkForUpdates() {
   if (isDev) {
     logger.info('[UPDATER] Development modda - güncelleme kontrolü atlanıyor');
     return;
   }
+  
+  configureUpdaterToken();
   
   logger.info('[UPDATER] Güncelleme kontrol ediliyor...');
   autoUpdater.checkForUpdates().catch((err) => {
@@ -401,6 +478,15 @@ autoUpdater.on('error', (err) => {
 // IPC handlers - Güncelleme komutları
 ipcMain.handle('updater:check', async () => {
   try {
+    if (isDev) {
+      logger.info('[UPDATER] Development modda güncelleme kontrolü simüle ediliyor');
+      return { 
+        success: false, 
+        error: 'Geliştirici modunda güncelleme kontrolü yapılamaz.',
+        isDev: true 
+      };
+    }
+    configureUpdaterToken();
     const result = await autoUpdater.checkForUpdates();
     return { success: true, updateInfo: result?.updateInfo };
   } catch (err) {
@@ -410,6 +496,7 @@ ipcMain.handle('updater:check', async () => {
 
 ipcMain.handle('updater:download', async () => {
   try {
+    configureUpdaterToken();
     await autoUpdater.downloadUpdate();
     return { success: true };
   } catch (err) {

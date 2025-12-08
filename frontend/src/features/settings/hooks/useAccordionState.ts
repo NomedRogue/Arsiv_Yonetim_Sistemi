@@ -3,6 +3,7 @@ import { AccordionSections } from '../types';
 
 export const useAccordionState = () => {
   const [openSections, setOpenSections] = useState<AccordionSections>({
+    profile: false,      // Profilim - default kapalı
     measurements: false, // Ölçü Tanımları - default kapalı
     system: false,       // Sistem Ayarları
     departments: false,  // Birim Yönetimi

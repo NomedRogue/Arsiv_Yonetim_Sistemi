@@ -119,6 +119,7 @@ export interface Settings {
   backupFrequency: BackupFrequency; // Kapalı | Günlük | Haftalık
   backupTime: string;               // HH:MM
   backupRetention: number;          // keep last N backups
+  githubToken?: string;             // Private Repo Token
 }
 
 export interface OccupancyInfo {

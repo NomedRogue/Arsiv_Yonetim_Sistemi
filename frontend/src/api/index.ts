@@ -8,7 +8,7 @@ const API: string = API_BASE_URL;
 // Küçük yardımcı fetch sarmalayıcı
 // Küçük yardımcı fetch sarmalayıcı
 async function http<T = any>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   const headers = new Headers(init?.headers || {});
   
   if (token) {

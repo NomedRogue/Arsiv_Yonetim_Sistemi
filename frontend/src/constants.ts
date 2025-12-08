@@ -88,5 +88,6 @@ export const DEFAULT_SETTINGS: Settings = {
   // NEW: automatic backup config
   backupFrequency: 'Kapalı', // 'Kapalı' | 'Günlük' | 'Haftalık'
   backupTime: '03:00',       // HH:MM (24h)
-  backupRetention: 7         // keep last N backups
+  backupRetention: 7,         // keep last N backups
+  githubToken: ''
 };

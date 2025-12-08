@@ -66,7 +66,12 @@ const AuthWrapper: React.FC = () => {
     }
 
     if (!isAuthenticated) {
-        return <Login />;
+        return (
+            <>
+                <Login />
+                <ToastHost />
+            </>
+        );
     }
 
     if (error) {
