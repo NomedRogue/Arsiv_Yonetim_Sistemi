@@ -53,8 +53,8 @@ const RETENTION_CODE_DESCRIPTIONS: { [key: string]: string } = {
 
 
 export const FolderForm: React.FC<{
-  editingFolderId: number | null;
-  setEditingFolderId: (id: number | null) => void;
+  editingFolderId: string | null;
+  setEditingFolderId: (id: string | null) => void;
   setActivePage: (page: string) => void;
 }> = ({ editingFolderId, setEditingFolderId, setActivePage }) => {
   const {
@@ -260,37 +260,37 @@ export const FolderForm: React.FC<{
 
     // 1) Eski PDF dosyasını kaldır
     if (isEditing && originalFolder?.pdfPath && !pdfFile) {
-      await fetch(`/api/pdf/delete-pdf/${originalFolder.pdfPath}`, {
-        method: 'DELETE',
-      });
+      try {
+        await api.deletePdf(originalFolder.pdfPath);
+      } catch (err) {
+        console.error('Eski PDF silinemedi:', err);
+      }
       submittedPdfPath = undefined;
     }
 
     // 1b) Eski Excel dosyasını kaldır
     if (isEditing && originalFolder?.excelPath && !excelFile) {
-      await fetch(`/api/excel/delete-excel/${originalFolder.excelPath}`, {
-        method: 'DELETE',
-      });
+      try {
+        await api.deleteExcel(originalFolder.excelPath);
+      } catch (err) {
+         console.error('Eski Excel silinemedi:', err);
+      }
       submittedExcelPath = undefined;
     }
 
-    // 2) Yeni PDF dosya yüklendiysevdegistir
+    // 2) Yeni PDF dosya yüklendiyse
     if (pdfFile && pdfFile.size > 0) {
       if (isEditing && originalFolder?.pdfPath) {
-        await fetch(getApiUrl(`/pdf/delete-pdf/${originalFolder.pdfPath}`), {
-          method: 'DELETE',
-        });
+        try {
+          await api.deletePdf(originalFolder.pdfPath);
+        } catch (err) {
+           // Eski dosya silinmesi kritik olmayabilir, logla devam et
+           console.warn('Eski PDF silinemedi, yeni yüklemeye devam ediliyor:', err);
+        }
       }
-      const formDataForUpload = new FormData();
-      formDataForUpload.append('pdf', pdfFile);
 
       try {
-        const uploadResponse = await fetch(getApiUrl('/pdf/upload-pdf'), {
-          method: 'POST',
-          body: formDataForUpload,
-        });
-        if (!uploadResponse.ok) throw new Error('Upload failed');
-        const result = await uploadResponse.json();
+        const result = await api.uploadPdf(pdfFile);
         submittedPdfPath = result.filename;
       } catch (error) {
         handleApiError(error, 'PDF yüklenirken bir hata oluştu!');
@@ -299,23 +299,18 @@ export const FolderForm: React.FC<{
       }
     }
 
-    // 2b) Yeni Excel dosya yüklendiysevdegistir
+    // 2b) Yeni Excel dosya yüklendiyse
     if (excelFile && excelFile.size > 0) {
       if (isEditing && originalFolder?.excelPath) {
-        await fetch(getApiUrl(`/excel/delete-excel/${originalFolder.excelPath}`), {
-          method: 'DELETE',
-        });
+        try {
+           await api.deleteExcel(originalFolder.excelPath);
+        } catch (err) {
+           console.warn('Eski Excel silinemedi:', err);
+        }
       }
-      const formDataForExcelUpload = new FormData();
-      formDataForExcelUpload.append('excel', excelFile);
 
       try {
-        const uploadResponse = await fetch(getApiUrl('/excel/upload-excel'), {
-          method: 'POST',
-          body: formDataForExcelUpload,
-        });
-        if (!uploadResponse.ok) throw new Error('Excel upload failed');
-        const result = await uploadResponse.json();
+        const result = await api.uploadExcel(excelFile);
         submittedExcelPath = result.filename;
       } catch (error) {
         console.error(error);

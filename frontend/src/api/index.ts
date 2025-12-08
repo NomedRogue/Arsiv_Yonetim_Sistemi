@@ -62,8 +62,8 @@ export const saveConfigs = (configs: { settings?: any; departments?: any; storag
 // Folder Actions
 export const createFolder = (folder: Folder) => http<Folder>(`${API}/folders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(folder) });
 export const updateFolder = (folder: Folder) => http<Folder>(`${API}/folders/${folder.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(folder) });
-export const removeFolder = (folderId: number) => http(`${API}/folders/${folderId}`, { method: 'DELETE' });
-export const getFolder = (folderId: number) => http<Folder>(`${API}/folders/${folderId}`);
+export const removeFolder = (folderId: string) => http(`${API}/folders/${folderId}`, { method: 'DELETE' });
+export const getFolder = (folderId: string) => http<Folder>(`${API}/folders/${folderId}`);
 export const getFolders = (params?: URLSearchParams) => http(`${API}/folders${params ? `?${params.toString()}` : ''}`);
 export const getAllFoldersForAnalysis = () => http<Folder[]>(`${API}/folders/analysis/all`);
 export const getFoldersByLocation = (location: Location) => http<Folder[]>(`${API}/folders/by-location`, {

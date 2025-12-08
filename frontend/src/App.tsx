@@ -27,7 +27,7 @@ const FolderForm = React.lazy(() => import('@/features/folders').then(m => ({ de
 const FolderFormWrapper = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const editingFolderId = id ? parseInt(id, 10) : null;
+    const editingFolderId = id || null; // ID artık string, parseInt gereksiz
     
     return (
         <FolderForm 
@@ -52,17 +52,20 @@ const AuthWrapper: React.FC = () => {
     const [initialDisposalTab, setInitialDisposalTab] = useState<'disposable' | 'disposed' | undefined>();
     const [initialDisposalFilter, setInitialDisposalFilter] = useState<'thisYear' | 'nextYear' | 'overdue' | undefined>();
 
+    React.useEffect(() => {
+        if (!isAuthLoading && !isBackendLoading) {
+            // Signal Electron that we are ready to show the UI
+            // This will close the Splash Screen and show the Main Window
+            if ((window.electronAPI as any)?.signalAppReady) {
+                (window.electronAPI as any).signalAppReady();
+            }
+        }
+    }, [isAuthLoading, isBackendLoading]);
+
     if (isAuthLoading || isBackendLoading) {
-        return (
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors duration-300">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto"></div>
-              <h2 className="mt-4 text-lg font-semibold text-gray-800 dark:text-gray-200 transition-colors duration-300">
-                Arşiv Yönetim Sistemi Başlatılıyor...
-              </h2>
-            </div>
-          </div>
-        );
+        // While loading, we render nothing (or a transparent div) because the Splash Screen is covering everything.
+        // We do NOT want to show a second loading spinner.
+        return null; 
     }
 
     if (!isAuthenticated) {
@@ -101,7 +104,7 @@ const AuthWrapper: React.FC = () => {
         );
     }
 
-    const handleEditFolder = (folderId: number) => {
+    const handleEditFolder = (folderId: string) => {
         // Navigate to edit route
         navigate(`/folders/edit/${folderId}`);
     };

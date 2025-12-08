@@ -178,8 +178,9 @@ async function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    logger.info('[ELECTRON] Ana pencere gösterildi');
+    // DO NOT show immediately. Wait for 'app-ready' signal from React.
+    // mainWindow.show(); 
+    logger.info('[ELECTRON] Ana pencere render edildi (gizli)');
   });
 
   mainWindow.on('closed', () => {
@@ -208,6 +209,8 @@ async function createWindow() {
     } else {
       await mainWindow.loadFile(indexPath);
     }
+    // Debugging for production: Open dev tools
+    mainWindow.webContents.openDevTools();
   }
 
   logger.info('[ELECTRON] Sayfa yüklendi');
@@ -242,6 +245,17 @@ function createSplashWindow() {
   });
 }
 
+// App Ready Handler
+ipcMain.on('app-ready', () => {
+  logger.info('[APP] Frontend hazır sinyali alındı.');
+  if (mainWindow) {
+    mainWindow.show();
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+  }
+});
+
 // Uygulama hazır olduğunda
 app.whenReady().then(async () => {
   logger.info('[APP] Uygulama başlatılıyor...');
@@ -261,30 +275,15 @@ app.whenReady().then(async () => {
     logger.info('[APP] Backend başarıyla başlatıldı');
   } catch (err) {
     logger.error('[APP] Backend başlatılamadı:', err);
-    // Hata durumunda bile devam et, pencere hata mesajını gösterir
+    // Hata durumunda bile devam et
   }
   
   // 4. Ana pencereyi oluştur (yüklenmesi zaman alabilir)
   await createWindow();
   
-  // 5. Ana pencere hazır olduğunda (createWindow içinde show yapmıyoruz, burada yönetelim)
-  // Not: createWindow içinde ready-to-show event'i splash'i kapatmak için kullanılabilir
-  // Ancak createWindow fonksiyonu 'ready-to-show' listener'ı içeriyor.
-  // Biz burada main window show yapıldığında splash'i kapatacağız.
+  // Not: Artık mainWindow show ve splash close işlemleri 'app-ready' sinyali ile yapılıyor.
   
-  if (mainWindow) {
-    // createWindow içinde ready-to-show ile show() çağrılıyor.
-    // Biz sadece splash'i kapatmak için bir check ekleyelim.
-    if (mainWindow.isVisible()) {
-      if (splashWindow) splashWindow.close();
-    } else {
-      mainWindow.once('show', () => {
-        if (splashWindow) splashWindow.close();
-      });
-    }
-  }
-
-  logger.info('[APP] Uygulama başlatıldı');
+  logger.info('[APP] Uygulama başlatıldı (pencere gizli)');
 });
 
 // MacOS için aktivasyon
@@ -307,6 +306,10 @@ app.on('window-all-closed', () => {
 });
 
 // IPC handlers
+ipcMain.on('get-user-data-path', (event) => {
+  event.returnValue = userDataPath;
+});
+
 ipcMain.handle('dialog:openDirectory', async () => {
   try {
     const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -467,11 +470,21 @@ autoUpdater.on('update-downloaded', (info) => {
 
 autoUpdater.on('error', (err) => {
   logger.error('[UPDATER] Güncelleme hatası:', err);
+  
+  // Check for 404 / no published versions error
+  const is404 = err.message && (err.message.includes('404') || err.message.includes('Unable to find latest version') || err.message.includes('no published versions'));
+
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', { 
-      status: 'error', 
-      message: err.message 
-    });
+    if (is404) {
+      // Treat 404 as "No update available" (System is up to date)
+      logger.info('[UPDATER] 404 hatası bulundu, "güncel" olarak işaretleniyor.');
+      mainWindow.webContents.send('update-status', { status: 'not-available' });
+    } else {
+      mainWindow.webContents.send('update-status', { 
+        status: 'error', 
+        message: err.message 
+      });
+    }
   }
 });
 
@@ -490,7 +503,12 @@ ipcMain.handle('updater:check', async () => {
     const result = await autoUpdater.checkForUpdates();
     return { success: true, updateInfo: result?.updateInfo };
   } catch (err) {
-    return { success: false, error: err.message };
+    const is404 = err.message && (err.message.includes('404') || err.message.includes('Unable to find latest version'));
+    return { 
+      success: false, 
+      error: is404 ? 'Yayınlanmış güncelleme bulunamadı.' : err.message,
+      is404: is404
+    };
   }
 });
 

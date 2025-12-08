@@ -11,18 +11,32 @@ const verifyToken = (req, res, next) => {
   }
 
   // Public routes that don't need auth
-  // Public routes that don't need auth
   const publicRoutes = [
     '/api/auth/login',
     '/api/auth/setup', // First time setup if needed
     '/api/status',
     '/api/health',
+    '/api/all-data', // Settings ve initial data için
     '/'
+  ];
+
+  // Check if path starts with any of these patterns (for dynamic routes)
+  const publicPathPatterns = [
+    '/api/search/',
+    '/api/pdf/pdf-path/',
+    '/api/pdf/serve-pdf/',
+    '/api/excel/excel-path/',
+    '/api/excel/serve-excel/'
   ];
 
   // Check against originalUrl to handle mounting points (e.g. /api prefix)
   const normalizedPath = req.originalUrl.split('?')[0];
   if (publicRoutes.includes(normalizedPath)) {
+    return next();
+  }
+
+  // Check if path starts with any public pattern
+  if (publicPathPatterns.some(pattern => normalizedPath.startsWith(pattern))) {
     return next();
   }
 

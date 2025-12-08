@@ -4,8 +4,18 @@ const logger = require('./logger');
 
 // Dynamic olarak al - her çağrıda güncel değeri kullan
 function getUserDataPath(...segments) {
-  const userDataPath = process.env.USER_DATA_PATH || process.cwd();
-  return path.join(userDataPath, ...segments);
+  // Use env var if set (passed from main process)
+  if (process.env.USER_DATA_PATH) {
+    return path.join(process.env.USER_DATA_PATH, ...segments);
+  }
+
+  // Fallback to APPDATA for Windows or Home dir for others
+  // This prevents writing to Program Files (process.cwd())
+  const os = require('os');
+  const baseDir = process.env.APPDATA || path.join(os.homedir(), '.arsiv-yonetim-sistemi');
+  
+  // If in dev, we might still want cwd/backend/data but for safety let's stick to a writable path
+  return path.join(baseDir, 'ArsivYonetimSistemi', ...segments);
 }
 
 function ensureDirExists(dirPath) {

@@ -34,6 +34,10 @@ interface ElectronAPI {
     getVersion: () => Promise<string>;
     onUpdateStatus: (callback: (data: any) => void) => () => void;
   };
+  paths?: {
+    userData: string;
+  };
+  signalAppReady: () => void;
 }
 
 declare global {

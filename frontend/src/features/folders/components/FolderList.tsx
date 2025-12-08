@@ -126,7 +126,7 @@ const FolderRow = React.memo<FolderRowProps>(({
 FolderRow.displayName = 'FolderRow';
 
 interface Props {
-  onEditFolder: (id: number) => void;
+  onEditFolder: (id: string) => void;
 }
 
 export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
@@ -242,7 +242,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const handleConfirmCheckout = useCallback(async (data: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
     try {
       // Direkt API call - context bypass
-      const newCheckout = { ...data, id: Date.now(), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
+      const newCheckout = { ...data, id: String(Date.now()), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
       const folder = folders.find(f => f.id === data.folderId);
       
       if (!folder) {
@@ -263,7 +263,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     }
   }, [folders, handleCloseCheckoutModal, fetchFolders]);
 
-  const handleReturnFolder = useCallback(async (folderId: number) => {
+  const handleReturnFolder = useCallback(async (folderId: string) => {
     try {
       // Direkt API'den aktif checkout'u al
       const checkouts = await apiService.getActiveCheckouts();

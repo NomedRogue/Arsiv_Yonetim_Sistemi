@@ -47,7 +47,7 @@ export interface Location {
 }
 
 export interface Folder {
-  id: number;
+  id: string; // String ID for consistency with database
   category: Category;
   departmentId: number;
   departmentName?: string;
@@ -70,8 +70,8 @@ export interface Folder {
 }
 
 export interface Checkout {
-  id: number;
-  folderId: number;
+  id: string; // String ID for consistency
+  folderId: string; // Foreign key to Folder
   checkoutType: CheckoutType;
   documentDescription?: string;
   personName: string;
@@ -86,14 +86,14 @@ export interface Checkout {
 
 export interface Disposal {
   id: string; // Backend'te TEXT olarak tanımlı
-  folderId: number;
+  folderId: string; // Foreign key to Folder
   disposalDate: string; // ISO string olarak
   reason?: string;
   originalFolderData: Folder;
 }
 
 export interface Log {
-  id: number;
+  id: string; // String ID for consistency
   timestamp: Date;
   type: string;
   folderId?: number;

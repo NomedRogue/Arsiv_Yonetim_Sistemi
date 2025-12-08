@@ -119,6 +119,28 @@ export const Settings: React.FC = () => {
     await updateSettings(currentSettings);
   };
 
+  // Platform based default paths
+  useEffect(() => {
+    // Cast to any to avoid type checking issues with the updated interface
+    const api = window.electronAPI as any;
+    if (api?.paths?.userData) {
+      const userData = api.paths.userData;
+      // Default path fallback logic for display
+      const platformDefaults = {
+        pdfKayitKlasoru: `${userData}\\PDFs`,
+        excelKayitKlasoru: `${userData}\\Excels`,
+        yedeklemeKlasoru: `${userData}\\Backups`
+      };
+
+      setCurrentSettings(prev => ({
+        ...prev,
+        pdfKayitKlasoru: prev.pdfKayitKlasoru || platformDefaults.pdfKayitKlasoru,
+        excelKayitKlasoru: prev.excelKayitKlasoru || platformDefaults.excelKayitKlasoru,
+        yedeklemeKlasoru: prev.yedeklemeKlasoru || platformDefaults.yedeklemeKlasoru
+      }));
+    }
+  }, [settings]); // settings yüklendiğinde çalışır
+
   const handleBrowseClick = async (fieldName: string) => {
     if (window.electronAPI?.openFolderDialog) {
       try {
@@ -141,26 +163,65 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="p-5 space-y-5 max-w-6xl mx-auto">
-      <Modal isOpen={isDepartmentModalOpen} onClose={handleCloseDepartmentModal} title={departmentModalMode === 'add' ? 'Yeni Birim Ekle' : 'Birimi Düzenle'} onConfirm={handleDepartmentSubmit} confirmText="Kaydet" confirmColor="bg-status-blue">
+      <Modal isOpen={isDepartmentModalOpen} onClose={handleCloseDepartmentModal} title={departmentModalMode === 'add' ? 'Yeni Birim Ekle' : 'Birimi Düzenle'} onConfirm={handleDepartmentSubmit} confirmText="Kaydet" confirmColor="bg-teal-600">
         <div className="space-y-4">
           <div>
-            <label htmlFor="department-name-input" className="block text-sm font-medium text-gray-800 dark:text-gray-200">Birim Adı</label>
-            <input id="department-name-input" type="text" name="name" value={currentDepartment.name} onChange={handleDepartmentChange} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"/>
+            <label htmlFor="department-name-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Birim Adı</label>
+            <input id="department-name-input" type="text" name="name" value={currentDepartment.name} onChange={handleDepartmentChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2 bg-white transition-colors duration-200"/>
           </div>
           <div>
-            <label htmlFor="department-code-input" className="block text-sm font-medium text-gray-800 dark:text-gray-200">Birim Kodu</label>
-            <input id="department-code-input" type="text" name="code" value={currentDepartment.code} onChange={handleDepartmentChange} placeholder="Örn: PDO, ENDO" className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"/>
+            <label htmlFor="department-code-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Birim Kodu</label>
+            <input id="department-code-input" type="text" name="code" value={currentDepartment.code} onChange={handleDepartmentChange} placeholder="birim kodunu giriniz" className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2 bg-white transition-colors duration-200 uppercase placeholder:text-xs placeholder:text-gray-400 placeholder:lowercase"/>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Kategori</label>
-            <div className="flex space-x-4 mt-2 p-2 rounded-md bg-gray-100 dark:bg-slate-700">
-              <label className="flex items-center">
-                <input type="radio" name="category" value={Category.Idari} checked={currentDepartment.category === Category.Idari} onChange={handleDepartmentChange} className="w-4 h-4"/>
-                <span className="ml-2">İdari</span>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Kategori</label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className={`
+                relative flex cursor-pointer rounded-lg px-5 py-4 focus:outline-none border transition-all duration-200
+                ${currentDepartment.category === Category.Idari 
+                  ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800' 
+                  : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'}
+              `}>
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="text-sm">
+                      <p className={`font-medium ${currentDepartment.category === Category.Idari ? 'text-teal-900 dark:text-teal-100' : 'text-gray-900 dark:text-gray-100'}`}>
+                        İdari
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`shrink-0 text-teal-600 ${currentDepartment.category === Category.Idari ? 'opacity-100' : 'opacity-0'}`}>
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M8 12l3 3 5-5"></path>
+                    </svg>
+                  </div>
+                </div>
+                <input type="radio" name="category" value={Category.Idari} checked={currentDepartment.category === Category.Idari} onChange={handleDepartmentChange} className="sr-only"/>
               </label>
-              <label className="flex items-center">
-                <input type="radio" name="category" value={Category.Tibbi} checked={currentDepartment.category === Category.Tibbi} onChange={handleDepartmentChange} className="w-4 h-4"/>
-                <span className="ml-2">Tıbbi</span>
+
+              <label className={`
+                relative flex cursor-pointer rounded-lg px-5 py-4 focus:outline-none border transition-all duration-200
+                ${currentDepartment.category === Category.Tibbi 
+                  ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                  : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'}
+              `}>
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="text-sm">
+                      <p className={`font-medium ${currentDepartment.category === Category.Tibbi ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'}`}>
+                        Tıbbi
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`shrink-0 text-green-600 ${currentDepartment.category === Category.Tibbi ? 'opacity-100' : 'opacity-0'}`}>
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M8 12l3 3 5-5"></path>
+                    </svg>
+                  </div>
+                </div>
+                <input type="radio" name="category" value={Category.Tibbi} checked={currentDepartment.category === Category.Tibbi} onChange={handleDepartmentChange} className="sr-only"/>
               </label>
             </div>
           </div>
@@ -173,8 +234,8 @@ export const Settings: React.FC = () => {
 
       <Modal isOpen={isLocationModalOpen} onClose={() => setLocationModalOpen(false)} title="Raf Sayısını Düzenle" onConfirm={handleLocationSubmit} confirmText="Kaydet" confirmColor="bg-status-blue">
         <div>
-          <label htmlFor="shelf-count-input" className="block text-sm font-medium text-gray-800 dark:text-gray-200">Raf Sayısı</label>
-          <input id="shelf-count-input" type="number" min="1" value={newShelfCount} onChange={(e) => setNewShelfCount(Number(e.target.value))} className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"/>
+          <label htmlFor="shelf-count-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Raf Sayısı</label>
+          <input id="shelf-count-input" type="number" min="1" value={newShelfCount} onChange={(e) => setNewShelfCount(Number(e.target.value))} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2 bg-white transition-colors duration-200"/>
         </div>
       </Modal>
 
@@ -194,60 +255,54 @@ export const Settings: React.FC = () => {
 
       {/* Kompakt Ünite Ekleme Modal */}
       <Modal isOpen={isKompaktAddModalOpen} onClose={handleCloseKompaktModal} title="Yeni Kompakt Ünite Ekle" onConfirm={handleKompaktSubmit} confirmText="Ünite Ekle" confirmColor="bg-teal-600">
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Yüz Seçimi</label>
-            <div className="space-y-2">
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  checked={kompaktConfig.hasFaceA} 
-                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceA: e.target.checked}))}
-                  className="w-4 h-4 mr-2"
-                />
-                <span>A Yüzü</span>
-              </label>
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  checked={kompaktConfig.hasFaceB} 
-                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceB: e.target.checked}))}
-                  className="w-4 h-4 mr-2"
-                />
-                <span>B Yüzü</span>
-              </label>
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  checked={kompaktConfig.hasFaceGizli} 
-                  onChange={(e) => setKompaktConfig(prev => ({...prev, hasFaceGizli: e.target.checked}))}
-                  className="w-4 h-4 mr-2"
-                />
-                <span>Gizli Yüzü</span>
-              </label>
+            <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Yüz Seçimi</label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'faceA', label: 'A Yüzü', checked: kompaktConfig.hasFaceA, set: (v: boolean) => setKompaktConfig(prev => ({...prev, hasFaceA: v})) },
+                { id: 'faceB', label: 'B Yüzü', checked: kompaktConfig.hasFaceB, set: (v: boolean) => setKompaktConfig(prev => ({...prev, hasFaceB: v})) },
+                { id: 'faceGizli', label: 'Gizli Yüz', checked: kompaktConfig.hasFaceGizli, set: (v: boolean) => setKompaktConfig(prev => ({...prev, hasFaceGizli: v})) }
+              ].map(face => (
+                <label key={face.id} className={`
+                  flex flex-col items-center justify-center p-3 rounded-lg border cursor-pointer transition-all duration-200
+                  ${face.checked 
+                    ? 'bg-teal-50 border-teal-200 text-teal-700 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-300' 
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-750'}
+                `}>
+                  <input type="checkbox" checked={face.checked} onChange={(e) => face.set(e.target.checked)} className="sr-only" />
+                  <span className={`w-5 h-5 mb-2 rounded border flex items-center justify-center ${face.checked ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300 bg-white'}`}>
+                    {face.checked && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </span>
+                  <span className="text-sm font-medium">{face.label}</span>
+                </label>
+              ))}
             </div>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Yüz Başına Bölüm Sayısı</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Yüz Başına Bölüm</label>
               <input 
                 type="number" 
                 min="1" 
                 max="10" 
                 value={kompaktConfig.sectionsPerFace} 
                 onChange={(e) => setKompaktConfig(prev => ({...prev, sectionsPerFace: Number(e.target.value)}))}
-                className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2.5 bg-white transition-colors"
+                placeholder="Örn: 3"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Bölüm Başına Raf Sayısı</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bölüm Başına Raf</label>
               <input 
                 type="number" 
                 min="1" 
                 max="10" 
                 value={kompaktConfig.shelvesPerSection} 
                 onChange={(e) => setKompaktConfig(prev => ({...prev, shelvesPerSection: Number(e.target.value)}))}
-                className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2.5 bg-white transition-colors"
+                placeholder="Örn: 5"
               />
             </div>
           </div>
@@ -256,17 +311,27 @@ export const Settings: React.FC = () => {
 
       {/* Stand Ekleme Modal */}
       <Modal isOpen={isStandAddModalOpen} onClose={handleCloseStandModal} title="Yeni Stand Ekle" onConfirm={handleStandSubmit} confirmText="Stand Ekle" confirmColor="bg-teal-600">
-        <div>
-          <label className="block text-sm font-medium text-gray-800 dark:text-gray-200">Raf Sayısı</label>
-          <input 
-            type="number" 
-            min="1" 
-            max="20" 
-            value={standShelfCount} 
-            onChange={(e) => setStandShelfCount(Number(e.target.value))}
-            className="mt-1 block w-full p-2 border rounded-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-white"
-          />
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Standın kaç rafa sahip olacağını belirleyin (1-20 arası)</p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Raf Sayısı</label>
+            <div className="relative rounded-md shadow-sm">
+              <input 
+                type="number" 
+                min="1" 
+                max="20" 
+                value={standShelfCount} 
+                onChange={(e) => setStandShelfCount(Number(e.target.value))}
+                className="block w-full rounded-md border-gray-300 focus:border-teal-500 focus:ring-teal-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white sm:text-sm p-2.5 pr-12 bg-white"
+                placeholder="5"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <span className="text-gray-500 sm:text-sm">Adet</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-700/50 p-3 rounded border border-gray-100 dark:border-slate-700">
+            Stand için toplam raf sayısını belirleyin (1-20 arası). Standart standlar genelde 5-6 raflıdır.
+          </p>
         </div>
       </Modal>
 

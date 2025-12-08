@@ -87,18 +87,17 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => 
     });
 
     sse.addEventListener('checkout_created', (e) => {
-      const data = JSON.parse(e.data);
-      toast.success(`Dosya çıkış verildi: ${data.personName || ''}`);
+      // Sadece veriyi refresh et, toast gösterme (çift bildirim önleme)
       refresh();
     });
 
     sse.addEventListener('checkout_returned', (e) => {
-      toast.success('Dosya iade alındı');
+      // Sadece veriyi refresh et, toast gösterme (çift bildirim önleme)
       refresh();
     });
 
     sse.addEventListener('checkout_updated', (e) => {
-      toast.info('Çıkış kaydı güncellendi');
+      // Sadece veriyi refresh et, toast gösterme (çift bildirim önleme)
       refresh();
     });
 

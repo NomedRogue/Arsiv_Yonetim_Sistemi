@@ -23,7 +23,7 @@ class FolderService {
       // Set timestamps
       const folder = {
         ...folderData,
-        id: folderData.id || Date.now(),
+        id: folderData.id || String(Date.now()), // ID'yi string olarak oluştur
         status: folderData.status || 'Arşivde',
         createdAt: new Date(),
         updatedAt: new Date()

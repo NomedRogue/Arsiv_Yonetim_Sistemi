@@ -13,7 +13,13 @@ export const openFileWithSystem = async (filename: string, fileType: 'pdf' | 'ex
     if (window.electronAPI && window.electronAPI.openFile) {
       // Dosya yolunu backend'den al
       const endpoint = fileType === 'pdf' ? '/pdf/pdf-path/' : '/excel/excel-path/';
-      const response = await fetch(getApiUrl(`${endpoint}${filename}`));
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(getApiUrl(`${endpoint}${filename}`), { headers });
       
       if (!response.ok) {
         throw new Error('Dosya bulunamadı');

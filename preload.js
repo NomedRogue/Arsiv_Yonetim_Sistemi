@@ -16,5 +16,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       // Cleanup function
       return () => ipcRenderer.removeAllListeners('update-status');
     }
-  }
+  },
+  
+  // System Params
+  paths: {
+    userData: ipcRenderer.sendSync('get-user-data-path') 
+  },
+  
+  // App Ready Signal
+  signalAppReady: () => ipcRenderer.send('app-ready')
 });

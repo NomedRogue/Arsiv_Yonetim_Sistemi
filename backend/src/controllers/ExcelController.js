@@ -15,7 +15,14 @@ const MIN_DISK_SPACE_BYTES = 100 * 1024 * 1024;
 
 // Get upload middleware for Excel
 function getUploadExcelMiddleware() {
-  const excelFolder = getUserDataPath('Excels');
+  const repos = getRepositories();
+  const settings = repos.config.get('settings');
+  
+  let excelFolder = getUserDataPath('Excels');
+  if (settings && settings.excelKayitKlasoru && settings.excelKayitKlasoru.trim() !== '') {
+    excelFolder = settings.excelKayitKlasoru;
+  }
+
   ensureDirExists(excelFolder);
   
   const storage = multer.diskStorage({
@@ -59,7 +66,13 @@ const excelController = {
   async uploadExcel(req, res, next) {
     try {
       // Check disk space before upload
-      const excelFolder = getUserDataPath('Excels');
+      const repos = getRepositories();
+      const settings = repos.config.get('settings');
+      let excelFolder = getUserDataPath('Excels');
+      if (settings && settings.excelKayitKlasoru) {
+        excelFolder = settings.excelKayitKlasoru;
+      }
+
       const diskSpace = await checkDiskSpace(excelFolder);
       
       if (diskSpace.free < MIN_DISK_SPACE_BYTES) {

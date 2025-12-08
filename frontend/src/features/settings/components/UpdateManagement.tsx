@@ -34,7 +34,7 @@ export const UpdateManagement: React.FC = () => {
         } else if (data.status === 'not-available') {
           setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
           setIsChecking(false);
-          toast.success('Uygulamanız güncel!');
+          toast.info('Uygulamanız güncel. Yeni güncelleme bulunmamaktadır.');
         } else if (data.status === 'downloading') {
           setUpdateStatus(prev => ({ ...prev, status: 'downloading' }));
           setIsDownloading(true);
@@ -47,14 +47,26 @@ export const UpdateManagement: React.FC = () => {
           setIsDownloading(false);
           toast.success('Güncelleme indirildi! Yüklemek için butona tıklayın.');
         } else if (data.status === 'error') {
-          setUpdateStatus(prev => ({
-            status: 'error',
-            message: data.message,
-            currentVersion: prev.currentVersion
-          }));
-          setIsChecking(false);
-          setIsDownloading(false);
-          toast.error(`Güncelleme hatası: ${data.message}`);
+          // 404 hatasını kullanıcı dostu bir mesajla göster
+          const is404 = data.message && (data.message.includes('404') || data.message.includes('no published versions'));
+          
+          if (is404) {
+            // 404 durumunda error status gösterme, sadece bilgilendirme yap
+            setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
+            setIsChecking(false);
+            setIsDownloading(false);
+            toast.info('Uygulamanız güncel. Yeni güncelleme bulunmamaktadır.');
+          } else {
+            // Gerçek hata durumunda error göster
+            setUpdateStatus(prev => ({
+              status: 'error',
+              message: data.message,
+              currentVersion: prev.currentVersion
+            }));
+            setIsChecking(false);
+            setIsDownloading(false);
+            toast.error(`Güncelleme hatası: ${data.message}`);
+          }
         }
       });
 
@@ -74,16 +86,44 @@ export const UpdateManagement: React.FC = () => {
     try {
       const result = await window.electronAPI.updater.checkForUpdates();
       if (!result.success) {
-        throw new Error(result.error || 'Güncelleme kontrolü başarısız');
+        // 404 veya "no published versions" hatası mı kontrol et
+        const is404 = result.error && (
+          result.error.includes('404') || 
+          result.error.includes('no published versions') ||
+          result.error.includes('Yayınlanmış güncelleme bulunamadı')
+        );
+        
+        if (is404) {
+          // 404 durumunda idle status'e dön
+          setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
+          setIsChecking(false);
+          // Event listener zaten toast gösterecek, burada gösterme (çift toast önleme)
+          return;
+        } else {
+          // Gerçek hata
+          throw new Error(result.error || 'Güncelleme kontrolü başarısız');
+        }
       }
     } catch (error: any) {
-      setUpdateStatus(prev => ({
-        status: 'error',
-        message: error.message,
-        currentVersion: prev.currentVersion
-      }));
-      setIsChecking(false);
-      toast.error(`Hata: ${error.message}`);
+      // Sadece gerçek hatalar için error status göster
+      const is404 = error.message && (
+        error.message.includes('404') || 
+        error.message.includes('no published versions') ||
+        error.message.includes('Yayınlanmış güncelleme bulunamadı')
+      );
+      
+      if (!is404) {
+        setUpdateStatus(prev => ({
+          status: 'error',
+          message: error.message,
+          currentVersion: prev.currentVersion
+        }));
+        setIsChecking(false);
+        // Sadece gerçek hatalar için toast göster
+        toast.error(`Güncelleme kontrolü başarısız: ${error.message}`);
+      } else {
+        setIsChecking(false);
+      }
     }
   };
 

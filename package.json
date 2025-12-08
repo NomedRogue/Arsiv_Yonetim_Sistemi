@@ -29,6 +29,8 @@
     "files": [
       "main.js",
       "preload.js",
+      "splash.html",
+      "assets/**/*",
       "dist/**/*",
       "backend/**/*",
       "node_modules/**/*",

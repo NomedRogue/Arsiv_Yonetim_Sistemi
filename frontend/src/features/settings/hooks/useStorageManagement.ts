@@ -25,7 +25,7 @@ export const useStorageManagement = ({
     hasFaceA: true,
     hasFaceB: true,
     hasFaceGizli: false,
-    sectionsPerFace: 2,
+    sectionsPerFace: 3,
     shelvesPerSection: 5,
   };
   const [kompaktConfig, setKompaktConfig] = useState<KompaktUnitConfig>(initialKompaktConfig);

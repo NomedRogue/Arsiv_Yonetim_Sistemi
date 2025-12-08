@@ -15,7 +15,14 @@ const MIN_DISK_SPACE_BYTES = 100 * 1024 * 1024;
 
 // Get upload middleware for PDF
 function getUploadPdfMiddleware() {
-  const pdfFolder = getUserDataPath('PDFs');
+  const repos = getRepositories();
+  const settings = repos.config.get('settings');
+  
+  let pdfFolder = getUserDataPath('PDFs');
+  if (settings && settings.pdfKayitKlasoru && settings.pdfKayitKlasoru.trim() !== '') {
+    pdfFolder = settings.pdfKayitKlasoru;
+  }
+  
   ensureDirExists(pdfFolder);
   
   const storage = multer.diskStorage({
@@ -59,7 +66,13 @@ const pdfController = {
   async uploadPdf(req, res, next) {
     try {
       // Check disk space before upload
-      const pdfFolder = getUserDataPath('PDFs');
+      const repos = getRepositories();
+      const settings = repos.config.get('settings');
+      let pdfFolder = getUserDataPath('PDFs');
+      if (settings && settings.pdfKayitKlasoru) {
+        pdfFolder = settings.pdfKayitKlasoru;
+      }
+
       const diskSpace = await checkDiskSpace(pdfFolder);
       
       if (diskSpace.free < MIN_DISK_SPACE_BYTES) {

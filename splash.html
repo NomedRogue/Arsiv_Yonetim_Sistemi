@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <title>Arşiv Yönetim Sistemi</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: transparent; /* Allows window transparency */
+      font-family: 'Inter', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -18,111 +18,94 @@
       height: 100vh;
       user-select: none;
       overflow: hidden;
-      color: #334155;
+      color: #334155; /* Slate-700 */
     }
     
     .container {
+      width: 320px; /* Fixed width for consistent shape */
       text-align: center;
-      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: fadeIn 0.8s ease-out;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 40px;
+      background: #f8fafc; /* Background moves here */
+      border-radius: 24px; /* Highly rounded corners */
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle border */
     }
     
     .logo-container {
-      position: relative;
-      margin-bottom: 32px;
-      filter: drop-shadow(0 10px 15px rgba(59, 130, 246, 0.15));
+      margin-bottom: 24px;
+      /* Soft shadow for logo */
+      filter: drop-shadow(0 4px 6px rgba(45, 212, 191, 0.2));
     }
     
     .logo {
-      width: 96px;
-      height: 96px;
-      fill: #0f766e; /* Teal-700 similar to app theme */
-      animation: float 3s ease-in-out infinite;
-    }
-
-    /* Soft pulse behind logo */
-    .logo::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 118, 110, 0.2);
-      border-radius: 50%;
-      z-index: -1;
-      top: 0;
-      left: 0;
-      animation: pulse 2s infinite;
+      width: 80px;
+      height: 80px;
+      fill: #0d9488; /* Teal-600 */
     }
 
     h1 {
-      font-size: 28px;
+      font-size: 24px;
       color: #0f172a; /* Slate-900 */
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
       font-weight: 600;
-      letter-spacing: -0.025em;
+      letter-spacing: -0.02em;
     }
     
     p {
-      font-size: 15px;
+      font-size: 14px;
       color: #64748b; /* Slate-500 */
-      margin: 0 0 40px 0;
+      margin: 0 0 32px 0;
       font-weight: 500;
     }
     
     .loading-bar-container {
-      width: 200px;
-      height: 4px;
-      background-color: #e2e8f0;
-      border-radius: 2px;
+      width: 180px;
+      height: 6px; /* Slightly thicker for softer look */
+      background-color: #f1f5f9; /* Slate-100 */
+      border-radius: 99px; /* Fully rounded pill shape */
       overflow: hidden;
     }
 
     .loading-bar {
-      width: 50%;
+      width: 40%;
       height: 100%;
-      background: linear-gradient(90deg, #0f766e, #14b8a6);
-      border-radius: 2px;
+      background: linear-gradient(90deg, #2dd4bf, #0f766e);
+      border-radius: 99px;
       animation: loading 1.5s ease-in-out infinite;
-      transform-origin: 0% 50%;
     }
 
     .footer {
       position: absolute;
-      bottom: 24px;
-      font-size: 12px;
+      bottom: 20px;
+      font-size: 11px;
       color: #94a3b8;
     }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     @keyframes loading {
-      0% { transform: translateX(-100%); }
-      50% { transform: translateX(0%); }
-      100% { transform: translateX(150%); }
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(250%); }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo-container">
-      <!-- Modern Folder Icon -->
       <svg class="logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
          <path d="M20 18H4V8H20M20 6H12L10 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6Z" />
       </svg>
     </div>
     
-    <h1>Arşiv Yönetim Sistemi</h1>
-    <p>Uygulama hazırlanıyor...</p>
+    <h1>Arşiv Yönetim</h1>
+    <p>Uygulama Hazırlanıyor...</p>
     
     <div class="loading-bar-container">
       <div class="loading-bar"></div>
