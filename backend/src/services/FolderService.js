@@ -166,7 +166,21 @@ class FolderService {
   }
 
   /**
+   * Get dashboard statistics (optimized)
+   * Uses database-level aggregation instead of loading all folders
+   */
+  async getDashboardStats() {
+    try {
+      return this.repos.folder.getDashboardStats();
+    } catch (error) {
+      logger.error('[FOLDER_SERVICE] Get dashboard stats error:', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Get all folders for analysis (lightweight)
+   * @deprecated Use getDashboardStats() for better performance
    */
   async getAllForAnalysis() {
     try {

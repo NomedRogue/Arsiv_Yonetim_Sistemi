@@ -155,6 +155,38 @@ function getDbInstance() {
     dbInstance.pragma('journal_mode = WAL');  // Write-Ahead Logging for better concurrency
     dbInstance.pragma('synchronous = NORMAL'); // Balance between safety and speed
     
+    // ===== TURKISH CHARACTER SUPPORT =====
+    // Register custom LOWER function for Turkish characters
+    dbInstance.function('LOWER', (text) => {
+      if (!text) return text;
+      return text
+        .replace(/İ/g, 'i')
+        .replace(/I/g, 'ı')
+        .replace(/Ğ/g, 'ğ')
+        .replace(/Ü/g, 'ü')
+        .replace(/Ş/g, 'ş')
+        .replace(/Ö/g, 'ö')
+        .replace(/Ç/g, 'ç')
+        .toLowerCase();
+    });
+    
+    // Register custom UPPER function for Turkish characters
+    dbInstance.function('UPPER', (text) => {
+      if (!text) return text;
+      return text
+        .replace(/i/g, 'İ')
+        .replace(/ı/g, 'I')
+        .replace(/ğ/g, 'Ğ')
+        .replace(/ü/g, 'Ü')
+        .replace(/ş/g, 'Ş')
+        .replace(/ö/g, 'Ö')
+        .replace(/ç/g, 'Ç')
+        .toUpperCase();
+    });
+    
+    logger.info('[DB] Türkçe karakter desteği eklendi (Custom LOWER/UPPER functions)');
+    // ===== END TURKISH CHARACTER SUPPORT =====
+    
     ensureTables(dbInstance);
     migrate(dbInstance);
     

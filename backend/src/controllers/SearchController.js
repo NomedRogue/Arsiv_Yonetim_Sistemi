@@ -24,9 +24,12 @@ async function searchInExcel(req, res, next) {
     // Get Excel search results (dosyaNo, hastaAdi, kaynak)
     const excelResults = await excelSearchService.searchInExcel(query);
     
-    // Get all folders with Excel files
+    // Get unique filenames from search results
+    const filenames = [...new Set(excelResults.map(r => r.kaynak))];
+    
+    // Get only folders related to found Excel files (Optimized)
     const repos = getRepositories();
-    const folders = repos.folder.getAll().filter(f => f.excelPath);
+    const folders = repos.folder.findByExcelNames(filenames);
     
     // Match Excel files with folders and group matches
     const folderMatches = new Map();

@@ -140,22 +140,22 @@ class FolderRepository extends BaseRepository {
       }
 
       if (clinic) {
-        whereClauses.push('clinic LIKE ?');
+        whereClauses.push('LOWER(clinic) LIKE LOWER(?)');
         params.push(`%${clinic}%`);
       }
 
       if (fileCode) {
-        whereClauses.push('fileCode LIKE ?');
+        whereClauses.push('LOWER(fileCode) LIKE LOWER(?)');
         params.push(`%${fileCode}%`);
       }
 
       if (subject) {
-        whereClauses.push('subject LIKE ?');
+        whereClauses.push('LOWER(subject) LIKE LOWER(?)');
         params.push(`%${subject}%`);
       }
 
       if (specialInfo) {
-        whereClauses.push('specialInfo LIKE ?');
+        whereClauses.push('LOWER(specialInfo) LIKE LOWER(?)');
         params.push(`%${specialInfo}%`);
       }
 
@@ -220,7 +220,173 @@ class FolderRepository extends BaseRepository {
   }
 
   /**
+   * Get dashboard statistics (optimized with database-level aggregation)
+   * Replaces getAllForAnalysis to prevent memory issues with large datasets
+   */
+  getDashboardStats() {
+    try {
+      const db = this.getDb();
+      
+      // Total folders (excluding disposed)
+      const totalQuery = `
+        SELECT COUNT(*) as total
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+      `;
+      const { total } = db.prepare(totalQuery).get();
+      
+      // Category breakdown
+      const categoryQuery = `
+        SELECT category, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY category
+      `;
+      const categoryStats = db.prepare(categoryQuery).all();
+      
+      // Department breakdown
+      const departmentQuery = `
+        SELECT departmentId, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY departmentId
+      `;
+      const departmentStats = db.prepare(departmentQuery).all();
+      
+      // Year breakdown
+      const yearQuery = `
+        SELECT fileYear, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY fileYear
+        ORDER BY fileYear DESC
+      `;
+      const yearStats = db.prepare(yearQuery).all();
+      
+      // Storage type breakdown
+      const storageQuery = `
+        SELECT locationStorageType, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi' AND locationStorageType IS NOT NULL
+        GROUP BY locationStorageType
+      `;
+      const storageStats = db.prepare(storageQuery).all();
+      
+      // Status breakdown
+      const statusQuery = `
+        SELECT status, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY status
+      `;
+      const statusStats = db.prepare(statusQuery).all();
+      
+      // Retention code breakdown
+      const retentionQuery = `
+        SELECT retentionCode, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi' AND retentionCode IS NOT NULL
+        GROUP BY retentionCode
+      `;
+      const retentionStats = db.prepare(retentionQuery).all();
+
+      // --- New Aggregations for StatsService ---
+
+      // 1. Group by Department AND FolderType (for Treemap & Space calculations)
+      // Returns: [{ departmentId: 1, folderType: 'Dar', count: 50 }, ...]
+      const deptTypeQuery = `
+        SELECT departmentId, folderType, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY departmentId, folderType
+      `;
+      const departmentTypeStats = db.prepare(deptTypeQuery).all();
+
+      // 2. Group by StorageType AND FolderType (for Occupancy calculations)
+      // Returns: [{ locationStorageType: 'Kompakt', folderType: 'Geniş', count: 120 }, ...]
+      const storageTypeQuery = `
+        SELECT locationStorageType, folderType, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi' AND locationStorageType IS NOT NULL
+        GROUP BY locationStorageType, folderType
+      `;
+      const storageTypeStats = db.prepare(storageTypeQuery).all();
+
+      // 3. Clinic Distribution
+      const clinicQuery = `
+        SELECT clinic, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi' AND category = 'Tıbbi' AND clinic IS NOT NULL
+        GROUP BY clinic
+        ORDER BY count DESC
+      `;
+      const clinicStats = db.prepare(clinicQuery).all();
+
+      // 4. Monthly Trend (SQLite strftime)
+      // Extracts 'YYYY-MM' from createdAt
+      // Removed date restriction to allow Service to filter by any year
+      const monthlyQuery = `
+        SELECT strftime('%Y-%m', createdAt) as monthYear, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY monthYear
+        ORDER BY monthYear ASC
+      `;
+      const monthlyStats = db.prepare(monthlyQuery).all();
+
+      // 5. Disposal Statistics (Grouping by Disposal Year)
+      // Disposal Year = fileYear + retentionPeriod + 1
+      const currentYear = new Date().getFullYear();
+      const disposalQuery = `
+        SELECT (fileYear + retentionPeriod + 1) as disposalYear, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi'
+        GROUP BY disposalYear
+      `;
+      const disposalStats = db.prepare(disposalQuery).all();
+      
+      return {
+        total,
+        byCategory: categoryStats.reduce((acc, row) => {
+          acc[row.category] = row.count;
+          return acc;
+        }, {}),
+        byDepartment: departmentStats.reduce((acc, row) => {
+          acc[row.departmentId] = row.count;
+          return acc;
+        }, {}),
+        byYear: yearStats.reduce((acc, row) => {
+          acc[row.fileYear] = row.count;
+          return acc;
+        }, {}),
+        byStorageType: storageStats.reduce((acc, row) => {
+          acc[row.locationStorageType] = row.count;
+          return acc;
+        }, {}),
+        byStatus: statusStats.reduce((acc, row) => {
+          acc[row.status] = row.count;
+          return acc;
+        }, {}),
+        byRetentionCode: retentionStats.reduce((acc, row) => {
+          acc[row.retentionCode] = row.count;
+          return acc;
+        }, {}),
+        // New detailed stats
+        byDepartmentType: departmentTypeStats,
+        byStorageTypeType: storageTypeStats,
+        byClinic: clinicStats,
+        byMonth: monthlyStats,
+        byDisposalYear: disposalStats
+      };
+    } catch (error) {
+      logger.error('[FOLDER_REPO] getDashboardStats error:', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Get all folders for analysis (lightweight, no pagination)
+   * @deprecated Use getDashboardStats() instead for better performance
    * İmha edilmiş klasörler hariç
    */
   getAllForAnalysis() {
@@ -326,6 +492,34 @@ class FolderRepository extends BaseRepository {
       return folder;
     } catch (error) {
       logger.error('[FOLDER_REPO] deleteById error:', { error, id });
+      throw error;
+    }
+  }
+
+  /**
+   * Find folders by Excel filenames
+   * Used for optimized search results matching (replaces getAll().filter)
+   */
+  findByExcelNames(filenames) {
+    try {
+      if (!filenames || filenames.length === 0) return [];
+      
+      const db = this.getDb();
+      // SQLite limit for variables is usually 999 or 32766. Safe to batch if needed, but for now direct.
+      const placeholders = filenames.map(() => '?').join(',');
+      
+      // We look for exact match on excelPath OR excelPath ending with filename (if path stored)
+      // But SQL 'IN' only does exact match.
+      // Let's stick to 'IN' for performance. If full path is stored, filenames must match full path.
+      // SearchController logic was f.excelPath === excelResult.kaynak (which is filename).
+      // So we assume excelPath stores just filename.
+      
+      const query = `SELECT * FROM ${this.tableName} WHERE excelPath IN (${placeholders})`;
+      
+      const rows = db.prepare(query).all(...filenames);
+      return rows.map(row => this.deserialize(row));
+    } catch (error) {
+      logger.error('[FOLDER_REPO] findByExcelNames error:', { error, count: filenames?.length });
       throw error;
     }
   }

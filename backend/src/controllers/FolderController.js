@@ -150,6 +150,20 @@ async function getFoldersByLocation(req, res, next) {
 }
 
 /**
+ * Get dashboard stats (aggregated)
+ * GET /api/dashboard/stats
+ */
+async function getDashboardStats(req, res, next) {
+  try {
+    const stats = await folderService.getDashboardStats();
+    res.json(stats);
+  } catch (error) {
+    logger.error('[FOLDER_CONTROLLER] getDashboardStats error:', { error });
+    next(error);
+  }
+}
+
+/**
  * Get all folders for analysis
  * GET /api/all-folders-for-analysis
  */
@@ -186,5 +200,6 @@ module.exports = {
   deleteFolder,
   getFoldersByLocation,
   getAllFoldersForAnalysis,
-  getDisposableFolders
+  getDisposableFolders,
+  getDashboardStats
 };
