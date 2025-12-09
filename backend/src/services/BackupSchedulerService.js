@@ -1,8 +1,8 @@
 const crypto = require('crypto');
-const { getRepositories } = require('./src/database/repositories');
-const { getBackupService } = require('./src/services/BackupService');
-const logger = require('./src/utils/logger');
-const { sseBroadcast } = require('./src/utils/sse');
+const { getRepositories } = require('../database/repositories');
+const { getBackupService } = require('./BackupService');
+const logger = require('../utils/logger');
+const { sseBroadcast } = require('../utils/sse');
 
 function parseHHMM(str) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(str || '');

@@ -114,7 +114,11 @@ class AuthController {
           role: 'admin'
         });
         
-        logger.info('[AUTH] Default admin created: admin / admin123');
+        logger.warn('----------------------------------------------------');
+        logger.warn('[SECURITY WARNING] Default admin account created!');
+        logger.warn('Username: admin / Password: admin123');
+        logger.warn('Please change this password IMMEDIATELY!');
+        logger.warn('----------------------------------------------------');
       }
     } catch (error) {
       logger.error('[AUTH] Ensure admin error', { error });

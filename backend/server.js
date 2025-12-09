@@ -80,7 +80,7 @@ const cors = require('cors');
 // ADIM 7: Uygulama modüllerini yükle
 const { initSse, stopSse } = require('./src/utils/sse');
 const apiRoutes = require('./src/routes');
-const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState } = require('./backupScheduler');
+const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState } = require('./src/services/BackupSchedulerService');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 const { getDbInstance } = require('./src/database/connection');
 const { ensureEnvDefaults: newEnsureEnvDefaults } = require('./src/config/database');

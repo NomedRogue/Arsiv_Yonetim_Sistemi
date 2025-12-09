@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { strictLimiter } = require('../middleware/rateLimiter');
 
 // Public routes
-router.post('/login', (req, res) => authController.login(req, res));
+router.post('/login', strictLimiter, (req, res) => authController.login(req, res));
 
 // Protected routes
 router.post('/change-password', verifyToken, (req, res) => authController.changePassword(req, res));
