@@ -5,7 +5,7 @@
 
 const { getRepositories } = require('../database/repositories');
 const { sseBroadcast } = require('../utils/sse');
-const { clearAutoBackupState } = require('../../backupScheduler');
+const { clearAutoBackupState } = require('../services/BackupSchedulerService');
 const logger = require('../utils/logger');
 
 const configController = {
