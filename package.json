@@ -44,7 +44,13 @@
       "!backend/**/*.db-wal",
       "!backend/**/*.log"
     ],
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*",
+      "**/backend/arsiv.db*", 
+      "**/backend/PDFs/**",
+      "**/backend/Excels/**"
+    ],
     "directories": {
       "buildResources": "assets",
       "output": "release"

@@ -21,48 +21,8 @@ async function searchInExcel(req, res, next) {
       return res.status(400).json({ error: 'Arama sorgusu en az 2 karakter olmalıdır' });
     }
 
-    // Get Excel search results (dosyaNo, hastaAdi, kaynak)
-    const excelResults = await excelSearchService.searchInExcel(query);
-    
-    // Get unique filenames from search results
-    const filenames = [...new Set(excelResults.map(r => r.kaynak))];
-    
-    // Get only folders related to found Excel files (Optimized)
-    const repos = getRepositories();
-    const folders = repos.folder.findByExcelNames(filenames);
-    
-    // Match Excel files with folders and group matches
-    const folderMatches = new Map();
-    
-    for (const excelResult of excelResults) {
-      const matchedFolder = folders.find(f => f.excelPath === excelResult.kaynak);
-      
-      if (matchedFolder) {
-        if (!folderMatches.has(matchedFolder.id)) {
-          folderMatches.set(matchedFolder.id, {
-            ...matchedFolder,
-            matchedDosyaNo: [],
-            matchedHastaAdi: []
-          });
-        }
-        
-        const folderData = folderMatches.get(matchedFolder.id);
-        if (excelResult.dosyaNo) {
-          folderData.matchedDosyaNo.push({
-            sira: excelResult.sira,
-            value: excelResult.dosyaNo
-          });
-        }
-        if (excelResult.hastaAdi) {
-          folderData.matchedHastaAdi.push({
-            sira: excelResult.sira,
-            value: excelResult.hastaAdi
-          });
-        }
-      }
-    }
-    
-    const results = Array.from(folderMatches.values());
+    // Delegate business logic to service layer
+    const results = await excelSearchService.searchAndMatch(query);
     
     logger.info('[SEARCH_CONTROLLER] Excel search completed:', {
       query,

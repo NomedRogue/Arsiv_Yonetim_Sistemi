@@ -1,50 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import '@/styles/liquid-gauge.css';
 import { useArchive } from '@/context/ArchiveContext';
 import { DashboardCard } from './components/DashboardCard';
 import { LocationAnalysis } from './components/LocationAnalysis';
 import { RecentActivityList } from './components/RecentActivityList';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap, AreaChart, Area, Sector, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap } from 'recharts';
 import { Folder, FileText, AlertTriangle, ChevronsRight, BookX, HardDrive, RotateCcw, Trash2, Loader2, Calendar, Clock } from 'lucide-react';
-import { Category, CheckoutStatus, FolderStatus, Log, StorageType, Folder as FolderType, Settings, StorageStructure, DashboardStats } from '@/types';
-import { CustomAreaChartTooltip, CustomizedTreemapContent, CustomPieTooltip, CustomTreemapTooltip } from './utils/chartHelpers';
+import { StorageType } from '@/types';
+import { CustomPieTooltip, CustomTreemapTooltip, CustomizedTreemapContent } from './utils/chartHelpers';
 import { useTheme } from '@/hooks/useTheme';
 import { getCardIconColor, getOccupancyColor, getOccupancyTextClass, THEME_COLORS, getPieChartColors, getChartColors } from '@/lib/theme';
-import { toast } from '@/lib/toast';
-import * as api from '@/api';
 import '@/styles/dashboard-grid.css';
 import { DEFAULT_SETTINGS, INITIAL_STORAGE_STRUCTURE } from '@/constants';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 const basename = (p?: string) => (p ? p.split(/[\\/]/).pop() : undefined);
-
-const initialStats: DashboardStats = {
-  totalFolders: 0,
-  tibbiCount: 0,
-  idariCount: 0,
-  arsivDisindaCount: 0,
-  iadeGecikenCount: 0,
-  buYilImhaEdilenecekCount: 0,
-  gelecekYilImhaEdilenecekCount: 0,
-  imhaSuresiGecenCount: 0,
-  imhaEdilenCount: 0,
-  overallOccupancy: 0,
-  treemapData: [],
-  clinicDistributionData: [],
-  monthlyData: [],
-  availableYears: [],
-  disposalSchedule: [],
-};
-
-// Null-safe stats helper
-const safeStats = (data: Partial<DashboardStats>): DashboardStats => ({
-  ...initialStats,
-  ...data,
-  treemapData: Array.isArray(data?.treemapData) ? data.treemapData : [],
-  clinicDistributionData: Array.isArray(data?.clinicDistributionData) ? data.clinicDistributionData : [],
-  monthlyData: Array.isArray(data?.monthlyData) ? data.monthlyData : [],
-  availableYears: Array.isArray(data?.availableYears) ? data.availableYears : [],
-  disposalSchedule: Array.isArray(data?.disposalSchedule) ? data.disposalSchedule : [],
-});
 
 interface DashboardProps {
   onNavigate: (page: string, params?: any) => void;
@@ -58,7 +28,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     initialBackupLog,
     initialRestoreLog,
     initialCleanupLog,
-    sseConnected,
     lastBackupEvent,
     lastRestoreEvent,
     lastBackupCleanupEvent,
@@ -70,11 +39,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [treemapFilter, setTreemapFilter] = useState<'all' | StorageType.Kompakt | StorageType.Stand>('all');
   const [yearFilter, setYearFilter] = useState<'last12' | number>('last12');
   
-  const [stats, setStats] = useState<DashboardStats>(initialStats);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [analysisFolders, setAnalysisFolders] = useState<Partial<FolderType>[]>([]);
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
+  // Use Custom Hook for Business Logic & Data Fetching
+  const { stats, isLoading, analysisFolders, isAnalysisLoading } = useDashboardStats(treemapFilter, yearFilter);
 
   // Dashboard cards data
   const dashboardCardsData = useMemo(() => [
@@ -88,81 +54,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     { title: "İmha Süresi Geçenler", value: stats.imhaSuresiGecenCount, icon: Clock, onClick: () => onNavigate('İmha', { tab: 'disposable', filter: 'overdue' }) },
     { title: "İmha Edilen", value: stats.imhaEdilenCount, icon: Trash2, onClick: () => onNavigate('İmha', { tab: 'disposed' }) }
   ], [stats, onNavigate]);
-
-
-  useEffect(() => {
-    const fetchAnalysisData = async () => {
-      setIsAnalysisLoading(true);
-      try {
-        const folders = await api.getAllFoldersForAnalysis();
-        setAnalysisFolders(folders);
-      } catch (error: any) {
-        // Sadece gerçek hataları göster, boş veri durumunu değil
-        if (error.message && !error.message.includes('Failed to fetch')) {
-          toast.error(`Analiz verileri alınamadı: ${error.message}`);
-        }
-        setAnalysisFolders([]);
-      } finally {
-        setIsAnalysisLoading(false);
-      }
-    };
-    fetchAnalysisData();
-  }, []);
-
-  const fetchStats = useCallback(async (treemap: string, year: string | number) => {
-    setIsLoading(true);
-    try {
-      const data = await api.getDashboardStats(treemap, String(year));
-      setStats(safeStats(data || {}));
-    } catch (error: any) {
-      // Sadece gerçek hataları göster, boş veri durumunu değil
-      if (error.message && !error.message.includes('Failed to fetch')) {
-        toast.error(error.message || 'İstatistikler alınamadı');
-      }
-      // Hata durumunda bile güvenli varsayılan değerler kullan
-      setStats(initialStats);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-  
-  useEffect(() => {
-    fetchStats(treemapFilter, yearFilter);
-  }, [treemapFilter, yearFilter, fetchStats]);
-  
-  // Track previous values to detect actual changes
-  const prevSseConnected = useRef(sseConnected);
-  const prevBackupEvent = useRef(lastBackupEvent);
-  const prevRestoreEvent = useRef(lastRestoreEvent);
-  const prevCleanupEvent = useRef(lastBackupCleanupEvent);
-  
-  // ArchiveContext üzerinden SSE eventi geldiğinde stats'ı yenile
-  // Not: sseConnected değiştiğinde veya backup/restore eventi olduğunda yenile
-  useEffect(() => {
-    // Sadece gerçek değişikliklerde yenile
-    const connectionChanged = sseConnected && !prevSseConnected.current;
-    const backupChanged = lastBackupEvent !== prevBackupEvent.current;
-    const restoreChanged = lastRestoreEvent !== prevRestoreEvent.current;
-    const cleanupChanged = lastBackupCleanupEvent !== prevCleanupEvent.current;
-    
-    if (connectionChanged || backupChanged || restoreChanged || cleanupChanged) {
-      fetchStats(treemapFilter, yearFilter);
-      api.getAllFoldersForAnalysis().then(setAnalysisFolders).catch(() => {});
-    }
-    
-    // Update refs
-    prevSseConnected.current = sseConnected;
-    prevBackupEvent.current = lastBackupEvent;
-    prevRestoreEvent.current = lastRestoreEvent;
-    prevCleanupEvent.current = lastBackupCleanupEvent;
-  }, [sseConnected, lastBackupEvent, lastRestoreEvent, lastBackupCleanupEvent, treemapFilter, yearFilter, fetchStats]);
-
-  // Log theme changes in development
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('[DASHBOARD] Theme changed to:', theme);
-    }
-  }, [theme]);
 
   const finalLastBackup = useMemo(() => {
     if (lastBackupEvent) {
@@ -187,10 +78,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const bgColor = THEME_COLORS[theme].occupancy.background;
     const progressColor = getOccupancyColor(theme, stats.overallOccupancy);
     const dashArray = `${(stats.overallOccupancy / 100) * 264} 264`;
-    
-    if (import.meta.env.DEV) {
-      console.log('[DASHBOARD] Gauge colors updated:', { theme, bgColor, progressColor, occupancy: stats.overallOccupancy });
-    }
     
     return { bgColor, progressColor, dashArray };
   }, [theme, stats.overallOccupancy]);
@@ -239,6 +126,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     return null;
   }, [lastBackupCleanupEvent, initialCleanupLog]);
   
+  // Pie chart interaction logic
   useEffect(() => {
     if (isPieHovered) return;
     const interval = setInterval(() => {
@@ -247,25 +135,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     return () => clearInterval(interval);
   }, [isPieHovered]);
 
-  const onPieEnter = useCallback((_: any, index: number) => {
-    setIsPieHovered(true);
-    setPieActiveIndex(index);
-  }, []);
-
-  const onPieLeave = useCallback(() => {
-    setIsPieHovered(false);
-  }, []);
-  
-  const occupancyData = [
-    { name: 'Kullanılan', value: stats.overallOccupancy || 0 },
-    { name: 'Boş Alan', value: 100 - (stats.overallOccupancy || 0) },
-  ];
-  
-  // Use centralized theme colors
-  const PIE_COLORS = getPieChartColors(theme, stats.overallOccupancy || 0);
   const SUNBURST_COLORS = getChartColors('sunburst');
 
-  if (isLoading && stats.totalFolders === 0) { // Sadece ilk yüklemede göster
+  if (isLoading && stats.totalFolders === 0) {
     return (
       <div className="p-6 flex justify-center items-center h-[calc(100vh-150px)]">
         <Loader2 className="animate-spin h-12 w-12 text-blue-500" />
@@ -299,6 +171,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Backup Status Cards */}
       <div className="grid grid-cols-3 gap-3 mb-5">
+        {/* Backup Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
             <HardDrive size={16} className="text-blue-600 dark:text-blue-400 mr-2" />
@@ -319,6 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Restore Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
             <RotateCcw size={16} className="text-amber-600 dark:text-amber-400 mr-2" />
@@ -339,6 +213,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Cleanup Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
             <Trash2 size={16} className="text-rose-600 dark:text-rose-400 mr-2" />
@@ -402,7 +277,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={stats.clinicDistributionData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={110} fill="#8884d8" paddingAngle={2}>
+              <Pie 
+                data={stats.clinicDistributionData} 
+                dataKey="value" 
+                nameKey="name" 
+                cx="50%" 
+                cy="50%" 
+                innerRadius={60} 
+                outerRadius={110} 
+                fill="#8884d8" 
+                paddingAngle={2}
+                onMouseEnter={(_, index) => { setIsPieHovered(true); setPieActiveIndex(index); }}
+                onMouseLeave={() => setIsPieHovered(false)}
+              >
                 {stats.clinicDistributionData.map((entry: any, index: number) => (
                   <Cell key={`cell-clinic-${index}`} fill={SUNBURST_COLORS[index % SUNBURST_COLORS.length]} />
                 ))}
@@ -463,7 +350,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             
             {/* Stats Cards */}
             <div key={`stats-${theme}`} className="grid grid-cols-2 gap-6 w-full max-w-md">
-              {/* Dolu Alan Card */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
                 <div className="flex flex-col items-center justify-center text-center gap-1">
                   <div key={`dot-filled-${theme}-${stats.overallOccupancy}`} className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 transition-colors duration-200 ${
@@ -486,7 +372,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
               </div>
               
-              {/* Boş Alan Card */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
                 <div className="flex flex-col items-center justify-center text-center gap-1">
                   <div key={`dot-empty-${theme}`} className="w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
@@ -595,7 +480,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     'hover:bg-gray-50 dark:hover:bg-slate-700 border border-transparent'
                   }`}
                 >
-                  {/* Year */}
                   <div className={`w-16 font-medium flex items-center gap-1 ${
                     item.isOverdue ? 'text-red-600 dark:text-red-300' : 
                     item.isCurrentYear ? 'text-orange-600 dark:text-orange-300' : 
@@ -605,7 +489,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     {item.label || item.year}
                   </div>
                   
-                  {/* Progress Bar */}
                   <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
                     <div 
                       className={`h-full bg-gradient-to-r ${getBarColor()} rounded-full transition-all duration-500`}
@@ -613,7 +496,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     />
                   </div>
                   
-                  {/* Count */}
                   <div className={`w-12 text-right font-semibold ${
                     item.isOverdue ? 'text-red-600 dark:text-red-400' : 
                     item.isCurrentYear ? 'text-orange-600 dark:text-orange-400' : 
@@ -627,7 +509,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           )}
         </div>
         
-        {/* Compact Summary */}
         {stats.disposalSchedule.length > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs">
             <span className="text-gray-500 dark:text-gray-400">Toplam:</span>
@@ -638,7 +519,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* Full Width Location Analysis */}
       <div className="dashboard-card">
         <LocationAnalysis 
           folders={analysisFolders}
@@ -648,7 +528,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         />
       </div>
 
-      {/* Recent Activity */}
       <div className="dashboard-card" style={{ cursor: 'default' }}>
         <RecentActivityList logs={logs} />
       </div>

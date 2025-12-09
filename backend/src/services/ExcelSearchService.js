@@ -265,6 +265,77 @@ class ExcelSearchService {
   }
 
   /**
+   * Search in Excel files and match with Folders database
+   * Encapsulates the join logic to keep Controller clean
+   */
+  async searchAndMatch(query) {
+    try {
+      // 1. Get raw Excel results
+      const excelResults = await this.searchInExcel(query);
+      
+      if (!excelResults.length) return [];
+
+      // 2. Get unique filenames from search results
+      const filenames = [...new Set(excelResults.map(r => r.kaynak))];
+      
+      // 3. Get only folders related to found Excel files (Optimized DB query)
+      const folders = this.repos.folder.findByExcelNames(filenames);
+      
+      // 4. Match Excel files with folders and group matches
+      // Use Map for O(1) lookups instead of array methods inside loop
+      const folderMatches = new Map();
+      
+      // Pre-index folders by excelPath for O(1) lookup
+      const foldersByPath = new Map();
+      folders.forEach(f => {
+        if (f.excelPath) foldersByPath.set(f.excelPath, f);
+      });
+
+      for (const excelResult of excelResults) {
+        // Direct lookup instead of find()
+        const matchedFolder = foldersByPath.get(excelResult.kaynak);
+        
+        if (matchedFolder) {
+          if (!folderMatches.has(matchedFolder.id)) {
+            folderMatches.set(matchedFolder.id, {
+              ...matchedFolder,
+              matchedDosyaNo: [],
+              matchedHastaAdi: []
+            });
+          }
+          
+          const folderData = folderMatches.get(matchedFolder.id);
+          if (excelResult.dosyaNo) {
+            folderData.matchedDosyaNo.push({
+              sira: excelResult.sira,
+              value: excelResult.dosyaNo
+            });
+          }
+          if (excelResult.hastaAdi) {
+            folderData.matchedHastaAdi.push({
+              sira: excelResult.sira,
+              value: excelResult.hastaAdi
+            });
+          }
+        }
+      }
+      
+      const results = Array.from(folderMatches.values());
+      
+      logger.info('[EXCEL_SEARCH_SERVICE] Search/Match completed:', {
+        query,
+        excelMatches: excelResults.length,
+        folderMatches: results.length
+      });
+      
+      return results;
+    } catch (error) {
+      logger.error('[EXCEL_SEARCH_SERVICE] SearchAndMatch error:', { error, query });
+      throw error;
+    }
+  }
+
+  /**
    * List all Excel files
    */
   async listExcelFiles() {
