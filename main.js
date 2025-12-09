@@ -116,55 +116,66 @@ function startBackendServer() {
     return Promise.resolve(); // Development'ta backend npm script ile başlatılır
   }
 
-  logger.info('[BACKEND] Production modu - Backend doğrudan başlatılıyor...');
+  logger.info('[BACKEND] Production modu - Backend Child Process olarak başlatılıyor...');
   
-  try {
-    // Backend'i doğrudan require ile başlat (aynı process içinde)
-    // Bu yaklaşım native modüllerle en uyumlu yöntemdir
-    const { startServer } = require('./backend/server');
-    
-    return startServer().then((server) => {
-      logger.info('[BACKEND] ✓ Backend başarıyla başlatıldı, port:', server.address().port);
-      return server;
-    }).catch((err) => {
-      logger.error('[BACKEND] ✗ Backend başlatılamadı:', err);
-      writeLog('[BACKEND] Backend başlatma hatası', err);
+  return new Promise((resolve, reject) => {
+    try {
+      const backendScript = path.join(__dirname, 'backend', 'server.js');
       
-      const errorDetails = [
-        'Backend sunucu başlatılamadı.',
-        '',
-        `Hata: ${err.message}`,
-        '',
-        'Detaylar:',
-        `- DB Path: ${dbPath}`,
-        `- User Data: ${userDataPath}`,
-        '',
-        'Lütfen uygulamayı yeniden başlatın.'
-      ].join('\n');
+      // Fork backend process with dedicated environment
+      const { fork } = require('child_process');
+      backendProcess = fork(backendScript, ['--subprocess'], {
+        env: { 
+          ...process.env, 
+          NODE_ENV: 'production',
+          USER_DATA_PATH: userDataPath,
+          DB_PATH: dbPath
+        },
+        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+      });
+
+      // Redirect stdout/stderr to main logger
+      if (backendProcess.stdout) {
+        backendProcess.stdout.on('data', (data) => {
+          const str = data.toString().trim();
+          if (str) logger.info(`[BACKEND] ${str}`);
+        });
+      }
       
-      dialog.showErrorBox('Backend Hatası', errorDetails);
-      throw err;
-    });
-    
-  } catch (err) {
-    logger.error('[BACKEND] ✗ Backend require hatası:', err);
-    writeLog('[BACKEND] Backend require hatası', err);
-    
-    const errorDetails = [
-      'Backend modülü yüklenemedi.',
-      '',
-      `Hata: ${err.message}`,
-      '',
-      'Detaylar:',
-      `- DB Path: ${dbPath}`,
-      `- User Data: ${userDataPath}`,
-      '',
-      'Lütfen uygulamayı yeniden başlatın.'
-    ].join('\n');
-    
-    dialog.showErrorBox('Backend Hatası', errorDetails);
-    return Promise.reject(err);
-  }
+      if (backendProcess.stderr) {
+        backendProcess.stderr.on('data', (data) => {
+          const str = data.toString().trim();
+          if (str) logger.error(`[BACKEND-ERR] ${str}`);
+        });
+      }
+
+      // Listen for port message from backend
+      backendProcess.on('message', (msg) => {
+        if (msg && msg.type === 'backend-ready') {
+          logger.info(`[BACKEND] Backend servisi hazır. Port: ${msg.port}`);
+          global.backendPort = msg.port;
+          resolve(msg.port);
+        }
+      });
+
+      backendProcess.on('error', (err) => {
+        logger.error('[BACKEND] Process başlatma hatası:', err);
+        reject(err);
+      });
+
+      backendProcess.on('exit', (code, signal) => {
+        if (code !== 0 && code !== null) {
+          logger.error(`[BACKEND] Process beklenmedik şekilde kapandı. Kod: ${code}, Sinyal: ${signal}`);
+          // Eğer uygulama kapanmıyorsa reject et
+          if (!isQuitting) reject(new Error(`Backend exited with code ${code}`));
+        }
+      });
+
+    } catch (err) {
+      logger.error('[BACKEND] Fork hatası:', err);
+      reject(err);
+    }
+  });
 }
 
 // Veritabanı hazırlama
@@ -227,6 +238,9 @@ async function createWindow() {
     const indexPath = path.join(__dirname, 'dist', 'index.html');
     logger.info(`[ELECTRON] Loading index from: ${indexPath}`);
     
+    // Inject port via query params if available
+    const loadOptions = global.backendPort ? { search: `?port=${global.backendPort}` } : {};
+
     if (!fs.existsSync(indexPath)) {
       logger.error(`[ELECTRON] Index file not found: ${indexPath}`);
       writeLog(`[ELECTRON] Index file not found: ${indexPath}`);
@@ -234,12 +248,12 @@ async function createWindow() {
       const altPath = path.join(__dirname, 'frontend', 'dist', 'index.html');
       if (fs.existsSync(altPath)) {
         logger.info(`[ELECTRON] Using alternative path: ${altPath}`);
-        await mainWindow.loadFile(altPath);
+        await mainWindow.loadFile(altPath, loadOptions);
       } else {
         throw new Error('Frontend dist klasörü bulunamadı');
       }
     } else {
-      await mainWindow.loadFile(indexPath);
+      await mainWindow.loadFile(indexPath, loadOptions);
     }
     // Debugging for production: Open dev tools
     mainWindow.webContents.openDevTools();

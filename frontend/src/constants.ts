@@ -4,9 +4,16 @@ import { Department, Category, StorageStructure, Settings } from './types';
 const isElectron = typeof window !== 'undefined' && 
   (window.location.protocol === 'file:' || navigator.userAgent.includes('Electron'));
 
+// Port dynamic discovery via URL params (injected by main process)
+const getPort = () => {
+  if (typeof window === 'undefined') return '3001';
+  const params = new URLSearchParams(window.location.search);
+  return params.get('port') || '3001';
+};
+
 // API URL - Production (Electron) veya Development için
 export const API_BASE_URL: string = isElectron
-  ? 'http://localhost:3001/api'  // Electron'dan çalışıyorsa direkt backend'e bağlan
+  ? `http://localhost:${getPort()}/api`  // Electron'dan çalışıyorsa direkt backend'e bağlan
   : '/api';  // Browser'dan çalışıyorsa Vite proxy kullan
 
 // Timeout and interval settings

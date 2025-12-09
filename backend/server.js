@@ -343,11 +343,22 @@ function startServer() {
 // Server'ı export et veya doğrudan başlat
 module.exports = { startServer, app };
 
-// Eğer doğrudan çalıştırılıyorsa (node server.js)
-if (require.main === module) {
+// Eğer doğrudan çalıştırılıyorsa (node server.js) veya Child Process ise (--subprocess)
+if (require.main === module || process.argv.includes('--subprocess')) {
+  const isSubprocess = process.argv.includes('--subprocess');
+
   if (process.env.NODE_ENV !== 'production') console.log('[SERVER] About to call startServer()...');
+  
   startServer().then((server) => {
-    if (process.env.NODE_ENV !== 'production') console.log('[SERVER] startServer() completed successfully, server is listening');
+    const address = server.address();
+    const port = address ? address.port : null;
+
+    if (process.env.NODE_ENV !== 'production') console.log(`[SERVER] startServer() completed successfully, server is listening on port ${port}`);
+
+    // Eğer Child Process ise, port bilgisini parent process'e (Main) bildir
+    if (isSubprocess && process.send) {
+      process.send({ type: 'backend-ready', port });
+    }
   }).catch((error) => {
     console.error('[SERVER] startServer() failed with error:', error);
     logger.error('Server başlatma exception:', error);
