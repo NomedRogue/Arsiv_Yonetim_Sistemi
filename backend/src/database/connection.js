@@ -156,12 +156,9 @@ function getDbInstance() {
     dbInstance.pragma('synchronous = NORMAL'); // Balance between safety and speed
     
     // ===== TURKISH COLLATION SUPPORT =====
-    // Register custom Collation for Turkish sorting (ORDER BY name COLLATE tr_TR)
-    // This fixes sorting issues with characters like İ, ı, Ş, ş, Ğ, ğ
-    dbInstance.collate('tr_TR', (a, b) => {
-      // Use Intl.Collator for correct Turkish sorting
-      return new Intl.Collator('tr-TR', { sensitivity: 'base', numeric: true }).compare(a, b);
-    });
+    // Note: Custom collation requires native binding support which might be missing.
+    // We rely on custom LOWER function for generic Turkish support.
+
     
     // ===== TURKISH CHARACTER SUPPORT =====
     // Register custom LOWER function for Turkish characters
