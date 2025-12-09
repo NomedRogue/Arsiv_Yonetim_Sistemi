@@ -2,11 +2,14 @@
 // BACKEND SERVER - ARŞİV YÖNETİM SİSTEMİ
 // ============================================================
 
-// ADIM 1: Core Node.js modülleri
+// ADIM 1: Load environment variables first
+require('dotenv').config();
+
+// ADIM 2: Core Node.js modülleri
 const fs = require('fs');
 const path = require('path');
 
-// ADIM 2: Environment değişkenlerini ayarla
+// ADIM 3: Environment değişkenlerini ayarla
 const isDev = process.env.NODE_ENV !== 'production';
 
 // Ortam değişkenlerini guarantee et
@@ -298,14 +301,36 @@ function startServer() {
     // Unhandled errors
     process.on('uncaughtException', (error) => {
       logger.error('[BACKEND] Uncaught Exception:', { error });
-      // Graceful shutdown
+      
+      // Set a timeout to force exit if graceful shutdown hangs
+      const shutdownTimeout = setTimeout(() => {
+        logger.error('[BACKEND] Graceful shutdown timeout - forcing exit');
+        process.exit(1);
+      }, 10000); // 10 second timeout
+      
+      // Attempt graceful shutdown
       server.close(() => {
+        clearTimeout(shutdownTimeout);
+        try {
+          const { closeDb } = require('./src/database/connection');
+          closeDb();
+          logger.info('[BACKEND] Database closed after uncaught exception');
+        } catch (e) { 
+          logger.error('[BACKEND] Error closing database:', { error: e });
+        }
+        process.exit(1);
+      });
+      
+      // If server.close() doesn't trigger callback (no active connections), force exit
+      setTimeout(() => {
+        logger.warn('[BACKEND] No active connections, forcing exit');
+        clearTimeout(shutdownTimeout);
         try {
           const { closeDb } = require('./src/database/connection');
           closeDb();
         } catch (e) { /* ignore */ }
         process.exit(1);
-      });
+      }, 1000);
     });
 
     process.on('unhandledRejection', (reason, promise) => {

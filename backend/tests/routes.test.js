@@ -4,6 +4,10 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+
+// Set JWT_SECRET for tests before importing authMiddleware
+process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-minimum-32-characters-long';
+
 const { JWT_SECRET } = require('../src/middleware/authMiddleware');
 
 // These will be initialized in beforeAll after modules are reset

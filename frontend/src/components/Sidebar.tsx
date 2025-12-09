@@ -70,12 +70,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside
       className={`bg-gray-50 dark:bg-slate-800 flex flex-col shadow-lg ease-in-out ${
         isOpen ? 'w-64' : 'w-20'
-      } h-screen sticky top-0 transition-width duration-300 z-40`}
+      } sticky top-0 transition-width duration-300 z-40`}
+      style={{ height: 'calc(100vh - 40px)' }} // Subtract title bar height
     >
       <div
         className={`layout-header border-b border-gray-200 dark:border-slate-700 px-4 transition-colors duration-300 ${
           isOpen ? 'justify-start' : 'justify-center'
         }`}
+        style={{ height: '56px' }} // Same as header height
       >
         <ArchiveIcon className="text-archive-primary flex-shrink-0" style={{ width: '1.75em', height: '1.75em' }} />
         {isOpen && (
@@ -161,9 +163,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Çıkış Yap
              </span>
         </button>
-        <div className={`mt-4 text-center text-xs text-gray-500 dark:text-slate-400 ${!isOpen && 'hidden'}`}>
-             <p>Arşiv Yönetim Sistemi</p>
-             <p>© 2025</p>
+        <div className={`mt-2 text-center text-xs text-gray-500 dark:text-slate-400 ${!isOpen && 'hidden'}`}>
+             <p className="leading-tight">Arşiv Yönetim Sistemi</p>
+             <p className="leading-tight">© 2025</p>
         </div>
       </div>
     </aside>

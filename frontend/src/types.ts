@@ -274,6 +274,25 @@ export interface ArchiveContextType extends ArchiveState {
   setFolders: (folders: Folder[]) => void;
 }
 
+// Chart Data Types
+export interface TreemapDataItem {
+  name: string;
+  value: number;
+  category?: string;
+}
+
+export interface ClinicDistributionItem {
+  name: string;
+  value: number;
+  percentage?: number;
+}
+
+export interface MonthlyDataItem {
+  month: string;
+  count: number;
+  year?: number;
+}
+
 // Dashboard Stats Interface
 export interface DashboardStats {
   totalFolders: number;
@@ -286,9 +305,9 @@ export interface DashboardStats {
   imhaSuresiGecenCount: number;
   imhaEdilenCount: number;
   overallOccupancy: number;
-  treemapData: any[];
-  clinicDistributionData: any[];
-  monthlyData: any[];
+  treemapData: TreemapDataItem[];
+  clinicDistributionData: ClinicDistributionItem[];
+  monthlyData: MonthlyDataItem[];
   availableYears: number[];
   disposalSchedule: { year: number; count: number; isCurrentYear: boolean; isOverdue: boolean; label?: string }[];
 }

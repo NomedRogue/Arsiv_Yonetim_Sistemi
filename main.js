@@ -5,6 +5,9 @@ const fs = require('fs');
 const logger = require('./backend/src/utils/logger');
 const { autoUpdater } = require('electron-updater');
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 // Tek instance kilidi
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -72,6 +75,31 @@ app.on('before-quit', (event) => {
     logger.error('[CLEANUP] Backend process sonlandırılamadı', { error: err });
   }
 });
+
+// Generate JWT secret if not exists (for first-time setup)
+if (!process.env.JWT_SECRET) {
+  const crypto = require('crypto');
+  
+  // Generate a secure random secret
+  const jwtSecret = crypto.randomBytes(32).toString('hex');
+  
+  // Save to .env file in user data directory
+  const envPath = path.join(userDataPath, '.env');
+  
+  let envContent = '';
+  if (fs.existsSync(envPath)) {
+    envContent = fs.readFileSync(envPath, 'utf8');
+  }
+  
+  if (!envContent.includes('JWT_SECRET=')) {
+    envContent += `\nJWT_SECRET=${jwtSecret}\n`;
+    fs.writeFileSync(envPath, envContent);
+    logger.info('[SECURITY] Generated new JWT_SECRET and saved to .env');
+  }
+  
+  // Set the environment variable for current process
+  process.env.JWT_SECRET = jwtSecret;
+}
 
 // Ortam değişkenleri
 process.env.DB_PATH = dbPath;
@@ -165,6 +193,8 @@ async function createWindow() {
     minWidth: 1024,
     minHeight: 768,
     icon: path.join(__dirname, 'assets', 'icon.ico'),
+    frame: false, // Frameless window - özel title bar için
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -174,7 +204,9 @@ async function createWindow() {
       allowRunningInsecureContent: false
     },
     autoHideMenuBar: true,
-    show: false
+    show: false,
+    backgroundColor: '#f8fafc', // Light theme background
+    center: true // Ekranın ortasında aç
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -375,6 +407,42 @@ ipcMain.handle('pdf:saveToDownloads', async (event, fileName, base64Data) => {
   } catch (e) {
     logger.error('[PDF ERROR]', { error: e.message, fileName });
     return { success: false, error: e.message };
+  }
+});
+
+// Window control IPC handlers (for custom title bar)
+ipcMain.handle('window:minimize', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.minimize();
+});
+
+ipcMain.handle('window:maximize', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+
+ipcMain.handle('window:close', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.close();
+});
+
+ipcMain.handle('window:isMaximized', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  return win ? win.isMaximized() : false;
+});
+
+// Resize window for main app (after login)
+ipcMain.handle('window:resizeForApp', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.setSize(1400, 900);
+    win.center();
   }
 });
 

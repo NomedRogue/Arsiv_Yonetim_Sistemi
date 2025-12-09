@@ -1,8 +1,17 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 
-// Secret key should be in env vars, but using a default for simplicity if missing
-const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar-degistirilmeli-123456';
+// JWT Secret MUST be provided via environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  logger.error('[FATAL] JWT_SECRET environment variable is not set. Application cannot start.');
+  throw new Error('JWT_SECRET environment variable is required for security. Please set it in your environment or .env file.');
+}
+
+if (JWT_SECRET.length < 32) {
+  logger.warn('[SECURITY] JWT_SECRET is too short. Recommended minimum length is 32 characters.');
+}
 
 const verifyToken = (req, res, next) => {
   // Option requests for CORS are always allowed
@@ -16,13 +25,13 @@ const verifyToken = (req, res, next) => {
     '/api/auth/setup', // First time setup if needed
     '/api/status',
     '/api/health',
-    '/api/all-data', // Settings ve initial data için
     '/'
+    // REMOVED: '/api/all-data' - Now requires authentication to protect sensitive config data
   ];
 
   // Check if path starts with any of these patterns (for dynamic routes)
   const publicPathPatterns = [
-    '/api/search/',
+    // REMOVED: '/api/search/' - Now requires authentication to prevent data leakage
     '/api/pdf/pdf-path/',
     '/api/pdf/serve-pdf/',
     '/api/excel/excel-path/',

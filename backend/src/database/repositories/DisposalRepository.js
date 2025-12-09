@@ -36,13 +36,18 @@ class DisposalRepository extends BaseRepository {
 
   /**
    * Get disposals for specific folder
+   * OPTIMIZED: Uses SQLite JSON operators for filtering at database level
    */
   getByFolderId(folderId) {
     try {
       const db = this.getDb();
-      const rows = db.prepare(`SELECT * FROM ${this.tableName}`).all();
-      const disposals = rows.map(row => this.deserialize(row));
-      return disposals.filter(d => d.folderId === folderId);
+      // Use SQLite json_extract to filter at database level
+      const rows = db.prepare(`
+        SELECT * FROM ${this.tableName} 
+        WHERE json_extract(data, '$.folderId') = ?
+      `).all(folderId);
+      
+      return rows.map(row => this.deserialize(row));
     } catch (error) {
       logger.error('[DISPOSAL_REPO] getByFolderId error:', { error, folderId });
       throw error;

@@ -101,7 +101,7 @@ async function performBackupToFolder(reason = 'manual') {
     const output = fs.createWriteStream(zipDest);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
-    await new Promise((resolve, reject) => {
+    await new Promise(async (resolve, reject) => {
       output.on('close', resolve);
       output.on('error', reject);
       archive.on('error', reject);
@@ -118,12 +118,12 @@ async function performBackupToFolder(reason = 'manual') {
       // Veritabanını ekle
       archive.file(tempDbPath, { name: 'arsiv.db' });
 
-      // PDF ve Excel klasörlerini ekle (varsa)
+      // PDF ve Excel klasörlerini ekle (varsa) - ASYNC operations
       const pdfsPath = getUserDataPath('PDFs');
       const excelsPath = getUserDataPath('Excels');
 
       if (fs.existsSync(pdfsPath)) {
-        const pdfFiles = fs.readdirSync(pdfsPath);
+        const pdfFiles = await fsPromises.readdir(pdfsPath); // ASYNC
         if (pdfFiles.length > 0) {
           archive.directory(pdfsPath, 'PDFs');
           logger.info(`[BACKUP] PDF klasörü eklendi: ${pdfFiles.length} dosya`);
@@ -131,7 +131,7 @@ async function performBackupToFolder(reason = 'manual') {
       }
 
       if (fs.existsSync(excelsPath)) {
-        const excelFiles = fs.readdirSync(excelsPath);
+        const excelFiles = await fsPromises.readdir(excelsPath); // ASYNC
         if (excelFiles.length > 0) {
           archive.directory(excelsPath, 'Excels');
           logger.info(`[BACKUP] Excel klasörü eklendi: ${excelFiles.length} dosya`);

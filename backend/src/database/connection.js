@@ -51,6 +51,13 @@ function ensureTables(db) {
     CREATE INDEX IF NOT EXISTS idx_folders_locationStorageType ON folders(locationStorageType);
     CREATE INDEX IF NOT EXISTS idx_folders_composite ON folders(status, category, departmentId);
 
+    -- JSON indexes for checkouts table (for optimized queries)
+    CREATE INDEX IF NOT EXISTS idx_checkouts_status ON checkouts(json_extract(data, '$.status'));
+    CREATE INDEX IF NOT EXISTS idx_checkouts_folderId ON checkouts(json_extract(data, '$.folderId'));
+
+    -- JSON indexes for disposals table (for optimized queries)
+    CREATE INDEX IF NOT EXISTS idx_disposals_folderId ON disposals(json_extract(data, '$.folderId'));
+
     -- FTS5 Virtual Table for Fast Search
     CREATE VIRTUAL TABLE IF NOT EXISTS folders_fts USING fts5(
         id UNINDEXED, 

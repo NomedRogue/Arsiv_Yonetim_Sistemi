@@ -15,7 +15,7 @@ interface ErrorLog {
 interface BreadcrumbEntry {
   timestamp: string;
   action: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface PerformanceMetrics {
@@ -44,7 +44,7 @@ class ErrorLogger {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  addBreadcrumb(action: string, data?: any): void {
+  addBreadcrumb(action: string, data?: unknown): void {
     const breadcrumb: BreadcrumbEntry = {
       timestamp: new Date().toISOString(),
       action,
@@ -58,11 +58,21 @@ class ErrorLogger {
     }
   }
 
-  logError(error: Error, componentStack?: string, severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
+  logError(error: unknown, componentStack?: string, severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
+    // Convert unknown error to Error object
+    let errorObj: Error;
+    if (error instanceof Error) {
+      errorObj = error;
+    } else if (typeof error === 'string') {
+      errorObj = new Error(error);
+    } else {
+      errorObj = new Error(String(error));
+    }
+
     const errorLog: ErrorLog = {
       timestamp: new Date().toISOString(),
-      message: error.message,
-      stack: error.stack,
+      message: errorObj.message,
+      stack: errorObj.stack,
       userAgent: navigator.userAgent,
       url: window.location.href,
       componentStack,
@@ -136,7 +146,7 @@ class ErrorLogger {
     }
   }
 
-  logUserAction(action: string, data?: any): void {
+  logUserAction(action: string, data?: unknown): void {
     if (process.env.NODE_ENV === 'development') {
       if (import.meta.env.DEV) console.log(`User Action: ${action}`, data);
     }

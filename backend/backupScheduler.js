@@ -1,6 +1,6 @@
 const crypto = require('crypto');
-const dbManager = require('./dbAdapter'); // Legacy compatibility
-const { performBackupToFolder } = require('./backup');
+const { getRepositories } = require('./src/database/repositories');
+const { getBackupService } = require('./src/services/BackupService');
 const logger = require('./src/utils/logger');
 const { sseBroadcast } = require('./src/utils/sse');
 
@@ -12,7 +12,8 @@ function parseHHMM(str) {
 
 function clearAutoBackupState() {
   try {
-    dbManager.setConfig('autoBackupState', {});
+    const repos = getRepositories();
+    repos.config.set('autoBackupState', {});
     logger.info('[AUTO BACKUP] State cleared due to settings change or restore.');
   } catch (e) {
     logger.error('[AUTO BACKUP] Clear state error:', { error: e });
@@ -103,8 +104,9 @@ function startAutoBackupScheduler() {
     try {
       if (autoBackupRunning) return;
 
-      const settings = dbManager.getConfig('settings') || {};
-      const state = dbManager.getConfig('autoBackupState') || {};
+      const repos = getRepositories();
+      const settings = repos.config.get('settings') || {};
+      const state = repos.config.get('autoBackupState') || {};
       const now = new Date();
 
       // Her 5 dakikada bir durum logu
@@ -127,20 +129,24 @@ function startAutoBackupScheduler() {
           lastAuto: state.lastAutoIso || 'never'
         });
         
-        const dest = await performBackupToFolder('auto');
+        // NEW: Use BackupService instead of legacy backup.js
+        const backupService = getBackupService();
+        const result = await backupService.createBackup('Otomatik');
         
         const newState = {
           // Bir sonraki kontrol için bu anın zaman damgasını kaydet
           lastAutoIso: new Date().toISOString(),
         };
-        dbManager.setConfig('autoBackupState', newState);
+        repos.config.set('autoBackupState', newState);
         
-        logger.info('[AUTO BACKUP] Completed:', { dest, state: newState });
+        logger.info('[AUTO BACKUP] Completed:', { path: result.path, state: newState });
         
         // SSE ile frontend'e bildirim gönder
         sseBroadcast('backup_completed', {
           type: 'Otomatik',
-          file: dest,
+          file: result.path,
+          name: result.name,
+          size: result.size,
           timestamp: new Date().toISOString()
         });
         
@@ -149,15 +155,17 @@ function startAutoBackupScheduler() {
     } catch (e) {
       autoBackupRunning = false;
       logger.error('[AUTO BACKUP] Error:', { error: e });
-      dbManager.addLog({ type: 'backup_error', details: `Otomatik yedekleme başarısız oldu: ${e.message}` });
+      const repos = getRepositories();
+      repos.log.addLog({ type: 'backup_error', details: `Otomatik yedekleme başarısız oldu: ${e.message}` });
     }
   }, 60 * 1000); // Check every 60 seconds
 }
 
 function initAutoBackupState() {
   try {
-    const state = dbManager.getConfig('autoBackupState') || {};
-    const settings = dbManager.getConfig('settings') || {};
+    const repos = getRepositories();
+    const state = repos.config.get('autoBackupState') || {};
+    const settings = repos.config.get('settings') || {};
     logger.info('[AUTO BACKUP] Current state:', {
       lastAutoIso: state.lastAutoIso,
       currentSettings: {

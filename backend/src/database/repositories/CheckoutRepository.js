@@ -50,13 +50,18 @@ class CheckoutRepository extends BaseRepository {
 
   /**
    * Get active checkouts (status = 'Çıkışta')
+   * OPTIMIZED: Uses SQLite JSON operators for filtering at database level
    */
   getActiveCheckouts() {
     try {
       const db = this.getDb();
-      const rows = db.prepare(`SELECT * FROM ${this.tableName}`).all();
-      const checkouts = rows.map(row => this.deserialize(row));
-      return checkouts.filter(c => c.status === 'Çıkışta');
+      // Use SQLite json_extract to filter at database level instead of in memory
+      const rows = db.prepare(`
+        SELECT * FROM ${this.tableName} 
+        WHERE json_extract(data, '$.status') = ?
+      `).all('Çıkışta');
+      
+      return rows.map(row => this.deserialize(row));
     } catch (error) {
       logger.error('[CHECKOUT_REPO] getActiveCheckouts error:', { error });
       throw error;
@@ -65,13 +70,18 @@ class CheckoutRepository extends BaseRepository {
 
   /**
    * Get checkouts for specific folder
+   * OPTIMIZED: Uses SQLite JSON operators for filtering at database level
    */
   getByFolderId(folderId) {
     try {
       const db = this.getDb();
-      const rows = db.prepare(`SELECT * FROM ${this.tableName}`).all();
-      const checkouts = rows.map(row => this.deserialize(row));
-      return checkouts.filter(c => c.folderId === folderId);
+      // Use SQLite json_extract to filter at database level
+      const rows = db.prepare(`
+        SELECT * FROM ${this.tableName} 
+        WHERE json_extract(data, '$.folderId') = ?
+      `).all(folderId);
+      
+      return rows.map(row => this.deserialize(row));
     } catch (error) {
       logger.error('[CHECKOUT_REPO] getByFolderId error:', { error, folderId });
       throw error;

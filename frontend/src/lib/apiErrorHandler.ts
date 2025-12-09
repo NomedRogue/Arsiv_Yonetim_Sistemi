@@ -9,7 +9,7 @@ interface ApiError {
 }
 
 export const handleApiError = (
-  error: any, 
+  error: unknown, 
   userMessage: string,
   severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'
 ): void => {
@@ -19,10 +19,14 @@ export const handleApiError = (
   // Extract meaningful error message
   let displayMessage = userMessage;
   
-  if (error.response?.data?.error) {
-    displayMessage = error.response.data.error;
-  } else if (error.message) {
-    displayMessage = error.message;
+  // Type guard for error object
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, any>;
+    if (err.response?.data?.error) {
+      displayMessage = err.response.data.error;
+    } else if (err.message && typeof err.message === 'string') {
+      displayMessage = err.message;
+    }
   }
   
   // Show user-friendly toast

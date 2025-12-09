@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 import { useBackendStatus } from '@/hooks/useBackendStatus';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { TitleBar } from '@/components/TitleBar';
 import { ToastHost } from '@/components/Toast';
 import { EnhancedErrorBoundary } from '@/components/EnhancedErrorBoundary';
 import UpdateNotification from '@/components/UpdateNotification';
@@ -160,7 +161,9 @@ const AuthWrapper: React.FC = () => {
 
     return (
       <ArchiveProvider>
-        <div className="h-screen flex bg-archive-light-bg dark:bg-archive-dark-bg text-slate-800 dark:text-slate-200 transition-colors duration-300">
+        <div className="h-screen flex flex-col bg-archive-light-bg dark:bg-archive-dark-bg text-slate-800 dark:text-slate-200 transition-colors duration-300">
+          <TitleBar title={getPageTitle()} theme={theme} />
+          <div className="flex flex-1 overflow-hidden">
           <Sidebar
             isOpen={isSidebarOpen}
             onAddNewFolder={handleAddNewFolder}
@@ -207,6 +210,7 @@ const AuthWrapper: React.FC = () => {
               </EnhancedErrorBoundary>
             </main>
           </div>
+          </div> {/* Close flex container */}
         </div>
 
 

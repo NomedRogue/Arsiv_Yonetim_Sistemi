@@ -4,6 +4,7 @@
  */
 
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 const xlsx = require('xlsx');
 const { getRepositories } = require('../database/repositories');
@@ -178,7 +179,7 @@ class ExcelSearchService {
         return [];
       }
 
-      const files = fs.readdirSync(excelFolder)
+      const files = (await fsPromises.readdir(excelFolder)) // ASYNC
         .filter(f => f.toLowerCase().endsWith('.xlsx') || f.toLowerCase().endsWith('.xls'));
 
       logger.info('[EXCEL_SEARCH_SERVICE] Searching in files:', {
@@ -274,18 +275,21 @@ class ExcelSearchService {
         return [];
       }
 
-      const files = fs.readdirSync(excelFolder)
-        .filter(f => f.toLowerCase().endsWith('.xlsx') || f.toLowerCase().endsWith('.xls'))
-        .map(f => {
-          const filePath = path.join(excelFolder, f);
-          const stat = fs.statSync(filePath);
-          return {
-            name: f,
-            path: filePath,
-            size: stat.size,
-            modified: stat.mtime
-          };
-        });
+      const fileNames = await fsPromises.readdir(excelFolder); // ASYNC
+      const files = await Promise.all(
+        fileNames
+          .filter(f => f.toLowerCase().endsWith('.xlsx') || f.toLowerCase().endsWith('.xls'))
+          .map(async (f) => {
+            const filePath = path.join(excelFolder, f);
+            const stat = await fsPromises.stat(filePath); // ASYNC
+            return {
+              name: f,
+              path: filePath,
+              size: stat.size,
+              modified: stat.mtime
+            };
+          })
+      );
 
       return files.sort((a, b) => b.modified - a.modified);
     } catch (error) {

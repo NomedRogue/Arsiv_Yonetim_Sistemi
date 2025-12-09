@@ -889,6 +889,56 @@ release/
 3. **Yedek Rotasyonu**: Son 5 yedek otomatik korunur
 4. **Doğrulama**: Yedekleme bütünlük kontrolü
 
+### 🔐 Güvenlik Kurulumu
+
+#### İlk Kurulum
+
+Uygulama ilk çalıştırıldığında otomatik olarak güvenli bir JWT secret oluşturur ve kullanıcı veri dizininde saklar.
+
+**Otomatik Yapılandırma:**
+
+- Uygulama başlatıldığında JWT_SECRET yoksa otomatik oluşturulur
+- 32-byte kriptografik olarak güvenli rastgele secret
+- `%APPDATA%\arsiv-yonetim-sistemi\.env` dosyasına kaydedilir
+
+**Manuel Yapılandırma (Opsiyonel):**
+
+1. `.env.example` dosyasını `.env` olarak kopyalayın:
+
+   ```bash
+   copy .env.example .env
+   ```
+
+2. Güvenli bir secret oluşturun:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+3. `.env` dosyasını düzenleyin:
+   ```env
+   JWT_SECRET=<oluşturulan-secret-buraya>
+   ```
+
+#### Ortam Değişkenleri
+
+| Değişken         | Açıklama                                          | Varsayılan                                 |
+| ---------------- | ------------------------------------------------- | ------------------------------------------ |
+| `JWT_SECRET`     | JWT token imzalama anahtarı (minimum 32 karakter) | Otomatik oluşturulur                       |
+| `DB_PATH`        | Veritabanı dosya yolu                             | `%APPDATA%\arsiv-yonetim-sistemi\arsiv.db` |
+| `USER_DATA_PATH` | Kullanıcı veri dizini                             | `%APPDATA%\arsiv-yonetim-sistemi`          |
+| `NODE_ENV`       | Çalışma ortamı                                    | `production`                               |
+| `PORT`           | Backend server portu                              | `3001`                                     |
+
+#### Güvenlik En İyi Uygulamaları
+
+- ✅ JWT secret otomatik oluşturulur ve güvenli şekilde saklanır
+- ✅ Tüm API endpoint'leri kimlik doğrulama gerektirir (login/health hariç)
+- ✅ CORS sadece Electron uygulaması için yapılandırılmıştır
+- ✅ SQL injection koruması (prepared statements)
+- ✅ Path traversal koruması (dosya yolları validate edilir)
+- ✅ Rate limiting (100 istek/15 dakika)
+
 ---
 
 ## ⚠️ Sorun Giderme

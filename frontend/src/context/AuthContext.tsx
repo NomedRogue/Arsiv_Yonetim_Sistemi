@@ -26,15 +26,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Check if token is valid on startup
     const initAuth = async () => {
-      // Try local storage first (Remember Me)
-      let storedToken = localStorage.getItem('token');
-      let storedUser = localStorage.getItem('user');
-
-      // If not in local, try session storage
-      if (!storedToken || !storedUser) {
-        storedToken = sessionStorage.getItem('token');
-        storedUser = sessionStorage.getItem('user');
-      }
+      // Only check session storage for token (not persistent)
+      const storedToken = sessionStorage.getItem('token');
+      const storedUser = sessionStorage.getItem('user');
       
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -62,22 +56,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setToken(data.token);
     setUser(data.user);
 
+    // Always save token to sessionStorage (not persistent)
+    sessionStorage.setItem('token', data.token);
+    sessionStorage.setItem('user', JSON.stringify(data.user));
+
+    // If "Remember Me" is checked, save username to localStorage
     if (rememberMe) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('rememberedUsername', username);
     } else {
-      sessionStorage.setItem('token', data.token);
-      sessionStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.removeItem('rememberedUsername');
+    }
+
+    // Resize window for main app after successful login
+    if (window.electronAPI?.window?.resizeForApp) {
+      await window.electronAPI.window.resizeForApp();
     }
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Clear session storage but keep remembered username
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+    // Don't remove rememberedUsername from localStorage
   };
 
   return (

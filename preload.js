@@ -5,6 +5,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFile: (filePath) => ipcRenderer.invoke('file:openExternal', filePath),
   savePdfToDownloads: (fileName, base64Data) => ipcRenderer.invoke('pdf:saveToDownloads', fileName, base64Data),
   
+  // Window Control API (for custom title bar)
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    resizeForApp: () => ipcRenderer.invoke('window:resizeForApp')
+  },
+  
   // Auto-Updater API
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),
