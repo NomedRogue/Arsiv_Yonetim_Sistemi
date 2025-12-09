@@ -84,7 +84,7 @@ const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState }
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
 const { getDbInstance } = require('./src/database/connection');
 const { ensureEnvDefaults: newEnsureEnvDefaults } = require('./src/config/database');
-const authController = require('./src/controllers/authController');
+const authController = require('./src/controllers/AuthController');
 
 // Config system'i de çalıştır
 newEnsureEnvDefaults();
