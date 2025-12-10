@@ -7,7 +7,6 @@ import { Badge } from '@/components/Badge';
 import { CheckoutModal } from '@/features/checkout';
 import { Modal } from '@/components/Modal';
 import { toast } from '@/lib/toast';
-import { handleApiError } from '@/lib/apiErrorHandler';
 import { RETENTION_CODES, TIMEOUTS } from '@/constants';
 import { formatLocation, getStatusColor, getCategoryColor } from '../utils/folderHelpers';
 import * as apiService from '@/api';
@@ -131,14 +130,8 @@ interface Props {
 
 export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const {
-    loading: contextLoading,
     getDepartmentName,
     departments,
-    addCheckout,
-    getCheckoutsForFolder,
-    returnCheckout,
-    deleteFolder,
-    refresh,
     sseConnected,
   } = useArchive();
 
@@ -191,12 +184,13 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
         }
       });
 
+      // apiService kullanımı (Fetch yerine)
       const data: any = await apiService.getFolders(params);
       
       setFolders(Array.isArray(data.folders) ? data.folders : []);
       setTotalItems(data.total || 0);
-    } catch (error) {
-      toast.error('Klasörler yüklenirken hata oluştu');
+    } catch (error: any) {
+      toast.error(error.message || 'Klasörler yüklenirken hata oluştu');
       console.error('Fetch folders error:', error);
       setFolders([]);
       setTotalItems(0);
@@ -211,8 +205,6 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   }, [fetchFolders]);
 
   // ArchiveContext üzerinden SSE eventi geldiğinde otomatik refresh yap
-  // Not: refresh fonksiyonu ArchiveContext'ten gelir ve SSE eventlerini dinler
-  // Bu component mount olduğunda ve sseConnected değiştiğinde refresh yapar
   useEffect(() => {
     if (sseConnected) {
       fetchFolders();
@@ -241,7 +233,6 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
 
   const handleConfirmCheckout = useCallback(async (data: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
     try {
-      // Direkt API call - context bypass
       const newCheckout = { ...data, id: String(Date.now()), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
       const folder = folders.find(f => f.id === data.folderId);
       
@@ -265,7 +256,6 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
 
   const handleReturnFolder = useCallback(async (folderId: string) => {
     try {
-      // Direkt API'den aktif checkout'u al
       const checkouts = await apiService.getActiveCheckouts();
       const active = checkouts.find(c => c.folderId === folderId && c.status === CheckoutStatus.Cikista);
       
@@ -302,7 +292,6 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const confirmDelete = useCallback(async () => {
     if (selectedFolderToDelete) {
       try {
-        // Direkt API call - context bypass
         await apiService.removeFolder(selectedFolderToDelete.id);
         toast.success('Klasör ve ilişkili kayıtlar silindi.');
         

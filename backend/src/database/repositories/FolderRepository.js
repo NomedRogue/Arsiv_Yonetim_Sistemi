@@ -477,6 +477,88 @@ class FolderRepository extends BaseRepository {
   }
 
   /**
+   * Calculate Occupancy using SQL aggregation (optimized)
+   */
+  getOccupancyStats(location) {
+    try {
+      const db = this.getDb();
+      let whereClauses = ['status != ?', 'locationStorageType = ?'];
+      let params = ['İmha Edildi', location.storageType];
+
+      if (location.storageType === 'Kompakt') {
+        if (location.unit) { whereClauses.push('locationUnit = ?'); params.push(location.unit); }
+        if (location.face) { whereClauses.push('locationFace = ?'); params.push(location.face); }
+        if (location.section) { whereClauses.push('locationSection = ?'); params.push(location.section); }
+        if (location.shelf) { whereClauses.push('locationShelf = ?'); params.push(location.shelf); }
+      } else if (location.storageType === 'Stand') {
+        if (location.stand) { whereClauses.push('locationStand = ?'); params.push(location.stand); }
+        if (location.shelf) { whereClauses.push('locationShelf = ?'); params.push(location.shelf); }
+      }
+
+      const whereClause = whereClauses.join(' AND ');
+
+      // Calculate count of each folder type (Dar/Geniş) in this location
+      const query = `
+        SELECT folderType, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE ${whereClause}
+        GROUP BY folderType
+      `;
+
+      const rows = db.prepare(query).all(...params);
+
+      // Also get detailed folder list for UI (optional, can be limited)
+      // If the UI needs to show exactly which folders are on the shelf:
+      const foldersQuery = `SELECT * FROM ${this.tableName} WHERE ${whereClause}`;
+      const folderRows = db.prepare(foldersQuery).all(...params);
+      const folders = folderRows.map(row => this.deserialize(row));
+
+      return {
+        stats: rows, // [{ folderType: 'Dar', count: 5 }, { folderType: 'Geniş', count: 2 }]
+        folders: folders
+      };
+
+    } catch (error) {
+      logger.error('[FOLDER_REPO] getOccupancyStats error:', { error, location });
+      throw error;
+    }
+  }
+
+  /**
+   * Find disposable folders efficiently using SQL
+   */
+  findDisposableFolders(filter) {
+    try {
+      const currentYear = new Date().getFullYear();
+      const db = this.getDb();
+      let whereClause = "status = 'Arşivde'";
+      let params = [];
+
+      // Disposal Year = fileYear + retentionPeriod + 1
+      // We can use SQL expression: (fileYear + retentionPeriod + 1)
+
+      if (filter === 'thisYear') {
+        whereClause += " AND (fileYear + retentionPeriod + 1) = ?";
+        params.push(currentYear);
+      } else if (filter === 'nextYear') {
+        whereClause += " AND (fileYear + retentionPeriod + 1) = ?";
+        params.push(currentYear + 1);
+      } else if (filter === 'overdue') {
+        whereClause += " AND (fileYear + retentionPeriod + 1) < ?";
+        params.push(currentYear);
+      }
+
+      const query = `SELECT * FROM ${this.tableName} WHERE ${whereClause}`;
+      const rows = db.prepare(query).all(...params);
+
+      return rows.map(row => this.deserialize(row));
+    } catch (error) {
+      logger.error('[FOLDER_REPO] findDisposableFolders error:', { error, filter });
+      throw error;
+    }
+  }
+
+  /**
    * Delete folder and return affected data
    */
   deleteById(id) {

@@ -5,7 +5,7 @@ import {
   ALL_DEPARTMENTS,
   INITIAL_STORAGE_STRUCTURE,
 } from '@/constants';
-import { getAllData, getAllFoldersForAnalysis } from '@/api';
+import { getAllData } from '@/api';
 import { toast } from '@/lib/toast';
 
 const parseDates = (items: any[], dateKeys: string[]) =>
@@ -26,12 +26,11 @@ export const useArchiveState = () => {
     try {
       const data = await getAllData();
       
-      // TÜM klasörleri yükle (doluluk hesaplaması için)
-      // Not: getAllFoldersForAnalysis sadece lokasyon ve folderType bilgisini içerir (hafif)
-      const allFoldersForOccupancy = await getAllFoldersForAnalysis();
+      // OPTIMIZATION: Removed getAllFoldersForAnalysis() call.
+      // Doluluk hesaplaması artık backend tarafında SQL ile yapılıyor.
+      // Dashboard istatistikleri için ayrı bir hook/endpoint kullanılıyor.
+      // Klasör listesi FolderList componentinde server-side pagination ile çekiliyor.
 
-      // BUGFIX: Sadece data.settings null/undefined ise DEFAULT_SETTINGS kullan
-      // Eğer data.settings bir obje ise (boş bile olsa), onu kullan ve eksik alanları DEFAULT_SETTINGS ile doldur
       const mergedSettings = data.settings 
         ? { ...DEFAULT_SETTINGS, ...data.settings }
         : DEFAULT_SETTINGS;
@@ -42,7 +41,7 @@ export const useArchiveState = () => {
           settings: mergedSettings,
           departments: data.departments || ALL_DEPARTMENTS,
           storageStructure: data.storageStructure || INITIAL_STORAGE_STRUCTURE,
-          folders: allFoldersForOccupancy || [],
+          folders: [], // Heavy list removed from global state
           checkouts: parseDates(data.checkouts || [], ['checkoutDate', 'plannedReturnDate', 'actualReturnDate']),
           disposals: parseDates(data.disposals || [], ['disposalDate']),
           logs: parseDates(data.logs || [], ['timestamp']),

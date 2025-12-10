@@ -193,51 +193,37 @@ class FolderService {
 
   /**
    * Calculate storage occupancy
+   * OPTIMIZED: Uses SQL aggregation in repository
    */
-  calculateOccupancy(location, folders, settings) {
+  calculateOccupancy(location, _ignoredFolders, settings) {
     try {
-      // Filter folders in the specified location
-      const foldersInLocation = folders.filter(f => {
-        if (f.status === 'İmha') return false;
-        if (f.location.storageType !== location.storageType) return false;
+      // 2nd arg was 'folders' list, now ignored as we fetch needed data from DB
 
-        if (location.storageType === 'Kompakt') {
-          return (
-            (!location.unit || f.location.unit === location.unit) &&
-            (!location.face || f.location.face === location.face) &&
-            (!location.section || f.location.section === location.section) &&
-            (!location.shelf || f.location.shelf === location.shelf)
-          );
-        } else if (location.storageType === 'Stand') {
-          return (
-            (!location.stand || f.location.stand === location.stand) &&
-            (!location.shelf || f.location.shelf === location.shelf)
-          );
-        }
+      const result = this.repos.folder.getOccupancyStats(location);
+      const { stats, folders: foldersInLocation } = result;
 
-        return false;
-      });
+      // Calculate used space based on counts
+      let usedSpace = 0;
 
-      // Calculate used space
-      const usedSpace = foldersInLocation.reduce((sum, folder) => {
-        const width = folder.folderType === 'Dar' 
+      stats.forEach(item => {
+        const width = item.folderType === 'Dar'
           ? settings.darKlasorGenisligi 
           : settings.genisKlasorGenisligi;
-        return sum + width;
-      }, 0);
+        usedSpace += (width * item.count);
+      });
 
-      // Calculate total space (bu hesaplama daha kompleks, şimdilik basit tutalım)
+      // Calculate total space
       const shelfWidth = location.storageType === 'Kompakt' 
         ? settings.kompaktRafGenisligi 
         : settings.standRafGenisligi;
 
-      const totalSpace = shelfWidth; // Simplified
+      const totalSpace = shelfWidth;
 
       return {
         used: usedSpace,
         total: totalSpace,
         percentage: totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0,
-        folders: foldersInLocation
+        folders: foldersInLocation // Return specific folders for UI list
       };
     } catch (error) {
       logger.error('[FOLDER_SERVICE] Calculate occupancy error:', { error, location });
@@ -247,27 +233,11 @@ class FolderService {
 
   /**
    * Get disposable folders based on filter
+   * OPTIMIZED: Uses SQL filtering in repository
    */
   async getDisposableFolders(filter) {
     try {
-      const currentYear = new Date().getFullYear();
-      const allFolders = this.repos.folder.getAll();
-      
-      return allFolders.filter(folder => {
-        if (folder.status !== 'Arşivde') return false;
-        
-        const disposalYear = folder.fileYear + folder.retentionPeriod + 1;
-        
-        if (filter === 'thisYear') {
-          return disposalYear === currentYear;
-        } else if (filter === 'nextYear') {
-          return disposalYear === currentYear + 1;
-        } else if (filter === 'overdue') {
-          return disposalYear < currentYear;
-        }
-        
-        return true; // 'all' or no filter
-      });
+      return this.repos.folder.findDisposableFolders(filter);
     } catch (error) {
       logger.error('[FOLDER_SERVICE] Get disposable folders error:', { error, filter });
       throw error;
