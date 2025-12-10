@@ -478,9 +478,14 @@ function configureUpdaterToken() {
     
     if (settings && settings.githubToken) {
       process.env.GH_TOKEN = settings.githubToken;
-      // Header olarak da ekle
-      autoUpdater.requestHeaders = { 'Authorization': `token ${settings.githubToken}` };
-      logger.info('[UPDATER] GitHub Token yapılandırıldı');
+      // Header olarak da ekle - Private repo'lar için kritik
+      autoUpdater.requestHeaders = {
+        'Authorization': `token ${settings.githubToken}`,
+        'Accept': 'application/octet-stream' // İndirme işlemleri için gerekli olabilir
+      };
+      logger.info('[UPDATER] GitHub Token yapılandırıldı ve headerlara eklendi.');
+    } else {
+      logger.warn('[UPDATER] GitHub Token bulunamadı! Özel repolardan güncelleme yapılamaz.');
     }
   } catch (err) {
     logger.error('[UPDATER] Token yapılandırma hatası:', err);
@@ -497,6 +502,7 @@ function checkForUpdates() {
   configureUpdaterToken();
   
   logger.info('[UPDATER] Güncelleme kontrol ediliyor...');
+  // Cache'i devre dışı bırakmak için channel dosyasını yeniden çekmeye zorla (opsiyonel)
   autoUpdater.checkForUpdates().catch((err) => {
     logger.error('[UPDATER] Güncelleme kontrolü başarısız:', err);
   });
@@ -596,10 +602,13 @@ ipcMain.handle('updater:check', async () => {
 
 ipcMain.handle('updater:download', async () => {
   try {
-    configureUpdaterToken();
-    await autoUpdater.downloadUpdate();
+    logger.info('[UPDATER] İndirme işlemi başlatılıyor...');
+    configureUpdaterToken(); // İndirme öncesi token'ı tekrar garantiye al
+
+    const downloadPromise = autoUpdater.downloadUpdate();
     return { success: true };
   } catch (err) {
+    logger.error('[UPDATER] İndirme başlatma hatası:', err);
     return { success: false, error: err.message };
   }
 });
