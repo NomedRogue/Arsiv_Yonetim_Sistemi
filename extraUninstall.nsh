@@ -1,4 +1,12 @@
 !macro customUnInstall
+  ; Çalışan uygulamayı zorla kapat
+  nsExec::Exec 'taskkill /F /IM "Arşiv Yönetim Sistemi.exe"'
+  nsExec::Exec 'taskkill /F /IM "Arsiv Yonetim Sistemi.exe"'
+  nsExec::Exec 'taskkill /F /IM "node.exe"' ; Backend node process'ini kapatmak için (dikkatli kullanılmalı ama tek kullanıcı için ok)
+
+  ; Biraz bekle dosya kilitleri kalksın
+  Sleep 2000
+
   ; Kullanici verilerini tamamen temizle
   RMDir /r "$APPDATA\arsiv-yonetim-sistemi"
   
@@ -15,6 +23,7 @@
   
   ; Desktop kisayolunu sil
   Delete "$DESKTOP\Arsiv Yonetim Sistemi.lnk"
+  Delete "$DESKTOP\Arşiv Yönetim Sistemi.lnk"
   
   ; Baslat menusu kisayollarini sil
   Delete "$STARTMENU\Arsiv Yonetim Sistemi.lnk"
