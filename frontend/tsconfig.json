@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // baseUrl will be deprecated in TS 7.0, but still needed for path mapping
+    // Using bundler moduleResolution as modern alternative
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    "types": ["node", "vite/client", "jest", "@testing-library/jest-dom"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    
+    // Suppress baseUrl deprecation warning until TS 7.0 migration
+
+  },
+  "include": [
+    "src",
+    "src/types/**/*",
+    "vite.config.ts",
+    "postcss.config.js",
+    "tailwind.config.js",
+    "jest.config.js",
+    "jest.setup.js"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

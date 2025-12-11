@@ -1,0 +1,296 @@
+/**
+ * 🎨 DPI-AWARE & RESPONSIVE DESIGN SYSTEM
+ * 
+ * Bu dosya tüm sabit px değerlerini REM/EM bazlı, ölçeklenebilir
+ * birimlere dönüştürür. 100%-200% DPI ölçeklerinde çalışır.
+ */
+
+@layer base {
+  /* ============================================
+     1️⃣ DPI-AWARE ROOT CONFIGURATION
+     Base font 16px = 1rem, DPI ile otomatik ölçeklenir
+     ============================================ */
+  
+  html {
+    font-size: 100%; /* 16px default - DPI ile ölçeklenir */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  body {
+    /* Fluid base font: 14px (0.875rem) → 16px (1rem) */
+    font-size: clamp(0.875rem, 0.8125rem + 0.25vw, 1rem);
+    line-height: 1.6;
+  }
+
+  /* ============================================
+     2️⃣ CSS CUSTOM PROPERTIES (Design Tokens)
+     Tüm sabit değerler buradan yönetilir
+     ============================================ */
+  
+  :root {
+    /* === SPACING SYSTEM (8px grid - REM based) === */
+    --space-0: 0;
+    --space-1: 0.5rem;   /* 8px */
+    --space-2: 1rem;     /* 16px */
+    --space-3: 1.5rem;   /* 24px */
+    --space-4: 2rem;     /* 32px */
+    --space-5: 2.5rem;   /* 40px */
+    --space-6: 3rem;     /* 48px */
+    --space-8: 4rem;     /* 64px */
+    --space-10: 5rem;    /* 80px */
+    --space-12: 6rem;    /* 96px */
+    --space-16: 8rem;    /* 128px */
+    
+    /* === FLUID SPACING (ekran boyutuna göre ölçeklenir) === */
+    --space-fluid-xs: clamp(0.5rem, 0.4rem + 0.3vw, 0.75rem);     /* 8-12px */
+    --space-fluid-sm: clamp(1rem, 0.85rem + 0.5vw, 1.5rem);       /* 16-24px */
+    --space-fluid-md: clamp(1.5rem, 1.25rem + 0.8vw, 2.5rem);     /* 24-40px */
+    --space-fluid-lg: clamp(2rem, 1.6rem + 1.2vw, 4rem);          /* 32-64px */
+    --space-fluid-xl: clamp(3rem, 2.2rem + 2vw, 6rem);            /* 48-96px */
+    
+    /* === LAYOUT HEIGHTS (REM based - DPI aware) === */
+    /* Eski h-[69px] yerine fluid değer */
+    --header-height: clamp(3.5rem, 3.25rem + 0.8vw, 4.5rem);      /* 56-72px */
+    --sidebar-width: clamp(14rem, 13rem + 2vw, 16rem);            /* 224-256px */
+    --sidebar-collapsed: 5rem;                                      /* 80px */
+    
+    /* === COMPONENT SIZES (REM based) === */
+    --card-min-height: clamp(5rem, 4.5rem + 2vw, 8rem);           /* 80-128px */
+    --chart-min-height: clamp(20rem, 18rem + 5vw, 30rem);         /* 320-480px */
+    --modal-max-height: 85vh;
+    --dropdown-max-height: clamp(15rem, 13rem + 4vw, 24rem);      /* 240-384px */
+    
+    /* === CONTAINER WIDTHS === */
+    --container-sm: 36rem;    /* 576px */
+    --container-md: 48rem;    /* 768px */
+    --container-lg: 64rem;    /* 1024px */
+    --container-xl: 80rem;    /* 1280px */
+    --container-2xl: 96rem;   /* 1536px */
+    --container-full: 120rem; /* 1920px */
+    
+    /* === BORDER RADIUS (REM based) === */
+    --radius-sm: 0.375rem;   /* 6px */
+    --radius-md: 0.5rem;     /* 8px */
+    --radius-lg: 0.75rem;    /* 12px */
+    --radius-xl: 1rem;       /* 16px */
+    --radius-2xl: 1.5rem;    /* 24px */
+    
+    /* === ICON SIZES (EM based - parent font'a göre) === */
+    --icon-xs: 0.875em;      /* 14px @ 16px base */
+    --icon-sm: 1em;          /* 16px @ 16px base */
+    --icon-md: 1.25em;       /* 20px @ 16px base */
+    --icon-lg: 1.5em;        /* 24px @ 16px base */
+    --icon-xl: 2em;          /* 32px @ 16px base */
+  }
+
+  /* ============================================
+     3️⃣ FLUID TYPOGRAPHY SYSTEM
+     Tüm text-[10px], text-[11px] değerleri bu sınıflara çevrilecek
+     ============================================ */
+  
+  .text-fluid-2xs {
+    font-size: clamp(0.625rem, 0.6rem + 0.1vw, 0.75rem);          /* 10-12px */
+    line-height: 1.4;
+  }
+  
+  .text-fluid-xs {
+    font-size: clamp(0.75rem, 0.7rem + 0.15vw, 0.875rem);         /* 12-14px */
+    line-height: 1.4;
+  }
+  
+  .text-fluid-sm {
+    font-size: clamp(0.875rem, 0.8125rem + 0.25vw, 1rem);         /* 14-16px */
+    line-height: 1.5;
+  }
+  
+  .text-fluid-base {
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);            /* 16-18px */
+    line-height: 1.6;
+  }
+  
+  .text-fluid-lg {
+    font-size: clamp(1.125rem, 1.05rem + 0.4vw, 1.5rem);          /* 18-24px */
+    line-height: 1.5;
+  }
+  
+  .text-fluid-xl {
+    font-size: clamp(1.25rem, 1.15rem + 0.5vw, 1.875rem);         /* 20-30px */
+    line-height: 1.4;
+  }
+  
+  .text-fluid-2xl {
+    font-size: clamp(1.5rem, 1.35rem + 0.75vw, 2.25rem);          /* 24-36px */
+    line-height: 1.3;
+  }
+  
+  .text-fluid-3xl {
+    font-size: clamp(1.875rem, 1.65rem + 1vw, 3rem);              /* 30-48px */
+    line-height: 1.2;
+  }
+
+  /* ============================================
+     4️⃣ UTILITY CLASSES
+     ============================================ */
+  
+  /* Layout utilities */
+  .layout-header {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  
+  .layout-sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+  }
+  
+  .layout-sidebar-collapsed {
+    width: var(--sidebar-collapsed);
+  }
+  
+  .layout-main {
+    flex: 1;
+    min-width: 0; /* Flexbox overflow fix */
+    padding: var(--space-fluid-md);
+  }
+  
+  /* Card utilities */
+  .card-base {
+    border-radius: var(--radius-lg);
+    padding: var(--space-fluid-sm);
+    min-height: var(--card-min-height);
+  }
+  
+  .card-chart {
+    border-radius: var(--radius-xl);
+    padding: var(--space-fluid-md);
+    min-height: var(--chart-min-height);
+  }
+  
+  /* Button utilities */
+  .btn-base {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: clamp(0.875rem, 0.8125rem + 0.25vw, 1rem);
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+  
+  .btn-sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: clamp(0.75rem, 0.7rem + 0.15vw, 0.875rem);
+    min-height: 2rem;
+  }
+  
+  .btn-lg {
+    padding: var(--space-3) var(--space-5);
+    font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+    min-height: 3rem;
+  }
+  
+  /* Input utilities */
+  .input-base {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: clamp(0.875rem, 0.8125rem + 0.25vw, 1rem);
+    min-height: 2.5rem;
+    width: 100%;
+  }
+  
+  /* Container utilities */
+  .container-responsive {
+    width: 100%;
+    max-width: var(--container-full);
+    margin-inline: auto;
+    padding-inline: var(--space-fluid-sm);
+  }
+  
+  .container-narrow {
+    width: 100%;
+    max-width: var(--container-lg);
+    margin-inline: auto;
+    padding-inline: var(--space-fluid-sm);
+  }
+  
+  /* Stack utilities */
+  .stack-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-fluid-sm);
+  }
+  
+  .stack-horizontal {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-fluid-sm);
+    flex-wrap: wrap;
+  }
+  
+  /* Icon utilities */
+  .icon-size-xs { width: var(--icon-xs); height: var(--icon-xs); }
+  .icon-size-sm { width: var(--icon-sm); height: var(--icon-sm); }
+  .icon-size-md { width: var(--icon-md); height: var(--icon-md); }
+  .icon-size-lg { width: var(--icon-lg); height: var(--icon-lg); }
+  .icon-size-xl { width: var(--icon-xl); height: var(--icon-xl); }
+}
+
+/* ============================================
+   🎯 DPI SCALING VERIFICATION
+   Bu media query'ler tüm DPI'larda base font'u 100% tutar
+   ============================================ */
+
+@media (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi) {
+  html { font-size: 100%; } /* 125% DPI - Değişiklik yok */
+}
+
+@media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+  html { font-size: 100%; } /* 150% DPI - Değişiklik yok */
+}
+
+@media (-webkit-min-device-pixel-ratio: 1.75), (min-resolution: 168dpi) {
+  html { font-size: 100%; } /* 175% DPI - Değişiklik yok */
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  html { font-size: 100%; } /* 200% DPI (Retina) - Değişiklik yok */
+}
+
+/* ============================================
+   📱 RESPONSIVE BREAKPOINTS
+   Fluid spacing değerleri ekran boyutuna göre ayarlanır
+   ============================================ */
+
+/* Tablet landscape (768px+) */
+@media (min-width: 48rem) {
+  :root {
+    --card-min-height: clamp(5.5rem, 5rem + 2vw, 9rem);
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 64rem) {
+  :root {
+    --chart-min-height: clamp(22rem, 20rem + 5vw, 32rem);
+  }
+}
+
+/* Large desktop (1280px+) */
+@media (min-width: 80rem) {
+  :root {
+    --container-full: 100rem; /* Max 1600px on large screens */
+  }
+}
+
+/* Ultra-wide (1920px+) */
+@media (min-width: 120rem) {
+  :root {
+    --container-full: 100rem; /* Sabit max-width ultra-wide'da */
+  }
+}

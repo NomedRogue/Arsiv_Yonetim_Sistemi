@@ -1,0 +1,63 @@
+/* ===== ANIMATED CIRCLE CHART STYLES ===== */
+
+/* Circle Progress Animation */
+.circle-progress {
+  animation: circle-fill 2s ease-out forwards;
+  transform-origin: center;
+}
+
+@keyframes circle-fill {
+  0% {
+    stroke-dashoffset: 596.9;
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Counter Animation */
+.counter-animation {
+  animation: counter-bounce 2s ease-out forwards;
+  display: inline-block;
+  font-weight: 700;
+}
+
+@keyframes counter-bounce {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Dashboard card base styling - NO hover or pointer cursor */
+.dashboard-card {
+  cursor: default !important;
+  transition: none;
+}
+
+/* Performance optimizations */
+.circle-progress,
+.counter-animation {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* Minimum visibility for very small values */
+.circle-progress[stroke-dashoffset="596.9"] {
+  stroke-dashoffset: 585.0 !important; /* Always show at least 2% */
+}
+
+/* Enhanced shadow effects for different themes */
+.dark .circle-progress {
+  filter: brightness(1.1);
+}

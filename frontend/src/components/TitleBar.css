@@ -1,0 +1,102 @@
+.title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  background: #ffffff; /* White - same as header */
+  color: #64748b; /* Slate gray for buttons */
+  user-select: none;
+  border-bottom: 1px solid #e5e7eb; /* Gray-200 border */
+  position: relative;
+  z-index: 1000;
+}
+
+/* Dark mode title bar */
+.title-bar.dark {
+  background: #1e293b; /* slate-800 - same as header dark mode */
+  color: #94a3b8;
+  border-bottom: 1px solid #334155; /* slate-700 border */
+}
+
+.title-bar-drag-region {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  -webkit-app-region: drag;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.title-bar-icon {
+  display: none; /* Hidden for clean look */
+}
+
+.title-bar-title {
+  display: none; /* Hidden for clean look */
+}
+
+.title-bar-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.title-bar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.title-bar.dark .title-bar-button {
+  color: #94a3b8;
+}
+
+.title-bar-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.title-bar.dark .title-bar-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.title-bar-button:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.title-bar.dark .title-bar-button:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.title-bar-button.close:hover {
+  background: #e81123;
+  color: white;
+}
+
+.title-bar-button.close:active {
+  background: #c50f1f;
+}
+
+.title-bar-button svg {
+  stroke-width: 1.5;
+}
+
+/* Login page specific styling */
+.login-page .title-bar {
+  background: #ffffff; /* White for login */
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.login-page .title-bar.dark {
+  background: #1e293b; /* slate-800 for dark mode */
+  border-bottom: 1px solid #334155;
+}
+
