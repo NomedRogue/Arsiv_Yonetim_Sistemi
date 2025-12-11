@@ -5,6 +5,8 @@ const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const { strictLimiter } = require('../middleware/rateLimiter');
 
 // Public routes
+router.post('/register', strictLimiter, (req, res) => authController.register(req, res));
+
 /**
  * @swagger
  * /auth/login:

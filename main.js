@@ -199,10 +199,10 @@ async function createWindow() {
   logger.info('[ELECTRON] Ana pencere oluşturuluyor...');
 
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 600,
-    minWidth: 800,
-    minHeight: 600,
+    width: 1200,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 720,
     icon: path.join(__dirname, 'assets', 'icon.ico'),
     frame: false, // Frameless window - özel title bar için
     titleBarStyle: 'hidden',
@@ -221,6 +221,8 @@ async function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
+    // Start maximized handled in app-ready
+    // mainWindow.maximize();
     // DO NOT show immediately. Wait for 'app-ready' signal from React.
     // mainWindow.show(); 
     logger.info('[ELECTRON] Ana pencere render edildi (gizli)');
@@ -232,7 +234,7 @@ async function createWindow() {
 
   if (isDev) {
     await mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   } else {
     // Production'da dist klasörü doğrudan ana dizinde
     const indexPath = path.join(__dirname, 'dist', 'index.html');
@@ -256,7 +258,7 @@ async function createWindow() {
       await mainWindow.loadFile(indexPath, loadOptions);
     }
     // Debugging for production: Open dev tools
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   }
 
   logger.info('[ELECTRON] Sayfa yüklendi');
@@ -268,7 +270,7 @@ let splashWindow = null;
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 400,
-    height: 480,
+    height: 350,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -292,14 +294,25 @@ function createSplashWindow() {
 }
 
 // App Ready Handler
+// App Ready Handler
 ipcMain.on('app-ready', () => {
-  logger.info('[APP] Frontend hazır sinyali alındı.');
-  if (mainWindow) {
-    mainWindow.show();
+  logger.info('[APP] Frontend hazır sinyali alındı. Splash 3sn bekletiliyor...');
+  
+  setTimeout(() => {
+    // Önce Splash'i kapat
     if (splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.close();
     }
-  }
+
+    // Kısa bir süre sonra ana pencereyi göster (akıcılık için)
+    setTimeout(() => {
+      if (mainWindow) {
+        mainWindow.maximize();
+        mainWindow.show();
+      }
+    }, 500);
+    
+  }, 3000); // 3 saniye bekle
 });
 
 // Uygulama hazır olduğunda

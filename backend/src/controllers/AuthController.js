@@ -57,6 +57,28 @@ class AuthController {
     }
   }
 
+  // Public registration
+  async register(req, res) {
+    try {
+      const { username, email, password } = req.body;
+      // Note: Email is currently not stored in User model based on repos.user.create, but we can treat username as email or just ignore email for now 
+      // providing backwards compatibility if checking `username` vs `email`.
+      // The frontend sends "username", "email", "password". 
+      // We will use "username" as the unique identifier. "email" might be unused or we can store it if schema allows.
+      // Based on AuthService, it only takes username, password, role.
+      // We will force role='user'.
+      
+      const newUser = await authService.createUser(username, password, 'user', 'public_registration');
+      res.status(201).json(newUser);
+    } catch (error) {
+      if (error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      logger.error('[AUTH_CONTROLLER] Register error', { error });
+      res.status(500).json({ error: 'Kayıt işlemi başarısız.' });
+    }
+  }
+
   // Admin Methods - Keeping some logic here or moving to service as needed.
   // For simplicity and Direct DB access reduction, moving get/delete to repo-wrapper pattern inside controller IF service method is missing,
   // BUT we should ideally move them to service.

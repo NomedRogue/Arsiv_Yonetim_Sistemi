@@ -4,85 +4,114 @@
     <meta charset="UTF-8" />
     <title>Arşiv Yönetim Sistemi</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
 
-      body {
+      html, body {
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        background: transparent; /* Allows window transparency */
+        overflow: hidden;
+        background: transparent !important; /* Ensure window transparency works */
+      }
+
+      body {
         font-family: "Inter", sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100vh;
         user-select: none;
-        overflow: hidden;
-        color: #334155; /* Slate-700 */
       }
 
       .container {
-        width: 320px; /* Fixed width for consistent shape */
-        text-align: center;
-        animation: fadeIn 0.8s ease-out;
+        position: relative;
+        width: 100%; 
+        height: 100%;
+        
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 40px;
-        background: #f8fafc; /* Background moves here */
-        border-radius: 24px; /* Highly rounded corners */
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-          0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle border */
+        justify-content: center;
+        
+        /* Main background moves here to support rounded clipping */
+        background: linear-gradient(135deg, #2c6e91, #163b5c, #2a5275);
+        
+        /* Shape */
+        border-radius: 20px;
+        overflow: hidden; /* Clips the corner content */
+        
+        /* Border & Shadow */
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        box-sizing: border-box;
+      }
+
+      /* Fake Glass Overlay to maintain brightness */
+      .container::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.1);
+        z-index: 0;
+        pointer-events: none;
+      }
+      
+      /* Ensure content is above the overlay */
+      .logo-container, h1, p, .loading-bar-container, .footer {
+        position: relative;
+        z-index: 2;
       }
 
       .logo-container {
         margin-bottom: 24px;
-        /* Soft shadow for logo */
-        filter: drop-shadow(0 4px 6px rgba(45, 212, 191, 0.2));
+        filter: drop-shadow(0 0 10px rgba(74, 158, 255, 0.4));
       }
 
       .logo {
         width: 80px;
         height: 80px;
-        fill: #0d9488; /* Teal-600 */
+        fill: #4a9eff; /* Turquoise/Blue */
       }
 
       h1 {
-        font-size: 24px;
-        color: #0f172a; /* Slate-900 */
+        font-size: 20px; /* Reduced from 24px to fit longer text */
+        color: #ffffff; /* White */
         margin: 0 0 8px 0;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: -0.02em;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
 
       p {
         font-size: 14px;
-        color: #64748b; /* Slate-500 */
+        color: rgba(255, 255, 255, 0.7); /* Light Grey */
         margin: 0 0 32px 0;
         font-weight: 500;
       }
 
       .loading-bar-container {
         width: 180px;
-        height: 6px; /* Slightly thicker for softer look */
-        background-color: #f1f5f9; /* Slate-100 */
-        border-radius: 99px; /* Fully rounded pill shape */
+        height: 6px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 99px;
         overflow: hidden;
       }
 
       .loading-bar {
         width: 40%;
         height: 100%;
-        background: linear-gradient(90deg, #2dd4bf, #0f766e);
+        background: #4a9eff; /* Turquoise/Blue */
         border-radius: 99px;
         animation: loading 1.5s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
       }
 
       .footer {
         margin-top: 24px;
         font-size: 11px;
-        color: #94a3b8;
+        color: rgba(255, 255, 255, 0.7); /* Light Grey */
+        font-weight: 500;
       }
 
       @keyframes fadeIn {
@@ -107,8 +136,12 @@
     </style>
   </head>
   <body>
+    <!-- The window itself is transparent, so calculate proper background if needed.
+         Since "background: transparent" is on body, the .container provides the visual glass card.
+    -->
     <div class="container">
       <div class="logo-container">
+        <!-- Using the same icon style -->
         <svg
           class="logo"
           viewBox="0 0 24 24"
@@ -120,8 +153,8 @@
         </svg>
       </div>
 
-      <h1>Arşiv Yönetim</h1>
-      <p>Uygulama Hazırlanıyor...</p>
+      <h1>Arşiv Yönetim Sistemi</h1>
+      <p>Uygulama başlatılıyor...</p>
 
       <div class="loading-bar-container">
         <div class="loading-bar"></div>
