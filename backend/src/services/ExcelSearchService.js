@@ -362,7 +362,7 @@ class ExcelSearchService {
           })
       );
 
-      return files.sort((a, b) => b.modified - a.modified);
+      return files.sort((a, b) => b.modified.getTime() - a.modified.getTime());
     } catch (error) {
       logger.error('[EXCEL_SEARCH_SERVICE] List files error:', { error });
       throw error;

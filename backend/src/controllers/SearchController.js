@@ -26,7 +26,6 @@ async function searchInExcel(req, res, next) {
     
     logger.info('[SEARCH_CONTROLLER] Excel search completed:', {
       query,
-      excelMatches: excelResults.length,
       folderMatches: results.length
     });
     

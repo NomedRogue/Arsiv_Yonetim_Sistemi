@@ -26,19 +26,19 @@ export const TIMEOUTS = {
 
 // These are used to build the initial default department list.
 export const IDARI_BIRIMLER: Omit<Department, 'id' | 'category'>[] = [
-  { name: 'Memur Maaş Mutemetliği' }, { name: 'İşçi Maaş Mutemetliği' },
-  { name: 'Gelir Tahakkuk Birimi' }, { name: 'Gider Tahakkuk Birimi' },
-  { name: 'Kalite Birimi' }, { name: 'Eğitim Birimi' }, { name: 'Bilgi İşlem' },
-  { name: 'Personel Birimi' }, { name: 'Arşiv Birimi' }, { name: 'Biomedikal Birimi' },
-  { name: 'Ayniyat Birimi' }, { name: 'Tıbbi Sart Birimi' }, { name: 'Disiplin Birimi' },
-  { name: 'Satın Alma Birimi' }, { name: 'İstatistik Birimi' }, { name: 'Temizlik Birimi' },
-  { name: 'Protez Birimi' }, { name: 'Hasta Hakları Birimi' }, { name: 'Vezne' },
-  { name: 'İş Sağlığı ve Güvenliği Birimi' }
+  { name: 'Memur Maaş Mutemetliği', code: 'MMM' }, { name: 'İşçi Maaş Mutemetliği', code: 'IMM' },
+  { name: 'Gelir Tahakkuk Birimi', code: 'GTB' }, { name: 'Gider Tahakkuk Birimi', code: 'GRTB' },
+  { name: 'Kalite Birimi', code: 'KAL' }, { name: 'Eğitim Birimi', code: 'EGT' }, { name: 'Bilgi İşlem', code: 'BI' },
+  { name: 'Personel Birimi', code: 'PER' }, { name: 'Arşiv Birimi', code: 'ARS' }, { name: 'Biomedikal Birimi', code: 'BIO' },
+  { name: 'Ayniyat Birimi', code: 'AYN' }, { name: 'Tıbbi Sart Birimi', code: 'TSB' }, { name: 'Disiplin Birimi', code: 'DIS' },
+  { name: 'Satın Alma Birimi', code: 'SAT' }, { name: 'İstatistik Birimi', code: 'IST' }, { name: 'Temizlik Birimi', code: 'TEM' },
+  { name: 'Protez Birimi', code: 'PRO' }, { name: 'Hasta Hakları Birimi', code: 'HHB' }, { name: 'Vezne', code: 'VEZ' },
+  { name: 'İş Sağlığı ve Güvenliği Birimi', code: 'ISG' }
 ];
 
 export const TIBBI_BIRIMLER: Omit<Department, 'id' | 'category'>[] = [
-  { name: 'Evde Sağlık Birimi' }, { name: 'Ameliyathane' },
-  { name: 'İlk Müdahale Polikliniği' }, { name: 'Klinikler' }
+  { name: 'Evde Sağlık Birimi', code: 'ESB' }, { name: 'Ameliyathane', code: 'AML' },
+  { name: 'İlk Müdahale Polikliniği', code: 'IMP' }, { name: 'Klinikler', code: 'KLN' }
 ];
 
 // This list is used as the initial default if no departments are found in the database.
