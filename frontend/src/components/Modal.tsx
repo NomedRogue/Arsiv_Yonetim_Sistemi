@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { ReactNode, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
@@ -27,20 +27,67 @@ export const Modal: React.FC<ModalProps> = ({
   type = 'default',
   showIcon = false,
 }) => {
+  const titleId = useId();
+  const descriptionId = useId();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
+    // Store previous focus
+    previousFocusRef.current = document.activeElement as HTMLElement;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = originalOverflow;
-    };
+
+    // Focus management logic
+    const modalElement = modalRef.current;
+    if (modalElement) {
+        const focusableElements = modalElement.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        // Focus the first element or the modal itself
+        if (firstElement) {
+            firstElement.focus();
+        } else {
+            modalElement.focus();
+        }
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+
+            if (e.key === 'Tab') {
+                // Trap focus
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement?.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement?.focus();
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = originalOverflow;
+            // Restore focus
+            previousFocusRef.current?.focus();
+        };
+    }
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -90,11 +137,20 @@ export const Modal: React.FC<ModalProps> = ({
   const IconComponent = typeStyles.icon;
 
   const content = (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      ref={modalRef}
+      tabIndex={-1}
+    >
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300" 
         onClick={closeOnBackdrop ? onClose : undefined} 
+        aria-hidden="true"
       />
       
       {/* Modal */}
@@ -102,12 +158,12 @@ export const Modal: React.FC<ModalProps> = ({
         {/* Header */}
         <div className={`flex items-center gap-3 p-6 rounded-t-xl ${typeStyles.headerBg} transition-colors duration-300`}>
           {showIcon && (
-            <div className={`flex-shrink-0 ${typeStyles.iconColor}`}>
+            <div className={`flex-shrink-0 ${typeStyles.iconColor}`} aria-hidden="true">
               <IconComponent style={{ width: '1.5em', height: '1.5em' }} />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate transition-colors duration-300">
+            <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white truncate transition-colors duration-300">
               {title}
             </h2>
           </div>
@@ -117,12 +173,12 @@ export const Modal: React.FC<ModalProps> = ({
             aria-label="Kapat"
             title="Kapat"
           >
-            <X style={{ width: '1.25em', height: '1.25em' }} />
+            <X style={{ width: '1.25em', height: '1.25em' }} aria-hidden="true" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 text-gray-700 dark:text-gray-300 transition-colors duration-300">
+        <div id={descriptionId} className="p-6 text-gray-700 dark:text-gray-300 transition-colors duration-300">
           {children}
         </div>
 
