@@ -99,7 +99,7 @@ export const CheckoutReturn: React.FC = () => {
       />
 
       <div className="bg-white dark:bg-archive-dark-panel p-3 xl:p-4 rounded-xl shadow-lg transition-colors duration-300">
-        <h2 className="text-base xl:text-lg font-bold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
+        <h2 className="text-sm font-bold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
           Dosya Talep
         </h2>
         <h3 className="text-xs xl:text-sm font-semibold mb-3 text-gray-900 dark:text-white transition-colors duration-300">

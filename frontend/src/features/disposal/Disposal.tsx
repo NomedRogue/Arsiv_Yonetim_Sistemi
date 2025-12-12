@@ -309,7 +309,7 @@ export const Disposal: React.FC<{ initialTab?: DisposalTabType, initialFilter?: 
         <div className="p-3 xl:p-5">
             <div className="bg-white dark:bg-archive-dark-panel p-3 xl:p-4 rounded-xl shadow-lg transition-colors duration-300">
                 <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-base xl:text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">İmha Yönetimi</h2>
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">İmha Yönetimi</h2>
                 </div>
 
                 <div className="flex space-x-1 border-b dark:border-gray-600 mb-3 transition-colors duration-300">
