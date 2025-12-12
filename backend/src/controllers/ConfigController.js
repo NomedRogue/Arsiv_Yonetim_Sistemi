@@ -21,7 +21,8 @@ const configController = {
       const storageStructure = repos.config.get('storageStructure');
       
       // Son işlemler için logs, checkouts ve disposals'ı da getir
-      const logs = repos.log.getAll();
+      // OPTIMIZATION: Logs are limited to 200 items to prevent large payload and memory usage
+      const logs = repos.log.getRecent(200);
       const checkouts = repos.checkout.getAll();
       const disposals = repos.disposal.getAll();
 
