@@ -36,7 +36,7 @@ interface DisposalYearData {
 }
 
 interface ReportFolder {
-  id: number;
+  id: string | number;
   category: string;
   departmentId: number;
   departmentName?: string;
@@ -51,18 +51,18 @@ interface ReportFolder {
   disposalYear?: number;
   location?: {
     storageType: string;
-    unit?: number;
+    unit?: number | string;
     face?: string;
-    section?: number;
-    shelf?: number;
-    stand?: number;
+    section?: number | string;
+    shelf?: number | string;
+    stand?: number | string;
   };
   status?: string;
 }
 
 interface DisposalRecord {
   id: string;
-  folderId: number;
+  folderId: string | number;
   disposalDate: string;
   originalFolderData: ReportFolder;
 }
@@ -515,14 +515,14 @@ export const Reports: React.FC = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Compact Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+      <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 xl:px-4 xl:py-2 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-            <FileText className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 xl:w-9 xl:h-9 flex items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
+            <FileText className="w-4 h-4 xl:w-5 xl:h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-gray-800 dark:text-white">Raporlar</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">İmha raporları</p>
+            <h1 className="text-xs xl:text-sm font-bold text-gray-800 dark:text-white">Raporlar</h1>
+            <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">İmha raporları</p>
           </div>
         </div>
         <button
@@ -532,7 +532,7 @@ export const Reports: React.FC = () => {
             else loadDisposedFolders();
           }}
           disabled={isLoading}
-          className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-[10px] xl:text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors"
         >
           <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
           Yenile
@@ -543,7 +543,7 @@ export const Reports: React.FC = () => {
       <div className="flex-shrink-0 flex border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
         <button
           onClick={() => setActiveTab('overdue')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'overdue'
               ? 'border-red-500 text-red-600 dark:text-red-400 bg-white dark:bg-slate-800'
               : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
@@ -554,7 +554,7 @@ export const Reports: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('toDispose')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'toDispose'
               ? 'border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800'
               : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
@@ -565,7 +565,7 @@ export const Reports: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('disposed')}
-          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'disposed'
               ? 'border-green-500 text-green-600 dark:text-green-400 bg-white dark:bg-slate-800'
               : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
@@ -577,7 +577,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto p-2 xl:p-3">
         {/* İmha Süresi Geçenler Tab */}
         {activeTab === 'overdue' && (
           <div className="space-y-2">
@@ -586,12 +586,12 @@ export const Reports: React.FC = () => {
               <div className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-500" />
-                  <span className="text-xs text-red-700 dark:text-red-400 font-medium">{overdueFolders.length} klasörün imha süresi geçmiş!</span>
+                  <span className="text-[10px] xl:text-xs text-red-700 dark:text-red-400 font-medium">{overdueFolders.length} klasörün imha süresi geçmiş!</span>
                 </div>
                 <button
                   onClick={() => generateToDisposePdfReport('overdue', overdueFolders, true)}
                   disabled={isGenerating}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] xl:text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
                 >
                   {isGenerating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
                   PDF
@@ -606,26 +606,26 @@ export const Reports: React.FC = () => {
             ) : overdueFolders.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-green-500 opacity-50" />
-                <p className="text-sm">İmha süresi geçmiş klasör bulunmuyor.</p>
+                <p className="text-xs xl:text-sm">İmha süresi geçmiş klasör bulunmuyor.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-red-200 dark:border-red-800">
-                <table className="w-full text-xs">
+                <table className="w-full text-[10px] xl:text-xs">
                   <thead className="bg-red-100 dark:bg-red-900/30">
                     <tr>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300 w-8">#</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Kategori</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Departman</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Konu</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Dosya Kodu</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Dosya Yılı</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Saklama Süresi</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Saklama Kodu</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">İmha Yılı</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Klinik</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Özel Bilgi</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Lokasyon</th>
-                      <th className="px-2 py-2 text-left text-red-700 dark:text-red-300">Durum</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300 w-8">#</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Kategori</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Departman</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Konu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Dosya Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Dosya Yılı</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Saklama Süresi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Saklama Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">İmha Yılı</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Klinik</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Özel Bilgi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Lokasyon</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-2 text-left text-red-700 dark:text-red-300">Durum</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-red-100 dark:divide-red-900/30 bg-white dark:bg-slate-800">
@@ -634,9 +634,9 @@ export const Reports: React.FC = () => {
                       const locationStr = getFullLocationString(folder.location);
                       return (
                         <tr key={folder.id} className="hover:bg-red-50 dark:hover:bg-red-900/10">
-                          <td className="px-2 py-1.5 text-gray-400">{index + 1}</td>
-                          <td className="px-2 py-1.5">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-400">{index + 1}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
                               folder.category === 'Tıbbi' 
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
@@ -644,26 +644,26 @@ export const Reports: React.FC = () => {
                               {folder.category}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.departmentName || getDepartmentName(folder.departmentId)}</td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
-                          <td className="px-2 py-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-xs">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.departmentName || getDepartmentName(folder.departmentId)}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                               {folder.retentionCode}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 text-xs font-bold">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 text-[10px] xl:text-xs font-bold">
                               {disposalYear}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 text-xs">{folder.specialInfo || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 text-xs">{locationStr}</td>
-                          <td className="px-2 py-1.5">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{folder.specialInfo || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{locationStr}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
                               folder.status === 'Çıkış' 
                                 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
                                 : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
@@ -691,7 +691,7 @@ export const Reports: React.FC = () => {
             ) : disposalSchedule.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">İmha takvimi verisi bulunamadı.</p>
+                <p className="text-xs xl:text-sm">İmha takvimi verisi bulunamadı.</p>
               </div>
             ) : (
               disposalSchedule.map((item) => (
@@ -712,7 +712,7 @@ export const Reports: React.FC = () => {
                       ) : (
                         <Calendar className="w-4 h-4 text-gray-400" />
                       )}
-                      <span className={`font-semibold text-sm ${
+                      <span className={`font-semibold text-xs xl:text-sm ${
                         item.isOverdue ? 'text-red-700 dark:text-red-400' :
                         item.isCurrentYear ? 'text-orange-700 dark:text-orange-400' :
                         'text-gray-700 dark:text-gray-300'
@@ -721,7 +721,7 @@ export const Reports: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] xl:text-xs font-bold ${
                         item.isOverdue ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
                         item.isCurrentYear ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300' :
                         'bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-gray-300'
@@ -741,11 +741,11 @@ export const Reports: React.FC = () => {
                     <div className="border-t border-gray-200 dark:border-slate-700">
                       {/* Actions Bar */}
                       <div className="p-2 bg-gray-50 dark:bg-slate-800/50 flex items-center justify-between border-b border-gray-200 dark:border-slate-700">
-                        <span className="text-xs text-gray-500">{yearFolders.length} klasör</span>
+                        <span className="text-[10px] xl:text-xs text-gray-500">{yearFolders.length} klasör</span>
                         <button
                           onClick={() => generateToDisposePdfReport(item.label || item.year, yearFolders, false)}
                           disabled={isGenerating}
-                          className="flex items-center gap-1 px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 px-2 py-1 text-[10px] xl:text-xs bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors disabled:opacity-50"
                         >
                           {isGenerating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
                           PDF
@@ -754,22 +754,22 @@ export const Reports: React.FC = () => {
                       
                       {/* Folder Table */}
                       <div className="overflow-x-auto max-h-72">
-                        <table className="w-full text-xs">
+                        <table className="w-full text-[10px] xl:text-xs">
                           <thead className="bg-gray-100 dark:bg-slate-700 sticky top-0">
                             <tr>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300 w-8">#</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Kategori</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Departman</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Konu</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Kodu</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Yılı</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Süresi</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Kodu</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">İmha Yılı</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Klinik</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Özel Bilgi</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Lokasyon</th>
-                              <th className="px-2 py-1.5 text-left text-gray-600 dark:text-gray-300">Durum</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300 w-8">#</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Kategori</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Departman</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Konu</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Kodu</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Yılı</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Süresi</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Kodu</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">İmha Yılı</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Klinik</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Özel Bilgi</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Lokasyon</th>
+                              <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Durum</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -778,9 +778,9 @@ export const Reports: React.FC = () => {
                               const locationStr = getFullLocationString(folder.location);
                               return (
                                 <tr key={folder.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                                  <td className="px-2 py-1.5 text-gray-400">{index + 1}</td>
-                                  <td className="px-2 py-1.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-400">{index + 1}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
                                       folder.category === 'Tıbbi' 
                                         ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                                         : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
@@ -788,18 +788,18 @@ export const Reports: React.FC = () => {
                                       {folder.category}
                                     </span>
                                   </td>
-                                  <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.departmentName || getDepartmentName(folder.departmentId)}</td>
-                                  <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
-                                  <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
-                                  <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
-                                  <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
-                                  <td className="px-2 py-1.5">
-                                    <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-xs">
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.departmentName || getDepartmentName(folder.departmentId)}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                                    <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                                       {folder.retentionCode}
                                     </span>
                                   </td>
-                                  <td className="px-2 py-1.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs font-bold ${
                                       disposalYear < new Date().getFullYear()
                                         ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
                                         : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
@@ -807,11 +807,11 @@ export const Reports: React.FC = () => {
                                       {disposalYear}
                                     </span>
                                   </td>
-                                  <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
-                                  <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 text-xs">{folder.specialInfo || '-'}</td>
-                                  <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 text-xs">{locationStr}</td>
-                                  <td className="px-2 py-1.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{folder.specialInfo || '-'}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{locationStr}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
                                       folder.status === 'Çıkış' 
                                         ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
                                         : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
@@ -841,12 +841,12 @@ export const Reports: React.FC = () => {
               <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  <span className="text-xs text-green-700 dark:text-green-400">{disposedFolders.length} klasör imha edildi</span>
+                  <span className="text-[10px] xl:text-xs text-green-700 dark:text-green-400">{disposedFolders.length} klasör imha edildi</span>
                 </div>
                 <button
                   onClick={generateDisposedPdfReport}
                   disabled={isGenerating}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] xl:text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50"
                 >
                   {isGenerating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
                   PDF
@@ -861,23 +861,23 @@ export const Reports: React.FC = () => {
             ) : disposedFolders.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Archive className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Henüz imha edilmiş klasör bulunmuyor.</p>
+                <p className="text-xs xl:text-sm">Henüz imha edilmiş klasör bulunmuyor.</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
-                <table className="w-full text-xs">
+                <table className="w-full text-[10px] xl:text-xs">
                   <thead className="bg-gray-100 dark:bg-slate-700">
                     <tr>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300 w-8">#</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Kategori</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Departman</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Konu</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Dosya Kodu</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Dosya Yılı</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Saklama Süresi</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Saklama Kodu</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">İmha Tarihi</th>
-                      <th className="px-2 py-2 text-left text-gray-600 dark:text-gray-300">Lokasyon</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300 w-8">#</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Kategori</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Departman</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Konu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Dosya Yılı</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Süresi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Saklama Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">İmha Tarihi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-gray-600 dark:text-gray-300">Lokasyon</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -886,9 +886,9 @@ export const Reports: React.FC = () => {
                       const locationStr = getFullLocationString(folder?.location);
                       return (
                         <tr key={disposal.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
-                          <td className="px-2 py-1.5 text-gray-400">{index + 1}</td>
-                          <td className="px-2 py-1.5">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-400">{index + 1}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
                               folder?.category === 'Tıbbi' 
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
@@ -896,24 +896,24 @@ export const Reports: React.FC = () => {
                               {folder?.category || '-'}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">
                             {folder?.departmentName || (folder?.departmentId ? getDepartmentName(folder.departmentId) : 'Bilinmiyor')}
                           </td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder?.subject || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400">{folder?.fileCode || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder?.fileYear || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{folder?.retentionPeriod ? `${folder.retentionPeriod} yıl` : '-'}</td>
-                          <td className="px-2 py-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-xs">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.subject || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder?.fileCode || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.fileYear || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.retentionPeriod ? `${folder.retentionPeriod} yıl` : '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                               {folder?.retentionCode || '-'}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 text-xs font-medium">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 text-[10px] xl:text-xs font-medium">
                               {new Date(disposal.disposalDate).toLocaleDateString('tr-TR')}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 text-gray-600 dark:text-gray-400 text-xs">{locationStr}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px] xl:text-xs">{locationStr}</td>
                         </tr>
                       );
                     })}

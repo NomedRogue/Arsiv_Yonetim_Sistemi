@@ -74,7 +74,7 @@ export const CheckoutReturn: React.FC = () => {
   };
 
   return (
-    <div className="p-5">
+    <div className="p-3 xl:p-5">
       <Modal
         isOpen={isReturnModalOpen}
         onClose={() => setIsReturnModalOpen(false)}
@@ -98,11 +98,11 @@ export const CheckoutReturn: React.FC = () => {
         onConfirm={(data: any) => handleConfirmEdit(data)}
       />
 
-      <div className="bg-white dark:bg-archive-dark-panel p-4 rounded-xl shadow-lg transition-colors duration-300">
-        <h2 className="text-base font-bold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
+      <div className="bg-white dark:bg-archive-dark-panel p-3 xl:p-4 rounded-xl shadow-lg transition-colors duration-300">
+        <h2 className="text-base xl:text-lg font-bold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
           Dosya Talep
         </h2>
-        <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
+        <h3 className="text-xs xl:text-sm font-semibold mb-3 text-gray-900 dark:text-white transition-colors duration-300">
           Aktif Talep ({activeCheckouts.length})
         </h3>
 
@@ -111,7 +111,7 @@ export const CheckoutReturn: React.FC = () => {
             <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 xl:space-y-4">
             {activeCheckouts.map((checkout) => {
               const folder = checkout.folder;
               if (!folder) return null;
@@ -119,23 +119,23 @@ export const CheckoutReturn: React.FC = () => {
               return (
                 <div
                   key={checkout.id}
-                  className={`p-3 rounded-lg shadow-sm border dark:border-gray-700 ${getCheckoutCardColor(
+                  className={`p-3 xl:p-4 rounded-lg shadow-sm border dark:border-gray-700 ${getCheckoutCardColor(
                     checkout
                   )} transition-all duration-300 hover:shadow-md`}
                 >
-                  <div className="flex gap-4">
+                  <div className="flex flex-col lg:flex-row gap-4">
                     {/* Sol: Klasör Bilgileri */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 mb-2">
                         <Badge
                           text={folder.category}
                           color={folder.category === Category.Tibbi ? 'green' : 'blue'}
                         />
-                        <h4 className="font-semibold text-xs text-gray-900 dark:text-white">
+                        <h4 className="font-semibold text-xs xl:text-sm text-gray-900 dark:text-white">
                           {getDepartmentName(folder.departmentId)} - {folder.subject}
                         </h4>
                       </div>
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400 space-y-0.5">
+                      <div className="text-[11px] xl:text-xs text-gray-500 dark:text-gray-400 space-y-1">
                         <div className="flex flex-wrap gap-x-4">
                           <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
                           <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
@@ -156,49 +156,49 @@ export const CheckoutReturn: React.FC = () => {
                     </div>
 
                     {/* Sağ: Çıkış Bilgileri - İki Sütun */}
-                    <div className="flex-shrink-0 w-72">
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+                    <div className="flex-shrink-0 w-full lg:w-72 xl:w-80">
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] xl:text-xs text-gray-600 dark:text-gray-300">
                         {/* Sol Sütun */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <div className="flex items-start gap-1.5">
-                            <User size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                            <User size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Alan Kişi:</div>
-                              <div className="font-medium text-gray-700 dark:text-gray-200 text-[11px]">{checkout.personName} {checkout.personSurname}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Alan Kişi:</div>
+                              <div className="font-medium text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs">{checkout.personName} {checkout.personSurname}</div>
                             </div>
                           </div>
                           {checkout.personPhone && (
                             <div className="flex items-start gap-1.5">
-                              <Phone size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                              <Phone size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Telefon:</div>
-                                <div className="text-gray-700 dark:text-gray-200 text-[11px]">{checkout.personPhone}</div>
+                                <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Telefon:</div>
+                                <div className="text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs">{checkout.personPhone}</div>
                               </div>
                             </div>
                           )}
                           <div className="flex items-start gap-1.5">
-                            <Calendar size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                            <Calendar size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Çıkış:</div>
-                              <div className="text-gray-700 dark:text-gray-200 text-[11px]">{toDate(checkout.checkoutDate).toLocaleDateString('tr-TR')}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Çıkış:</div>
+                              <div className="text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs">{toDate(checkout.checkoutDate).toLocaleDateString('tr-TR')}</div>
                             </div>
                           </div>
                           <div className="flex items-start gap-1.5">
-                            <Calendar size={12} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                            <Calendar size={14} className="text-orange-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">İade Plan:</div>
-                              <div className="text-gray-700 dark:text-gray-200 text-[11px]">{toDate(checkout.plannedReturnDate).toLocaleDateString('tr-TR')}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">İade Plan:</div>
+                              <div className="text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs">{toDate(checkout.plannedReturnDate).toLocaleDateString('tr-TR')}</div>
                             </div>
                           </div>
                         </div>
 
                         {/* Sağ Sütun */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <div className="flex items-start gap-1.5">
-                            <GitBranch size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                            <GitBranch size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Çıkış Tipi:</div>
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Çıkış Tipi:</div>
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] xl:text-[11px] font-medium ${
                                 checkout.checkoutType === CheckoutType.Tam 
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                                   : 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
@@ -208,20 +208,20 @@ export const CheckoutReturn: React.FC = () => {
                             </div>
                           </div>
                           <div className="flex items-start gap-1.5">
-                            <Info size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                            <Info size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Çıkış Nedeni:</div>
-                              <div className="text-gray-700 dark:text-gray-200 text-[11px] break-words" title={checkout.reason || 'Belirtilmemiş'}>
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Çıkış Nedeni:</div>
+                              <div className="text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs break-words" title={checkout.reason || 'Belirtilmemiş'}>
                                 {checkout.reason || <span className="italic text-gray-400">-</span>}
                               </div>
                             </div>
                           </div>
                           {checkout.checkoutType === CheckoutType.Kismi && checkout.documentDescription && (
                             <div className="flex items-start gap-1.5">
-                              <FileText size={12} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                              <FileText size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-gray-500 dark:text-gray-400 text-[10px] leading-tight">Evrak:</div>
-                                <div className="text-gray-700 dark:text-gray-200 text-[11px] break-words" title={checkout.documentDescription}>
+                                <div className="text-gray-500 dark:text-gray-400 text-[10px] xl:text-[11px] leading-tight">Evrak:</div>
+                                <div className="text-gray-700 dark:text-gray-200 text-[11px] xl:text-xs break-words" title={checkout.documentDescription}>
                                   {checkout.documentDescription}
                                 </div>
                               </div>
@@ -231,19 +231,19 @@ export const CheckoutReturn: React.FC = () => {
                       </div>
 
                       {/* Butonlar */}
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => handleReturnClick(checkout)}
-                          className="flex-1 py-1.5 px-3 text-white bg-teal-600 rounded-md hover:bg-teal-700 transition-colors text-xs font-medium"
+                          className="flex-1 py-1.5 px-3 text-white bg-teal-600 rounded-md hover:bg-teal-700 transition-colors text-xs xl:text-sm font-medium"
                         >
                           İade Al
                         </button>
                         <button
                           title="Düzenle"
                           onClick={() => handleEditClick(checkout)}
-                          className="p-2 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 dark:bg-teal-900/50 dark:text-teal-300 dark:hover:bg-teal-900 transition-colors"
+                          className="p-1.5 xl:p-2 bg-teal-100 text-teal-700 rounded-md hover:bg-teal-200 dark:bg-teal-900/50 dark:text-teal-300 dark:hover:bg-teal-900 transition-colors"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={18} />
                         </button>
                       </div>
                     </div>
