@@ -146,21 +146,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="p-3 xl:p-5 space-y-3 xl:space-y-5">
       {/* Statistics Cards Grid */}
       <div className="grid grid-cols-5 xl:grid-cols-9 gap-3 mb-5">
         {dashboardCardsData.map((card, index) => {
           const iconColor = getCardIconColor(theme, card.title);
           return (
-            <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[4rem] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
+            <div key={index} onClick={card.onClick} className="bg-white dark:bg-slate-700 rounded-lg p-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer min-h-[4rem] xl:min-h-[5rem] flex items-center border border-gray-200 dark:border-slate-600 shadow-sm dark:hover:shadow-slate-600/20">
               <div className="mr-2 flex-shrink-0 transition-colors duration-200" style={{ color: iconColor }}>
-                <card.icon size={20} />
+                <card.icon className="w-5 h-5 xl:w-6 xl:h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-[0.65rem] font-medium text-gray-600 dark:text-gray-300 mb-1 truncate">
+                <h3 className="text-xs xl:text-sm font-medium text-gray-600 dark:text-gray-300 mb-1 truncate">
                   {card.title}
                 </h3>
-                <span className="text-base font-bold text-gray-900 dark:text-white">
+                <span className="text-base xl:text-lg font-bold text-gray-900 dark:text-white">
                   {card.value}
                 </span>
               </div>
@@ -170,21 +170,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       {/* Backup Status Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         {/* Backup Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
-            <HardDrive size={16} className="text-blue-600 dark:text-blue-400 mr-2" />
+            <HardDrive className="w-4 h-4 xl:w-5 xl:h-5 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xs font-semibold text-gray-800 dark:text-white mb-1">Son Yedekleme</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+              <h3 className="text-xs xl:text-sm font-semibold text-gray-800 dark:text-white mb-1">Son Yedekleme</h3>
+              <span className="text-xs xl:text-sm px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
                 {finalLastBackup?.label || '—'}
               </span>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {finalLastBackup?.ts ? finalLastBackup.ts.toLocaleString() : '—'}
               </div>
               {finalLastBackup?.details && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                   {finalLastBackup.details}
                 </div>
               )}
@@ -195,17 +195,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         {/* Restore Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
-            <RotateCcw size={16} className="text-amber-600 dark:text-amber-400 mr-2" />
+            <RotateCcw className="w-4 h-4 xl:w-5 xl:h-5 text-amber-600 dark:text-amber-400 mr-2 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xs font-semibold text-gray-800 dark:text-white mb-1">Son Geri Yükleme</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <h3 className="text-xs xl:text-sm font-semibold text-gray-800 dark:text-white mb-1">Son Geri Yükleme</h3>
+              <span className="text-xs xl:text-sm px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                 {finalLastRestore?.label || '—'}
               </span>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {finalLastRestore?.ts ? finalLastRestore.ts.toLocaleString() : '—'}
               </div>
               {finalLastRestore?.details && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                   {finalLastRestore.details}
                 </div>
               )}
@@ -216,17 +216,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         {/* Cleanup Card */}
         <div className="bg-white dark:bg-slate-700 rounded-lg p-3 shadow-sm transition-colors duration-300 border border-gray-200 dark:border-slate-600">
           <div className="flex items-center">
-            <Trash2 size={16} className="text-rose-600 dark:text-rose-400 mr-2" />
+            <Trash2 className="w-4 h-4 xl:w-5 xl:h-5 text-rose-600 dark:text-rose-400 mr-2 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-xs font-semibold text-gray-800 dark:text-white mb-1">Eski Yedek Temizliği</h3>
-              <span className="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+              <h3 className="text-xs xl:text-sm font-semibold text-gray-800 dark:text-white mb-1">Eski Yedek Temizliği</h3>
+              <span className="text-xs xl:text-sm px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
                 {finalLastCleanup?.label || '—'}
               </span>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {finalLastCleanup?.ts ? new Date(finalLastCleanup.ts).toLocaleString() : '—'}
               </div>
               {finalLastCleanup?.details && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                <div className="text-xs xl:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                   {finalLastCleanup.details}
                 </div>
               )}
@@ -236,11 +236,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       </div>
 
       <div className="dashboard-card">
-        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-2 transition-colors duration-300">Arşiv Dağılımı</h3>
+        <h3 className="text-sm xl:text-base font-bold text-gray-800 dark:text-white mb-2 transition-colors duration-300">Arşiv Dağılımı</h3>
         <div className="flex space-x-2 border-b dark:border-gray-700 mb-4 transition-colors duration-300">
           <button
             onClick={() => setTreemapFilter('all')}
-            className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
+            className={`px-3 py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${
               treemapFilter === 'all' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
@@ -248,7 +248,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </button>
           <button
             onClick={() => setTreemapFilter(StorageType.Kompakt)}
-            className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
+            className={`px-3 py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${
               treemapFilter === StorageType.Kompakt ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
@@ -256,7 +256,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </button>
           <button
             onClick={() => setTreemapFilter(StorageType.Stand)}
-            className={`px-3 py-2 text-sm font-medium transition-colors duration-300 ${
+            className={`px-3 py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${
               treemapFilter === StorageType.Stand ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'
             }`}
           >
@@ -272,7 +272,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         <div className="dashboard-card">
-          <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-3 transition-colors duration-300">
+          <h3 className="text-sm xl:text-base font-bold text-gray-800 dark:text-white mb-3 transition-colors duration-300">
             Tıbbi Kayıtların Klinik Dağılımı
           </h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -295,14 +295,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 ))}
               </Pie>
               <Tooltip content={<CustomPieTooltip />} />
-              <Legend iconSize={10} />
+              <Legend iconSize={10} wrapperStyle={{ fontSize: '11px' }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
         
         {/* Arşiv Doluluk Durumu */}
         <div className="dashboard-card relative overflow-hidden" style={{ cursor: 'default' }}>
-          <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6 text-center">
+          <h3 className="text-sm xl:text-base font-bold text-gray-800 dark:text-white mb-6 text-center">
             Arşiv Doluluk Durumu
           </h3>
           
@@ -337,10 +337,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               
               {/* Center Text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className={`text-4xl font-bold leading-none mb-2 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
+                <div className={`text-4xl xl:text-5xl font-bold leading-none mb-2 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
                   {stats.overallOccupancy.toFixed(1)}%
                 </div>
-                <div className={`text-xs font-medium uppercase tracking-wider ${
+                <div className={`text-xs xl:text-sm font-medium uppercase tracking-wider ${
                   theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}>
                   Dolu
@@ -362,10 +362,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       : 'bg-emerald-500 dark:bg-emerald-400'
                   }`}></div>
                   <div>
-                    <div className="text-[0.65rem] mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
+                    <div className="text-[0.65rem] xl:text-xs mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
                       Dolu Alan
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                    <div className="text-lg xl:text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
                       {stats.overallOccupancy.toFixed(1)}%
                     </div>
                   </div>
@@ -376,10 +376,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <div className="flex flex-col items-center justify-center text-center gap-1">
                   <div key={`dot-empty-${theme}`} className="w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
                   <div>
-                    <div className="text-[0.65rem] mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
+                    <div className="text-[0.65rem] xl:text-xs mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
                       Boş Alan
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+                    <div className="text-lg xl:text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
                       {(100 - stats.overallOccupancy).toFixed(1)}%
                     </div>
                   </div>
@@ -388,7 +388,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             
             {/* Status Badge */}
-            <div key={`badge-${theme}-${stats.overallOccupancy}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-200 ${
+            <div key={`badge-${theme}-${stats.overallOccupancy}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-colors duration-200 ${
               stats.overallOccupancy > 85 
                 ? 'bg-red-50 dark:bg-red-500/20 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-400/30'
                 : stats.overallOccupancy > 70 
@@ -433,9 +433,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <div className="p-1.5 rounded-md bg-gradient-to-br from-red-500 to-orange-500">
               <Trash2 className="w-3 h-3 text-white" />
             </div>
-            <h3 className="text-xs font-bold text-gray-800 dark:text-white">İmha Takvimi</h3>
+            <h3 className="text-xs xl:text-sm font-bold text-gray-800 dark:text-white">İmha Takvimi</h3>
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-3 text-[10px] xl:text-xs text-gray-600 dark:text-gray-300">
             <span className="flex items-center gap-1">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
               Gecikmiş
@@ -477,7 +477,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   className={`flex items-center gap-2 p-1.5 rounded-md text-xs transition-colors ${
                     item.isOverdue ? 'bg-red-50 dark:bg-red-500/10 border border-transparent dark:border-red-500/20' : 
                     item.isCurrentYear ? 'bg-orange-50 dark:bg-orange-500/10 border border-transparent dark:border-orange-500/20' : 
-                    'hover:bg-gray-50 dark:hover:bg-slate-700 border border-transparent'
+                    'hover:bg-gray-100 dark:hover:bg-slate-500/30 border border-transparent'
                   }`}
                 >
                   <div className={`w-16 font-medium flex items-center gap-1 ${
