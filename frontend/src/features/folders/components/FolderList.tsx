@@ -10,6 +10,7 @@ import { toast } from '@/lib/toast';
 import { RETENTION_CODES, TIMEOUTS } from '@/constants';
 import { formatLocation, getStatusColor, getCategoryColor } from '../utils/folderHelpers';
 import * as apiService from '@/api';
+import { useAuth } from '@/context/AuthContext';
 
 // Memoized FolderRow component for better performance
 interface FolderRowProps {
@@ -21,6 +22,7 @@ interface FolderRowProps {
   onCheckout: () => void;
   onReturn: () => void;
   onDelete: () => void;
+  canDelete: boolean;
 }
 
 const FolderRow = React.memo<FolderRowProps>(({ 
@@ -31,21 +33,22 @@ const FolderRow = React.memo<FolderRowProps>(({
   onEdit, 
   onCheckout, 
   onReturn, 
-  onDelete 
+  onDelete,
+  canDelete
 }) => {
   const locationText = useMemo(() => formatLocation(folder.location), [folder.location]);
 
   return (
-    <div className="p-3 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-slate-800/50 transition-all duration-300 hover:shadow-xl hover:border-gray-400 dark:hover:border-gray-500">
-      <div className="flex justify-between items-start gap-3">
+    <div className="p-2 xl:p-3 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-slate-800/50 transition-all duration-300 hover:shadow-xl hover:border-gray-400 dark:hover:border-gray-500">
+      <div className="flex justify-between items-start gap-1 xl:gap-3">
         <div>
           <div className="flex items-center space-x-2 mb-1">
             <Badge text={folder.category} color={categoryColor} />
-            <h4 className="font-bold text-sm">
+            <h4 className="font-bold text-xs xl:text-sm">
               {departmentName} - {folder.subject}
             </h4>
           </div>
-          <div className="text-[0.7rem] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3 gap-y-0.5">
+          <div className="text-[0.65rem] xl:text-xs text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-2 xl:gap-x-3 gap-y-0.5">
             <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
             <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
             <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
@@ -53,49 +56,49 @@ const FolderRow = React.memo<FolderRowProps>(({
             {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
             {folder.specialInfo && <span><strong>Özel Bilgi:</strong> {folder.specialInfo}</span>}
           </div>
-          <div className="text-[0.7rem] mt-0.5">
+          <div className="text-[0.65rem] xl:text-xs mt-0.5">
             <strong>Lokasyon:</strong> {locationText}
           </div>
-          <div className="mt-2">
+          <div className="mt-1 xl:mt-2 text-[0.65rem] xl:text-xs">
             <strong>Durum: </strong>
             <Badge text={folder.status} color={statusColor} />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 xl:gap-1.5">
           {folder.pdfPath && (
             <button
               title="PDF Görüntüle"
               onClick={() => openFileWithSystem(folder.pdfPath!, 'pdf')}
-              className="p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors shadow-sm hover:shadow"
+              className="p-1 xl:p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900 transition-colors shadow-sm hover:shadow"
             >
-              <FileText size={16} />
+              <FileText className="w-4 h-4 xl:w-5 xl:h-5" />
             </button>
           )}
           {folder.excelPath && (
             <button
               title="Excel Aç"
               onClick={() => openFileWithSystem(folder.excelPath!, 'excel')}
-              className="p-1.5 bg-green-100 text-green-600 rounded-md hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 transition-colors shadow-sm hover:shadow"
+              className="p-1 xl:p-1.5 bg-green-100 text-green-600 rounded-md hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 transition-colors shadow-sm hover:shadow"
             >
-              <FileSpreadsheet size={16} />
+              <FileSpreadsheet className="w-4 h-4 xl:w-5 xl:h-5" />
             </button>
           )}
           <button
             title="Düzenle"
             onClick={onEdit}
-            className="p-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 transition-colors"
+            className="p-1 xl:p-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 transition-colors"
           >
-            <Edit size={15} />
+            <Edit className="w-3.5 h-3.5 xl:w-[15px] xl:h-[15px]" />
           </button>
 
           {folder.status === FolderStatus.Arsivde && (
             <button
               title="Çıkış Ver"
               onClick={onCheckout}
-              className="p-1.5 bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:hover:bg-orange-900 transition-colors"
+              className="p-1 xl:p-1.5 bg-orange-100 text-orange-600 rounded-md hover:bg-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:hover:bg-orange-900 transition-colors"
             >
-              <FileOutput size={15} />
+              <FileOutput className="w-3.5 h-3.5 xl:w-[15px] xl:h-[15px]" />
             </button>
           )}
 
@@ -103,19 +106,21 @@ const FolderRow = React.memo<FolderRowProps>(({
             <button
               title="İade Al"
               onClick={onReturn}
-              className="p-1.5 bg-green-100 text-green-600 rounded-md hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 transition-colors"
+              className="p-1 xl:p-1.5 bg-green-100 text-green-600 rounded-md hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900 transition-colors"
             >
-              <RotateCcw size={15} />
+              <RotateCcw className="w-3.5 h-3.5 xl:w-[15px] xl:h-[15px]" />
             </button>
           )}
 
-          <button
-            title="Sil"
-            onClick={onDelete}
-            className="p-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 transition-colors"
-          >
-            <Trash2 size={15} />
-          </button>
+          {canDelete && (
+            <button
+              title="Sil"
+              onClick={onDelete}
+              className="p-1 xl:p-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5 xl:w-[15px] xl:h-[15px]" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -134,6 +139,9 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     departments,
     sseConnected,
   } = useArchive();
+  
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -312,7 +320,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   return (
-    <div className="h-full flex flex-col p-5">
+    <div className="h-full flex flex-col p-3 xl:p-5">
       <CheckoutModal
         isOpen={isCheckoutModalOpen}
         onClose={handleCloseCheckoutModal}
@@ -337,13 +345,13 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
         ) : null}
       </Modal>
 
-      <div className="flex flex-col h-full bg-white dark:bg-archive-dark-panel p-4 rounded-xl shadow-lg transition-colors duration-300">
-        <h2 className="text-lg font-bold mb-3">Arşiv</h2>
+      <div className="flex flex-col h-full bg-white dark:bg-archive-dark-panel p-3 xl:p-4 rounded-xl shadow-lg transition-colors duration-300">
+        <h2 className="text-sm xl:text-lg font-bold mb-2 xl:mb-3">Arşiv</h2>
 
         {/* Gelişmiş Arama Formu */}
         <form
           onSubmit={(e) => { e.preventDefault(); setCurrentPage(1); fetchFolders(); }}
-          className="space-y-4 p-4 mb-4 border rounded-lg dark:border-gray-600 transition-colors duration-300"
+          className="space-y-3 xl:space-y-4 p-3 xl:p-4 mb-3 xl:mb-4 border rounded-lg dark:border-gray-600 transition-colors duration-300"
         >
           <div className="relative">
             <input
@@ -363,9 +371,9 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 }, TIMEOUTS.SEARCH_DEBOUNCE_MS);
               }}
               placeholder="Tüm alanlarda ara..."
-              className="w-full p-3 pl-10 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+              className="w-full p-2.5 xl:p-3 pl-9 xl:pl-10 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
             />
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 xl:w-5 xl:h-5" />
           </div>
 
           <div className="flex justify-between items-center">
@@ -373,7 +381,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
               <button
                 type="button"
                 onClick={() => setIsAdvanced(!isAdvanced)}
-                className="text-sm text-teal-600 dark:text-teal-400 transition-colors duration-300"
+                className="text-xs xl:text-sm text-teal-600 dark:text-teal-400 transition-colors duration-300"
               >
                 {isAdvanced ? 'Basit Aramaya Geç' : 'Gelişmiş Arama'}
               </button>
@@ -395,27 +403,27 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                   });
                   setCurrentPage(1);
                 }}
-                className="text-sm text-gray-600 dark:text-gray-300 hover:underline"
+                className="text-xs xl:text-sm text-gray-600 dark:text-gray-300 hover:underline"
               >
                 Temizle
               </button>
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center transition-colors duration-300"
+              className="px-3 xl:px-4 py-1.5 xl:py-2 text-xs xl:text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center transition-colors duration-300"
               disabled={loading}
             >
-              {loading ? <Loader2 size={18} className="mr-2 animate-spin" /> : <SearchIcon size={18} className="mr-2" />}
+              {loading ? <Loader2 className="mr-2 animate-spin w-4 h-4" /> : <SearchIcon className="mr-2 w-4 h-4" />}
               Ara
             </button>
           </div>
 
           {isAdvanced && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t dark:border-gray-700 transition-colors duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 xl:gap-4 pt-3 xl:pt-4 border-t dark:border-gray-700 transition-colors duration-300">
               <select
                 value={searchCriteria.category}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, category: e.target.value })}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Kategori: Tümü</option>
                 <option value={Category.Tibbi}>Tıbbi</option>
@@ -425,7 +433,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
               <select
                 value={searchCriteria.departmentId}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, departmentId: e.target.value })}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Birim: Tümü</option>
                 {(departments || []).filter(d => searchCriteria.category === 'Tümü' || d.category === searchCriteria.category).map(d => (
@@ -438,7 +446,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
               <select
                 value={searchCriteria.status}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, status: e.target.value })}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Durum: Tümü</option>
                 <option value={FolderStatus.Arsivde}>Arşivde</option>
@@ -452,7 +460,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, clinic: e.target.value })}
                 placeholder="Klinik Adı"
                 disabled={searchCriteria.category === Category.Idari}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg disabled:opacity-50 transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg disabled:opacity-50 transition-colors duration-300"
               />
               
               <input
@@ -460,7 +468,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 value={searchCriteria.fileCode}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, fileCode: e.target.value })}
                 placeholder="Dosya Kodu"
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
               />
               
               <input
@@ -468,7 +476,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 value={searchCriteria.subject}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, subject: e.target.value })}
                 placeholder="Konu"
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
               />
 
               <input
@@ -476,13 +484,21 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 value={searchCriteria.startYear}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, startYear: e.target.value })}
                 placeholder="Başlangıç Yılı"
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
+              />
+
+              <input
+                type="text"
+                value={searchCriteria.endYear}
+                onChange={(e) => setSearchCriteria({ ...searchCriteria, endYear: e.target.value })}
+                placeholder="Bitiş Yılı"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300"
               />
 
               <select
                 value={searchCriteria.retentionCode}
                 onChange={(e) => setSearchCriteria({ ...searchCriteria, retentionCode: e.target.value })}
-                className="w-full p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
+                className="w-full p-2 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
               >
                 <option value="Tümü">Saklama Kodu: Tümü</option>
                 {RETENTION_CODES.map(code => (
@@ -498,7 +514,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
             <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto overflow-x-visible space-y-3 mb-4">
+          <div className="flex-1 overflow-y-auto overflow-x-visible space-y-2 xl:space-y-3 mb-4">
             {Array.isArray(folders) && folders.map((folder) => (
               <FolderRow
                 key={folder.id}
@@ -510,20 +526,21 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                 onCheckout={() => handleOpenCheckoutModal(folder)}
                 onReturn={() => handleReturnFolder(folder.id)}
                 onDelete={() => askDelete(folder)}
+                canDelete={isAdmin}
               />
             ))}
             {(!Array.isArray(folders) || folders.length === 0) && (
-              <div className="text-center text-gray-500 py-10">Kayıt bulunamadı.</div>
+              <div className="text-center text-xs xl:text-sm text-gray-500 py-10">Kayıt bulunamadı.</div>
             )}
           </div>
         )}
         
         {/* Pagination Controls - Her zaman göster */}
-        <div className="flex justify-center items-center gap-2 mt-6 pt-4 border-t dark:border-gray-700">
+        <div className="flex justify-center items-center gap-2 mt-4 xl:mt-6 pt-3 xl:pt-4 border-t dark:border-gray-700">
           <button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1 || loading}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
+            className="px-2 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
             title="İlk Sayfa"
           >
             İlk
@@ -531,13 +548,13 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1 || loading}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
+            className="px-2 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
           >
-            <ChevronLeft size={16} className="inline-block" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
           
-          <div className="flex items-center gap-2 px-4">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Sayfa</span>
+          <div className="flex items-center gap-2 px-2 xl:px-4">
+            <span className="text-xs xl:text-sm text-gray-600 dark:text-gray-400">Sayfa</span>
             <input
               type="number"
               min="1"
@@ -549,29 +566,29 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
                   setCurrentPage(page);
                 }
               }}
-              className="w-16 px-2 py-1 text-center text-sm border border-gray-300 rounded-md dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-12 xl:w-16 px-1 xl:px-2 py-0.5 xl:py-1 text-center text-xs xl:text-sm border border-gray-300 rounded-md dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               disabled={loading}
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400">/ {totalPages || 1}</span>
+            <span className="text-xs xl:text-sm text-gray-600 dark:text-gray-400">/ {totalPages || 1}</span>
           </div>
 
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages || loading}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
+            className="px-2 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
           >
-            <ChevronRight size={16} className="inline-block" />
+            <ChevronRight className="w-4 h-4" />
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages || loading}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
+            className="px-2 xl:px-3 py-1.5 xl:py-2 text-xs xl:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-slate-600 transition-colors"
             title="Son Sayfa"
           >
             Son
           </button>
           
-          <span className="ml-4 text-sm text-gray-600 dark:text-gray-400">
+          <span className="ml-2 xl:ml-4 text-[10px] xl:text-sm text-gray-600 dark:text-gray-400">
             Toplam {totalItems} kayıt
           </span>
         </div>

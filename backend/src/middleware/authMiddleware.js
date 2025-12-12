@@ -22,6 +22,7 @@ const verifyToken = (req, res, next) => {
   // Public routes that don't need auth
   const publicRoutes = [
     '/api/auth/login',
+    '/api/auth/register',
     '/api/auth/setup', // First time setup if needed
     '/api/status',
     '/api/health',

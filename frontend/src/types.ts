@@ -56,7 +56,7 @@ export interface Folder {
   fileCode: string;
   subject: string;
   specialInfo?: string;
-  retentionPeriod: number;
+  retentionPeriod: number | string;
   retentionCode: string;
   fileYear: number;
   fileCount: number;

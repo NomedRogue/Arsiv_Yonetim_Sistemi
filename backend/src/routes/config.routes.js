@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const configController = require('../controllers/ConfigController');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -24,7 +25,7 @@ const configController = require('../controllers/ConfigController');
  *       200:
  *         description: All configs
  */
-router.get('/all-data', configController.getAllData);
+router.get('/all-data', verifyToken, configController.getAllData);
 
 /**
  * @swagger
@@ -42,6 +43,6 @@ router.get('/all-data', configController.getAllData);
  *       200:
  *         description: Configs saved
  */
-router.post('/save-configs', configController.saveConfigs);
+router.post('/save-configs', verifyToken, configController.saveConfigs);
 
 module.exports = router;

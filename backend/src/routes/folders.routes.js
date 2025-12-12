@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const folderController = require('../controllers/FolderController');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 const { createFolderValidation, updateFolderValidation, validate } = require('../middleware/validators/folderValidator');
 
@@ -162,6 +163,7 @@ router.get('/:id', folderController.getFolderById);
  */
 router.post(
   '/',
+  verifyToken,
   uploadLimiter,
   createFolderValidation,
   validate,
@@ -199,6 +201,7 @@ router.post(
  */
 router.put(
   '/:id',
+  verifyToken,
   updateFolderValidation,
   validate,
   folderController.updateFolder
@@ -225,7 +228,7 @@ router.put(
  *       404:
  *         description: Folder not found
  */
-router.delete('/:id', folderController.deleteFolder);
+router.delete('/:id', verifyToken, requireAdmin, folderController.deleteFolder);
 
 /**
  * @swagger

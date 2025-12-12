@@ -204,4 +204,24 @@ router.delete('/users/:id', verifyToken, requireAdmin, (req, res) => authControl
  */
 router.put('/users/:id/password', verifyToken, requireAdmin, (req, res) => authController.adminUpdatePassword(req, res));
 
+/**
+ * @swagger
+ * /auth/users/{id}/approve:
+ *   put:
+ *     summary: Approve a pending user (Admin only)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: User approved
+ */
+router.put('/users/:id/approve', verifyToken, requireAdmin, (req, res) => authController.approveUser(req, res));
+
 module.exports = router;

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '@/styles/liquid-gauge.css';
 import { useArchive } from '@/context/ArchiveContext';
-import { DashboardCard } from './components/DashboardCard';
 import { LocationAnalysis } from './components/LocationAnalysis';
 import { RecentActivityList } from './components/RecentActivityList';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap } from 'recharts';
@@ -9,10 +8,11 @@ import { Folder, FileText, AlertTriangle, ChevronsRight, BookX, HardDrive, Rotat
 import { StorageType } from '@/types';
 import { CustomPieTooltip, CustomTreemapTooltip, CustomizedTreemapContent } from './utils/chartHelpers';
 import { useTheme } from '@/hooks/useTheme';
-import { getCardIconColor, getOccupancyColor, getOccupancyTextClass, THEME_COLORS, getPieChartColors, getChartColors } from '@/lib/theme';
+import { getCardIconColor, getOccupancyColor, getOccupancyTextClass, THEME_COLORS, getChartColors } from '@/lib/theme';
 import '@/styles/dashboard-grid.css';
 import { DEFAULT_SETTINGS, INITIAL_STORAGE_STRUCTURE } from '@/constants';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useCountUp } from '@/hooks/useCountUp';
 
 const basename = (p?: string) => (p ? p.split(/[\\/]/).pop() : undefined);
 
@@ -41,6 +41,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   
   // Use Custom Hook for Business Logic & Data Fetching
   const { stats, isLoading, analysisFolders, isAnalysisLoading } = useDashboardStats(treemapFilter, yearFilter);
+
+  // Animation states
+  const animatedOccupancy = useCountUp(stats.overallOccupancy, 2000, 1);
+  const [gaugeValue, setGaugeValue] = useState(0);
+
+  // Trigger gauge animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGaugeValue(stats.overallOccupancy);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [stats.overallOccupancy]);
 
   // Dashboard cards data
   const dashboardCardsData = useMemo(() => [
@@ -77,10 +89,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const occupancyGaugeColors = useMemo(() => {
     const bgColor = THEME_COLORS[theme].occupancy.background;
     const progressColor = getOccupancyColor(theme, stats.overallOccupancy);
-    const dashArray = `${(stats.overallOccupancy / 100) * 264} 264`;
+    // Use animating gaugeValue for dashArray
+    const dashArray = `${(gaugeValue / 100) * 264} 264`;
     
     return { bgColor, progressColor, dashArray };
-  }, [theme, stats.overallOccupancy]);
+  }, [theme, stats.overallOccupancy, gaugeValue]);
   
   const finalLastRestore = useMemo(() => {
     if (lastRestoreEvent) {
@@ -301,16 +314,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
         
         {/* Arşiv Doluluk Durumu */}
-        <div className="dashboard-card relative overflow-hidden" style={{ cursor: 'default' }}>
-          <h3 className="text-sm xl:text-base font-bold text-gray-800 dark:text-white mb-6 text-center">
+        <div className="dashboard-card relative overflow-hidden flex flex-col items-center justify-between" style={{ cursor: 'default' }}>
+          <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-2 text-center w-full">
             Arşiv Doluluk Durumu
           </h3>
           
-          <div className="flex flex-col items-center gap-6 py-3">
+          <div className="flex flex-col items-center gap-4 py-2 w-full flex-1 justify-center">
             {/* Circular Progress Chart */}
-            <div className="relative" style={{ width: '220px', height: '220px' }}>
+            <div className="relative" style={{ width: '160px', height: '160px' }}>
               <svg 
-                className="transform -rotate-90" 
+                className="transform -rotate-90 drop-shadow-lg" 
                 viewBox="0 0 100 100" 
                 style={{ width: '100%', height: '100%' }}
               >
@@ -321,6 +334,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   fill="none"
                   stroke={occupancyGaugeColors.bgColor}
                   strokeWidth="8"
+                  className="opacity-30"
                 />
                 <circle
                   cx="50"
@@ -331,16 +345,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={occupancyGaugeColors.dashArray}
-                  style={{ transition: 'stroke 0.3s ease, stroke-dasharray 0.5s ease' }}
+                  style={{ transition: 'stroke-dasharray 2s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
                 />
               </svg>
               
               {/* Center Text */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className={`text-4xl xl:text-5xl font-bold leading-none mb-2 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
-                  {stats.overallOccupancy.toFixed(1)}%
+              <div className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in duration-1000">
+                <div className={`text-xl xl:text-2xl font-bold leading-none mb-1 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
+                  {animatedOccupancy}%
                 </div>
-                <div className={`text-xs xl:text-sm font-medium uppercase tracking-wider ${
+                <div className={`text-[10px] xl:text-xs font-medium uppercase tracking-wider ${
                   theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                 }`}>
                   Dolu
@@ -349,46 +363,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             
             {/* Stats Cards */}
-            <div key={`stats-${theme}`} className="grid grid-cols-2 gap-6 w-full max-w-md">
-              <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
-                <div className="flex flex-col items-center justify-center text-center gap-1">
-                  <div key={`dot-filled-${theme}-${stats.overallOccupancy}`} className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 transition-colors duration-200 ${
-                    stats.overallOccupancy > 85 
-                      ? 'bg-red-500 dark:bg-red-400'
-                      : stats.overallOccupancy > 70 
-                      ? 'bg-amber-500 dark:bg-amber-400'
-                      : stats.overallOccupancy > 50 
-                      ? 'bg-teal-500 dark:bg-teal-400'
-                      : 'bg-emerald-500 dark:bg-emerald-400'
-                  }`}></div>
-                  <div>
-                    <div className="text-[0.65rem] xl:text-xs mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
-                      Dolu Alan
-                    </div>
-                    <div className="text-lg xl:text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
-                      {stats.overallOccupancy.toFixed(1)}%
-                    </div>
+            <div key={`stats-${theme}`} className="grid grid-cols-2 gap-3 w-full max-w-sm px-4">
+              <div className="p-2 rounded-lg bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600/50 transition-colors duration-200">
+                <div className="flex flex-col items-center justify-center text-center gap-0.5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className={`w-2 h-2 rounded-full ${
+                      stats.overallOccupancy > 85 ? 'bg-red-500' : 
+                      stats.overallOccupancy > 70 ? 'bg-amber-500' : 
+                      stats.overallOccupancy > 50 ? 'bg-teal-500' : 'bg-emerald-500'
+                    }`}></div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Dolu Alan</span>
+                  </div>
+                  <div className="text-sm xl:text-base font-bold text-gray-800 dark:text-gray-100">
+                    {animatedOccupancy}%
                   </div>
                 </div>
               </div>
               
-              <div className="p-3 rounded-xl bg-white dark:bg-slate-700/70 border border-gray-300 dark:border-slate-600/70 shadow-sm transition-colors duration-200">
-                <div className="flex flex-col items-center justify-center text-center gap-1">
-                  <div key={`dot-empty-${theme}`} className="w-2.5 h-2.5 rounded-full flex-shrink-0 mb-1 bg-gray-500 dark:bg-slate-400 transition-colors duration-200"></div>
-                  <div>
-                    <div className="text-[0.65rem] xl:text-xs mb-0.5 text-gray-600 dark:text-gray-300 transition-colors duration-200">
-                      Boş Alan
-                    </div>
-                    <div className="text-lg xl:text-xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
-                      {(100 - stats.overallOccupancy).toFixed(1)}%
-                    </div>
+              <div className="p-2 rounded-lg bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600/50 transition-colors duration-200">
+                <div className="flex flex-col items-center justify-center text-center gap-0.5">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-slate-500"></div>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Boş Alan</span>
+                  </div>
+                  <div className="text-sm xl:text-base font-bold text-gray-800 dark:text-gray-100">
+                    {(100 - parseFloat(animatedOccupancy)).toFixed(1)}%
                   </div>
                 </div>
               </div>
             </div>
             
             {/* Status Badge */}
-            <div key={`badge-${theme}-${stats.overallOccupancy}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-colors duration-200 ${
+            <div key={`badge-${theme}-${stats.overallOccupancy}`} className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] xl:text-xs font-medium transition-colors duration-200 mt-1 ${
               stats.overallOccupancy > 85 
                 ? 'bg-red-50 dark:bg-red-500/20 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-400/30'
                 : stats.overallOccupancy > 70 
@@ -397,30 +403,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 ? 'bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-400/30'
                 : 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-400/30'
             }`}>
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 transition-colors duration-200 ${
-                  stats.overallOccupancy > 85 
-                    ? 'bg-red-500 dark:bg-red-400'
-                    : stats.overallOccupancy > 70 
-                    ? 'bg-amber-500 dark:bg-amber-400'
-                    : stats.overallOccupancy > 50 
-                    ? 'bg-teal-500 dark:bg-teal-400'
-                    : 'bg-emerald-500 dark:bg-emerald-400'
+              <span className="relative flex h-1.5 w-1.5">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  stats.overallOccupancy > 85 ? 'bg-red-500' : 
+                  stats.overallOccupancy > 70 ? 'bg-amber-500' : 
+                  stats.overallOccupancy > 50 ? 'bg-teal-500' : 'bg-emerald-500'
                 }`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 transition-colors duration-200 ${
-                  stats.overallOccupancy > 85 
-                    ? 'bg-red-600 dark:bg-red-500'
-                    : stats.overallOccupancy > 70 
-                    ? 'bg-amber-600 dark:bg-amber-500'
-                    : stats.overallOccupancy > 50 
-                    ? 'bg-teal-600 dark:bg-teal-400'
-                    : 'bg-emerald-600 dark:bg-emerald-400'
+                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                  stats.overallOccupancy > 85 ? 'bg-red-600' : 
+                  stats.overallOccupancy > 70 ? 'bg-amber-600' : 
+                  stats.overallOccupancy > 50 ? 'bg-teal-600' : 'bg-emerald-600'
                 }`}></span>
               </span>
-              {stats.overallOccupancy > 85 ? 'Kritik Seviye - Acil Genişleme Gerekli' :
-               stats.overallOccupancy > 70 ? 'Yüksek Doluluk - Dikkat Edilmeli' :
-               stats.overallOccupancy > 50 ? 'Orta Seviye - Normal Doluluk' :
-               'Optimal Seviye - Yeterli Kapasite'}
+              {stats.overallOccupancy > 85 ? 'Kritik Seviye' :
+               stats.overallOccupancy > 70 ? 'Yüksek Doluluk' :
+               stats.overallOccupancy > 50 ? 'Orta Seviye' :
+               'Yeterli Kapasite'}
             </div>
           </div>
         </div>

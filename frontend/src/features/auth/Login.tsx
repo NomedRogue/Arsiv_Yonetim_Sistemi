@@ -72,7 +72,7 @@ export const Login = () => {
             
             if (!res.ok) throw new Error(data.error || 'Kayıt başarısız');
 
-            toast.success('Kayıt başarılı! Lütfen giriş yapın.');
+            toast.success('Kayıt başarılı! Hesabınız yönetici onayına sunulmuştur.');
             setIsRegisterMode(false); // Switch back to login
             setLoginEmail(regUsername); // Pre-fill username
         } catch (error: any) {
@@ -96,15 +96,15 @@ export const Login = () => {
                     </a>
                     
                     <ul className="nav-links">
-                        <li><a href="#about" onClick={(e) => { e.preventDefault(); setShowAboutModal(true); }}>About</a></li>
-                        <li><a href="mailto:bekir.yildiz1@outlook.com">Contact</a></li>
+                        <li><a href="#about" onClick={(e) => { e.preventDefault(); setShowAboutModal(true); }}>Hakkında</a></li>
+                        <li><a href="mailto:bekir.yildiz1@outlook.com">İletişim</a></li>
                     </ul>
                     
                     <button 
                         className="btnLogin-popup" 
                         onClick={() => setIsActivePopup(true)}
                     >
-                        Login
+                        Giriş Yap
                     </button>
                 </nav>
             </header>
@@ -117,17 +117,17 @@ export const Login = () => {
 
                 {/* Login Form */}
                 <div className="form-box login">
-                    <h2>Login</h2>
+                    <h2>Giriş Yap</h2>
                     <form onSubmit={handleLoginSubmit}>
                         <div className="input-box">
-                            <span className="icon"><Mail /></span>
+                            <span className="icon"><User /></span>
                             <input 
                                 type="text" 
                                 required 
                                 value={loginEmail}
                                 onChange={(e) => setLoginEmail(e.target.value)}
                             />
-                            <label>Username / Email</label>
+                            <label>Kullanıcı Adı</label>
                         </div>
                         <div className="input-box">
                             <span className="icon"><Lock /></span>
@@ -137,7 +137,7 @@ export const Login = () => {
                                 value={loginPassword}
                                 onChange={(e) => setLoginPassword(e.target.value)}
                             />
-                            <label>Password</label>
+                            <label>Şifre</label>
                         </div>
                         <div className="remember-forgot">
                             <label>
@@ -145,22 +145,22 @@ export const Login = () => {
                                     type="checkbox" 
                                     checked={rememberMe}
                                     onChange={(e) => setRememberMe(e.target.checked)}
-                                /> Remember me
+                                /> Beni Hatırla
                             </label>
-                            <a href="#" onClick={(e) => { e.preventDefault(); toast.info('Lütfen yöneticinizle iletişime geçin.'); }}>Forgot Password?</a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); toast.info('Lütfen yöneticinizle iletişime geçin.'); }}>Şifremi Unuttum?</a>
                         </div>
                         <button type="submit" className="btn" disabled={isLoading}>
-                            {isLoading ? 'Loading...' : 'Login'}
+                            {isLoading ? 'Yükleniyor...' : 'Giriş Yap'}
                         </button>
                         <div className="login-register">
-                            <p>Don't have an account? <a href="#" className="register-link" onClick={(e) => { e.preventDefault(); setIsRegisterMode(true); }}>Register</a></p>
+                            <p>Hesabınız yok mu? <a href="#" className="register-link" onClick={(e) => { e.preventDefault(); setIsRegisterMode(true); }}>Kayıt Ol</a></p>
                         </div>
                     </form>
                 </div>
 
                 {/* Register Form */}
                 <div className="form-box register">
-                    <h2>Registration</h2>
+                    <h2>Kayıt Ol</h2>
                     <form onSubmit={handleRegisterSubmit}>
                         <div className="input-box">
                             <span className="icon"><User /></span>
@@ -170,7 +170,7 @@ export const Login = () => {
                                 value={regUsername}
                                 onChange={(e) => setRegUsername(e.target.value)}
                             />
-                            <label>Username</label>
+                            <label>Kullanıcı Adı</label>
                         </div>
                         <div className="input-box">
                             <span className="icon"><Mail /></span>
@@ -180,7 +180,7 @@ export const Login = () => {
                                 value={regEmail}
                                 onChange={(e) => setRegEmail(e.target.value)}
                             />
-                            <label>Email</label>
+                            <label>E-Posta</label>
                         </div>
                         <div className="input-box">
                             <span className="icon"><Lock /></span>
@@ -190,7 +190,7 @@ export const Login = () => {
                                 value={regPassword}
                                 onChange={(e) => setRegPassword(e.target.value)}
                             />
-                            <label>Password</label>
+                            <label>Şifre</label>
                         </div>
                         <div className="remember-forgot">
                             <label>
@@ -199,14 +199,14 @@ export const Login = () => {
                                     required
                                     checked={regTerms}
                                     onChange={(e) => setRegTerms(e.target.checked)}
-                                /> I agree to the terms & conditions
+                                /> Şartları ve koşulları kabul ediyorum
                             </label>
                         </div>
                         <button type="submit" className="btn" disabled={isLoading}>
-                             {isLoading ? 'Processing...' : 'Register'}
+                             {isLoading ? 'İşleniyor...' : 'Kayıt Ol'}
                         </button>
                         <div className="login-register">
-                            <p>Already have an account? <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); setIsRegisterMode(false); }}>Login</a></p>
+                            <p>Zaten hesabınız var mı? <a href="#" className="login-link" onClick={(e) => { e.preventDefault(); setIsRegisterMode(false); }}>Giriş Yap</a></p>
                         </div>
                     </form>
                 </div>

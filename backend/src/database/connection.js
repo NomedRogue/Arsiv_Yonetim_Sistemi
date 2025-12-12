@@ -37,6 +37,7 @@ function ensureTables(db) {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       role TEXT DEFAULT 'user',
+      isApproved INTEGER DEFAULT 0, -- 0: Pending, 1: Approved
       createdAt TEXT,
       updatedAt TEXT
     );
@@ -97,6 +98,20 @@ function ensureTables(db) {
             SELECT id, fileCode, subject, clinic, specialInfo, unitCode FROM folders;
           `);
       }
+  }
+
+  // MIGRATION FOR isApproved COLUMN
+  try {
+      const userColumns = db.prepare("PRAGMA table_info(users)").all();
+      const hasIsApproved = userColumns.some(c => c.name === 'isApproved');
+      if (!hasIsApproved) {
+          logger.info('[DB MIGRATION] Users tablosuna isApproved kolonu ekleniyor...');
+          db.exec("ALTER TABLE users ADD COLUMN isApproved INTEGER DEFAULT 0");
+          // Update existing users to be approved (since they existed before this feature)
+          db.exec("UPDATE users SET isApproved = 1");
+      }
+  } catch (err) {
+      logger.error('[DB MIGRATION] isApproved column check failed:', err);
   }
   
   logger.info('[DB] Tablo yapısı kontrol edildi ve index\'ler oluşturuldu.');

@@ -11,6 +11,7 @@ export const CustomInput = ({ label, className, ...props }: CustomInputProps) =>
       className="block mb-1 text-xs font-medium"
     >
       {label}
+      {props.required && <span className="text-red-500 ml-1">*</span>}
     </label>
     <input
       {...props}
@@ -31,6 +32,7 @@ export const CustomSelect = ({ label, children, ...props }: CustomSelectProps) =
       className="block mb-1 text-xs font-medium"
     >
       {label}
+      {props.required && <span className="text-red-500 ml-1">*</span>}
     </label>
     <select
       {...props}

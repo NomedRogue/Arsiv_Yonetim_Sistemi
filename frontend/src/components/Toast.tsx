@@ -44,17 +44,17 @@ export const ToastHost: React.FC = () => {
         return (
           <div
             key={t.id}
-            className={`pointer-events-auto text-white shadow-md rounded-md px-3 py-2.5 flex items-center gap-2.5 ${colorByType[t.type]} animate-in slide-in-from-right-5 fade-in duration-300`}
+            className={`pointer-events-auto text-white shadow-md rounded-md px-3 py-2 xl:px-4 xl:py-3 flex items-center gap-2.5 ${colorByType[t.type]} animate-in slide-in-from-right-5 fade-in duration-300`}
           >
-            <Icon className="flex-shrink-0" style={{ width: '1em', height: '1em' }} />
-            <div className="text-xs font-medium leading-normal">{t.message}</div>
+            <Icon className="flex-shrink-0 w-4 h-4 xl:w-5 xl:h-5" />
+            <div className="text-xs xl:text-sm font-medium leading-normal">{t.message}</div>
             <button
               onClick={() => dismiss(t.id)}
               className="ml-1 opacity-70 hover:opacity-100 transition-opacity"
               aria-label="Kapat"
               title="Kapat"
             >
-              <X style={{ width: '0.875em', height: '0.875em' }} />
+              <X className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
             </button>
           </div>
         );

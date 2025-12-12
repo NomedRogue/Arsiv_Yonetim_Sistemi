@@ -127,13 +127,23 @@ export const FolderForm: React.FC<{
     const { name, value, type } = e.target;
 
     setFormData((prev) => {
-      // number input'larda boş değer gelirse 0'a çeviriyoruz (NaN uyarısı olmasın)
-      const nextValue =
-        type === 'number' ? (value === '' ? '' : Number(value)) : value;
+      let nextValue: any = value;
+
+      if (name === 'retentionPeriod') {
+        if (value.toUpperCase() === 'B') {
+          nextValue = 'B';
+        } else if (/^\d*$/.test(value)) {
+          nextValue = value === '' ? '' : Number(value);
+        } else {
+          // If invalid input (not 'B' and not digits), reject change
+          return prev;
+        }
+      } else {
+        nextValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
+      }
 
       return {
         ...prev,
-        // dinamik key nedeniyle cast gerekli
         [name]: nextValue as any,
       } as FormDataType;
     });
@@ -359,20 +369,20 @@ export const FolderForm: React.FC<{
     <div className="p-3">
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-archive-dark-panel p-3 rounded-xl shadow-lg max-w-3xl mx-auto space-y-3 transition-colors duration-300"
+        className="bg-white dark:bg-archive-dark-panel p-3 xl:p-5 rounded-xl shadow-lg max-w-3xl xl:max-w-4xl mx-auto space-y-3 xl:space-y-4 transition-colors duration-300"
       >
-        <h2 className="text-sm font-bold mb-2 border-b pb-2 dark:border-gray-600 transition-colors duration-300">
+        <h2 className="text-sm xl:text-base font-bold mb-2 border-b pb-2 dark:border-gray-600 transition-colors duration-300">
           {isEditing ? 'Klasör Düzenle' : 'Klasör Kayıt Formu'}
         </h2>
 
-        <fieldset className="border p-2 rounded-lg dark:border-gray-600 transition-colors duration-300">
-          <legend className="px-1 font-medium text-xs">Klasör Bilgileri</legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <fieldset className="border p-2 xl:p-3 rounded-lg dark:border-gray-600 transition-colors duration-300">
+          <legend className="px-1 font-medium text-xs xl:text-sm">Klasör Bilgileri</legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 xl:gap-4">
             <div>
-              <label className="block mb-1 text-xs font-medium">
+              <label className="block mb-1 text-xs xl:text-sm font-medium">
                 Kategori
               </label>
-              <div className="flex items-center space-x-3 p-1.5 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300 text-xs">
+              <div className="flex items-center space-x-3 p-1.5 xl:p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300 text-xs xl:text-sm">
                 <input
                   id="cat-tibbi"
                   type="radio"
@@ -417,6 +427,7 @@ export const FolderForm: React.FC<{
                 name="clinic"
                 value={formData.clinic || ''}
                 onChange={handleInputChange}
+                required
               />
             )}
 
@@ -426,6 +437,7 @@ export const FolderForm: React.FC<{
               value={formData.unitCode || ''}
               onChange={handleInputChange}
               readOnly
+              required
             />
 
             <CustomInput
@@ -448,9 +460,10 @@ export const FolderForm: React.FC<{
             <div className="md:col-span-2">
               <label
                 htmlFor="specialInfo"
-                className="block mb-1 text-xs font-medium"
+                className="block mb-1 text-xs xl:text-sm font-medium"
               >
                 Özel Bilgi
+                <span className="text-red-500 ml-1">*</span>
               </label>
               <textarea
                 name="specialInfo"
@@ -458,21 +471,23 @@ export const FolderForm: React.FC<{
                 value={formData.specialInfo || ''}
                 onChange={handleInputChange}
                 rows={2}
-                className="bg-white border border-gray-300 text-gray-900 text-xs rounded-lg block w-full p-1.5 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
+                className="bg-white border border-gray-300 text-gray-900 text-xs xl:text-sm rounded-lg block w-full p-1.5 xl:p-2 dark:bg-slate-600 dark:border-gray-500 dark:text-white transition-colors duration-300"
               ></textarea>
             </div>
             
             <div>
               <CustomInput
-                label="Saklama Süresi (Yıl)"
+                label="Saklama Süresi"
                 name="retentionPeriod"
-                type="number"
+                type="text"
                 value={formData.retentionPeriod}
                 onChange={handleInputChange}
                 required
               />
-               <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
-                Planda geçen saklama süreleri, dosyanın kapandığı tarihten itibaren saklanması öngörülen süreyi (yıl) ifade eder.
+               <p className="mt-0.5 text-[10px] xl:text-xs text-gray-500 dark:text-gray-400 leading-tight">
+                {formData.retentionPeriod === 'B' 
+                  ? 'Kurumunda Saklanır' 
+                  : 'Planda geçen saklama süreleri, dosyanın kapandığı tarihten itibaren saklanması öngörülen süreyi ifade eder.'}
               </p>
             </div>
 
@@ -490,7 +505,7 @@ export const FolderForm: React.FC<{
                   </option>
                 ))}
               </CustomSelect>
-              <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
+              <p className="mt-0.5 text-[10px] xl:text-xs text-gray-500 dark:text-gray-400 leading-tight">
                 {RETENTION_CODE_DESCRIPTIONS[formData.retentionCode] || ''}
               </p>
             </div>
@@ -516,10 +531,11 @@ export const FolderForm: React.FC<{
             />
 
             <div>
-              <label className="block mb-1 text-xs font-medium">
+              <label className="block mb-1 text-xs xl:text-sm font-medium">
                 Klasör Tipi
+                <span className="text-red-500 ml-1">*</span>
               </label>
-              <div className="flex items-center space-x-3 p-1.5 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300 text-xs">
+              <div className="flex items-center space-x-3 p-1.5 xl:p-2 bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors duration-300 text-xs xl:text-sm">
                 <input
                   id="type-dar"
                   type="radio"
@@ -545,9 +561,10 @@ export const FolderForm: React.FC<{
           </div>
         </fieldset>
 
-        <fieldset className="border p-2 rounded-lg dark:border-gray-600 transition-colors duration-300">
-          <legend className="px-1 font-medium text-xs">
-            PDF İçindekiler Listesi (Opsiyonel)
+        <fieldset className="border p-2 xl:p-3 rounded-lg dark:border-gray-600 transition-colors duration-300">
+          <legend className="px-1 font-medium text-xs xl:text-sm">
+            PDF Muhteviyat Listesi
+            <span className="text-red-500 ml-1">*</span>
           </legend>
 
           {!pdfFile ? (
@@ -558,15 +575,15 @@ export const FolderForm: React.FC<{
             >
               <label
                 htmlFor="dropzone-file"
-                className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-slate-600 transition-colors duration-300"
+                className="flex flex-col items-center justify-center w-full h-24 xl:h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-slate-600 transition-colors duration-300"
               >
                 <div className="flex flex-col items-center justify-center py-2">
                   <UploadCloud className="w-6 h-6 mb-2 text-gray-500 dark:text-gray-400" />
-                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mb-1 text-xs xl:text-sm text-gray-500 dark:text-gray-400">
                     <span className="font-semibold">Yüklemek için tıklayın</span>{' '}
                     veya sürükleyip bırakın
                   </p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">
                     Sadece PDF (MAX. {settings.pdfBoyutLimiti}MB)
                   </p>
                 </div>
@@ -586,9 +603,9 @@ export const FolderForm: React.FC<{
               <div className="flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-red-500" />
                 <div>
-                  <p className="text-xs font-medium">{pdfFile?.name}</p>
+                  <p className="text-xs xl:text-sm font-medium">{pdfFile?.name}</p>
                   {pdfFile?.size > 0 && (
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">
                       {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   )}
@@ -605,24 +622,25 @@ export const FolderForm: React.FC<{
           )}
         </fieldset>
 
-        <fieldset className="border p-2 rounded-lg dark:border-gray-600 transition-colors duration-300">
-          <legend className="px-1 font-medium text-xs">
-            Excel Hasta Kayıt Listesi (Opsiyonel)
+        <fieldset className="border p-2 xl:p-3 rounded-lg dark:border-gray-600 transition-colors duration-300">
+          <legend className="px-1 font-medium text-xs xl:text-sm">
+            Excel Muhteviyat Listesi
+            <span className="text-red-500 ml-1">*</span>
           </legend>
 
           {!excelFile ? (
             <div className="flex justify-center items-center w-full">
               <label
                 htmlFor="dropzone-excel-file"
-                className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-slate-600 transition-colors duration-300"
+                className="flex flex-col items-center justify-center w-full h-24 xl:h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-slate-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-slate-600 transition-colors duration-300"
               >
                 <div className="flex flex-col items-center justify-center py-2">
                   <UploadCloud className="w-6 h-6 mb-2 text-gray-500 dark:text-gray-400" />
-                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="font-semibold">Excel dosyası yüklemek için tıklayın</span>{' '}
+                  <p className="mb-1 text-xs xl:text-sm text-gray-500 dark:text-gray-400">
+                    <span className="font-semibold">Yüklemek için tıklayın</span>{' '}
                     veya sürükleyip bırakın
                   </p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">
                     Sadece Excel (.xlsx, .xls) (MAX. 50MB)
                   </p>
                 </div>
@@ -642,9 +660,9 @@ export const FolderForm: React.FC<{
               <div className="flex items-center">
                 <FileSpreadsheet className="w-5 h-5 mr-2 text-green-600" />
                 <div>
-                  <p className="text-xs font-medium">{excelFile?.name}</p>
+                  <p className="text-xs xl:text-sm font-medium">{excelFile?.name}</p>
                   {excelFile?.size > 0 && (
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">
                       {(excelFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   )}
@@ -676,21 +694,20 @@ export const FolderForm: React.FC<{
                 setEditingFolderId(null);
                 setActivePage('Arşiv');
               } else {
-                // Yeni kayıt modunda 'İptal' formu temizler
                 setFormData(initialFormData);
                 setPdfFile(null);
                 setExcelFile(null);
                 toast.info('Form temizlendi');
               }
             }}
-            className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 font-medium rounded-lg text-xs px-4 py-2 mr-2 dark:bg-slate-700 dark:text-white dark:border-gray-600 dark:hover:bg-slate-600 transition-colors duration-300 disabled:opacity-50"
+            className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 font-medium rounded-lg text-xs xl:text-sm px-4 py-1.5 xl:py-2 mr-2 dark:bg-slate-700 dark:text-white dark:border-gray-600 dark:hover:bg-slate-600 transition-colors duration-300 disabled:opacity-50"
           >
             {isEditing ? 'Vazgeç' : 'Temizle'}
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="text-white bg-teal-600 hover:bg-teal-700 font-medium rounded-lg text-xs px-4 py-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="text-white bg-teal-600 hover:bg-teal-700 font-medium rounded-lg text-xs xl:text-sm px-4 py-1.5 xl:py-2 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
             {isSubmitting ? 'Kaydediliyor...' : isEditing ? 'Güncelle' : 'Kaydet'}

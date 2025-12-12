@@ -35,12 +35,12 @@ export const useBackendStatus = () => {
         return;
       }
       
-      // 1 saniye bekle ve tekrar dene
-      setTimeout(checkBackend, 1000);
+      // Hızlı tekrar deneme
+      setTimeout(checkBackend, 250);
     };
 
-    // İlk check'i biraz gecikme ile başlat (backend'in başlaması için)
-    setTimeout(checkBackend, 2000);
+    // Check immediately
+    setTimeout(checkBackend, 100);
   }, []);
 
   return { isBackendReady, isLoading, error };

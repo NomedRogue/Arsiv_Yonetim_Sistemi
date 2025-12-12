@@ -63,64 +63,64 @@ export default function ExcelSearch() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-5">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-3 xl:p-5">
+      <div className="max-w-5xl xl:max-w-6xl mx-auto">
         {/* Başlık */}
-        <div className="mb-6">
-          <h1 className="text-base font-bold text-gray-900 dark:text-white mb-2">
+        <div className="mb-4 xl:mb-6">
+          <h1 className="text-sm xl:text-base font-bold text-gray-900 dark:text-white mb-1 xl:mb-2">
             Kayıt Arama
           </h1>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+          <p className="text-xs xl:text-sm text-gray-600 dark:text-gray-400">
             Yüklediniz Excel dosyalarında hasta dosya numarası ve hasta adı arayın
           </p>
         </div>
 
         {/* Arama Kutusu */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 mb-5">
-          <div className="flex gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 xl:p-4 mb-4 xl:mb-5">
+          <div className="flex gap-3 xl:gap-4">
             <div className="flex-1 relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 xl:h-5 xl:w-5" />
               <input
                 type="text"
                 placeholder="Hasta dosya numarası veya hasta adı soyadı..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full pl-9 xl:pl-10 pr-4 py-2 xl:py-2.5 border border-gray-300 rounded-lg dark:bg-slate-700 dark:border-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs xl:text-sm"
               />
             </div>
             <button
               onClick={handleSearch}
               disabled={isLoading || !searchTerm.trim()}
-              className="px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 font-medium text-sm"
+              className="px-4 xl:px-6 py-2 xl:py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 font-medium text-xs xl:text-sm"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="animate-spin h-5 w-5" />
+                  <Loader2 className="animate-spin h-4 w-4 xl:h-5 xl:w-5" />
                   Aranıyor...
                 </>
               ) : (
                 <>
-                  <SearchIcon className="h-5 w-5" />
+                  <SearchIcon className="h-4 w-4 xl:h-5 xl:w-5" />
                   Ara
                 </>
               )}
             </button>
           </div>
 
-          <div className="mt-4 text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-md border border-blue-200 dark:border-blue-800">
+          <div className="mt-3 xl:mt-4 text-[10px] xl:text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-2 xl:p-2.5 rounded-md border border-blue-200 dark:border-blue-800">
             <strong>İpucu:</strong> Excel dosyalarındaki <strong>SAYI</strong> (Hasta Dosya No) ve <strong>AÇIKLAMALAR</strong> (Hasta Adı Soyadı) kolonlarında arama yapılır.
           </div>
         </div>
 
         {/* Sonuçlar */}
         {results.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-3 xl:p-4">
+            <h2 className="text-sm xl:text-lg font-semibold text-gray-900 dark:text-white mb-2 xl:mb-3">
               {results.length} Sonuç Bulundu
             </h2>
 
-            <div className="space-y-3">
+            <div className="space-y-2 xl:space-y-3">
               {results.map((result) => (
                 <div
                   key={result.id}
@@ -131,20 +131,20 @@ export default function ExcelSearch() {
                       {/* Başlık ve Kategori Badge */}
                       <div className="mb-2">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                          <span className="px-1.5 py-0.5 text-[10px] xl:text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                             {result.category}
                           </span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${getStatusBadgeColor(result.status)}`}>
+                          <span className={`px-1.5 py-0.5 text-[10px] xl:text-xs font-medium rounded ${getStatusBadgeColor(result.status)}`}>
                             {result.status}
                           </span>
                         </div>
-                        <h3 className="text-xs font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-xs xl:text-sm font-semibold text-gray-900 dark:text-white">
                           {result.departmentName ? `${result.departmentName} - ${result.subject}` : result.subject}
                         </h3>
                       </div>
 
                       {/* Ana Bilgiler - Kompakt Format */}
-                      <div className="text-[0.7rem] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3 gap-y-0.5 mb-2">
+                      <div className="text-[10px] xl:text-xs text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3 gap-y-0.5 mb-2">
                         <span><strong>Dosya Kodu:</strong> {result.fileCode}</span>
                         <span><strong>Dosya Yılı:</strong> {result.fileYear}</span>
                         <span><strong>Dosya Sayısı:</strong> {result.fileCount}</span>
@@ -153,18 +153,18 @@ export default function ExcelSearch() {
                         <span><strong>Klasör Tipi:</strong> {result.folderType}</span>
                         {result.specialInfo && <span><strong>Özel Bilgi:</strong> {result.specialInfo}</span>}
                       </div>
-                      <div className="text-[0.7rem] text-gray-700 dark:text-gray-300 mb-2">
+                      <div className="text-[10px] xl:text-xs text-gray-700 dark:text-gray-300 mb-2">
                         <strong>Lokasyon:</strong> {result.location.storageType === 'Kompakt' ? 'Ünite ' : ''}{result.location.unit} - {result.location.face} - {result.location.section}.Bölüm - {result.location.shelf}.Raf{result.location.stand ? ` - ${result.location.stand}.Stand` : ''}
                       </div>
 
                       {/* Eşleşen Kayıtlar */}
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
                         {(result.matchedDosyaNo && result.matchedDosyaNo.length > 0) && (
-                          <div className="mb-2">
-                            <p className="text-xs font-medium text-blue-800 dark:text-blue-300">
+                          <div className="mb-1 xl:mb-2">
+                            <p className="text-[10px] xl:text-xs font-medium text-blue-800 dark:text-blue-300">
                               Eşleşen Hasta Dosya Numaraları:
                             </p>
-                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                            <p className="text-[10px] xl:text-xs text-blue-700 dark:text-blue-400">
                               {result.matchedDosyaNo.slice(0, 5).map((item: string | MatchedItem, idx: number) => {
                                 const displayText = typeof item === 'object' 
                                   ? (item.sira ? `Sıra ${item.sira}: ${item.value}` : item.value)
@@ -177,10 +177,10 @@ export default function ExcelSearch() {
                         )}
                         {(result.matchedHastaAdi && result.matchedHastaAdi.length > 0) && (
                           <div>
-                            <p className="text-xs font-medium text-blue-800 dark:text-blue-300">
+                            <p className="text-[10px] xl:text-xs font-medium text-blue-800 dark:text-blue-300">
                               Eşleşen Hasta Adları:
                             </p>
-                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                            <p className="text-[10px] xl:text-xs text-blue-700 dark:text-blue-400">
                               {result.matchedHastaAdi.slice(0, 5).map((item: string | MatchedItem, idx: number) => {
                                 const displayText = typeof item === 'object' 
                                   ? (item.sira ? `Sıra ${item.sira}: ${item.value}` : item.value)
@@ -198,9 +198,9 @@ export default function ExcelSearch() {
                     {result.excelPath && (
                       <button
                         onClick={() => openFileWithSystem(result.excelPath!, 'excel')}
-                        className="ml-4 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                        className="ml-3 xl:ml-4 px-3 py-1.5 xl:px-4 xl:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-xs xl:text-sm font-medium"
                       >
-                        <FileSpreadsheet className="h-5 w-5" />
+                        <FileSpreadsheet className="h-4 w-4 xl:h-5 xl:w-5" />
                         Excel Aç
                       </button>
                     )}
@@ -213,12 +213,12 @@ export default function ExcelSearch() {
 
         {/* Boş Durum */}
         {!isLoading && results.length === 0 && searchTerm && (
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-12 text-center">
-            <SearchIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-8 xl:p-12 text-center">
+            <SearchIcon className="h-12 w-12 xl:h-16 xl:w-16 text-gray-400 mx-auto mb-3 xl:mb-4" />
+            <h3 className="text-base xl:text-lg font-medium text-gray-900 dark:text-white mb-2">
               Sonuç Bulunamadı
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-xs xl:text-sm text-gray-600 dark:text-gray-400">
               "{searchTerm}" için hiçbir kayıt bulunamadı
             </p>
           </div>

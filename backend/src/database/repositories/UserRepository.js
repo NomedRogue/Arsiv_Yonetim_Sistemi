@@ -85,12 +85,30 @@ class UserRepository extends BaseRepository {
     }
   }
 
+  async updateStatus(id, isApproved) {
+    try {
+        const user = this.getById(id);
+        if (!user) throw new Error('User not found');
+
+        const updatedUser = {
+            ...user,
+            isApproved: isApproved ? 1 : 0,
+            updatedAt: new Date().toISOString()
+        };
+        return this.update(id, updatedUser);
+    } catch (error) {
+        logger.error('[USER_REPO] updateStatus error:', { error, id });
+        throw error;
+    }
+  }
+
   serialize(user) {
     return {
       id: user.id,
       username: user.username,
       password: user.password, // Hashed
       role: user.role || 'user',
+      isApproved: user.isApproved,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -102,6 +120,7 @@ class UserRepository extends BaseRepository {
       username: row.username,
       password: row.password,
       role: row.role,
+      isApproved: row.isApproved === 1,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt
     };

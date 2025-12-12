@@ -94,6 +94,7 @@ class AuthController {
         id: u.id,
         username: u.username,
         role: u.role,
+        isApproved: !!u.isApproved, // Handles both 1/0 and true/false
         createdAt: u.createdAt,
         updatedAt: u.updatedAt
       }));
@@ -142,6 +143,22 @@ class AuthController {
         }
         logger.error('[AUTH_CONTROLLER] Admin password update error', { error });
         res.status(500).json({ error: 'Şifre güncellenemedi.' });
+    }
+  }
+
+  async approveUser(req, res) {
+    try {
+        const { id } = req.params;
+        const adminUsername = req.user.username;
+
+        await authService.approveUser(id, adminUsername);
+        res.json({ message: 'Kullanıcı hesabı onaylandı ve aktifleştirildi.' });
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ error: error.message });
+        }
+        logger.error('[AUTH_CONTROLLER] Approve user error', { error });
+        res.status(500).json({ error: 'Kullanıcı onaylanamadı.' });
     }
   }
 

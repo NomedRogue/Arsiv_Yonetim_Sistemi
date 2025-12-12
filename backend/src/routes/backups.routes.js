@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const backupController = require('../controllers/BackupController');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const { strictLimiter } = require('../middleware/rateLimiter');
 
 /**
@@ -25,7 +26,7 @@ const { strictLimiter } = require('../middleware/rateLimiter');
  *       200:
  *         description: Backup created successfully
  */
-router.post('/', strictLimiter, backupController.createBackup);
+router.post('/', verifyToken, requireAdmin, strictLimiter, backupController.createBackup);
 
 /**
  * @swagger
@@ -37,7 +38,7 @@ router.post('/', strictLimiter, backupController.createBackup);
  *       200:
  *         description: List of backups
  */
-router.get('/', backupController.listBackups);
+router.get('/', verifyToken, requireAdmin, backupController.listBackups);
 
 /**
  * @swagger
@@ -55,7 +56,7 @@ router.get('/', backupController.listBackups);
  *       200:
  *         description: Backup deleted
  */
-router.delete('/:filename', strictLimiter, backupController.deleteBackup);
+router.delete('/:filename', verifyToken, requireAdmin, strictLimiter, backupController.deleteBackup);
 
 /**
  * @swagger
@@ -73,6 +74,6 @@ router.delete('/:filename', strictLimiter, backupController.deleteBackup);
  *       200:
  *         description: Restore initiated/completed
  */
-router.post('/:filename/restore', strictLimiter, backupController.restoreBackup);
+router.post('/:filename/restore', verifyToken, requireAdmin, strictLimiter, backupController.restoreBackup);
 
 module.exports = router;

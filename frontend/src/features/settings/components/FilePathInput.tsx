@@ -16,7 +16,7 @@ export const FilePathInput: React.FC<FilePathInputProps> = ({
   onBrowseClick 
 }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    <label htmlFor={id} className="block text-xs xl:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
       {label}
     </label>
     <div className="flex rounded-md shadow-sm">
@@ -26,12 +26,12 @@ export const FilePathInput: React.FC<FilePathInputProps> = ({
         id={id}
         value={value}
         onChange={onChange}
-        className="flex-1 block p-2 sm:text-sm border border-gray-300 rounded-l-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="flex-1 block p-1.5 xl:p-2 text-xs xl:text-sm border border-gray-300 rounded-l-md bg-white text-gray-900 dark:bg-slate-600 dark:border-gray-500 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
       <button
         type="button"
         onClick={onBrowseClick}
-        className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors"
+        className="inline-flex items-center px-3 py-1.5 xl:px-4 xl:py-2 border border-l-0 border-gray-300 dark:border-gray-500 rounded-r-md bg-teal-600 hover:bg-teal-700 text-white text-xs xl:text-sm font-medium transition-colors"
       >
         <span>Gözat...</span>
       </button>

@@ -42,9 +42,9 @@
   justify-content: flex-start; /* Items start from left */
   align-items: center;
   z-index: 99;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
 }
 
 .logo {

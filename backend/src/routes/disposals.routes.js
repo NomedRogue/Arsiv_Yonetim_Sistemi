@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const disposalController = require('../controllers/DisposalController');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -24,7 +25,7 @@ const disposalController = require('../controllers/DisposalController');
  *       200:
  *         description: List of disposed folders
  */
-router.get('/', disposalController.getAllDisposals);
+router.get('/', verifyToken, disposalController.getAllDisposals);
 
 /**
  * @swagger
@@ -52,6 +53,6 @@ router.get('/', disposalController.getAllDisposals);
  *       200:
  *         description: Disposal created
  */
-router.post('/', disposalController.createDisposal);
+router.post('/', verifyToken, disposalController.createDisposal);
 
 module.exports = router;

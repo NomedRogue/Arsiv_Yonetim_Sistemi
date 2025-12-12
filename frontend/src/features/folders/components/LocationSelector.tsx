@@ -86,13 +86,16 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
   };
 
   return (
-    <fieldset className="border p-2 rounded-lg dark:border-gray-600 transition-colors duration-300">
-      <legend className="px-1 font-medium text-xs">Lokasyon Seçimi</legend>
+    <fieldset className="border p-2 xl:p-3 rounded-lg dark:border-gray-600 transition-colors duration-300">
+      <legend className="px-1 font-medium text-xs xl:text-sm">
+        Lokasyon Seçimi
+        <span className="text-red-500 ml-1">*</span>
+      </legend>
       <div className="flex border-b dark:border-gray-700 transition-colors duration-300">
         <button
           type="button"
           onClick={() => handleTabChange(StorageType.Kompakt)}
-          className={`px-3 py-1 text-xs -mb-px border-b-2 transition-colors duration-300 ${
+          className={`px-3 py-1.5 xl:py-2 text-xs xl:text-sm -mb-px border-b-2 transition-colors duration-300 ${
             locationTab === StorageType.Kompakt
               ? 'border-teal-500 text-teal-600'
               : 'border-transparent text-gray-500 dark:text-gray-400'
@@ -103,7 +106,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
         <button
           type="button"
           onClick={() => handleTabChange(StorageType.Stand)}
-          className={`px-3 py-1 text-xs -mb-px border-b-2 transition-colors duration-300 ${
+          className={`px-3 py-1.5 xl:py-2 text-xs xl:text-sm -mb-px border-b-2 transition-colors duration-300 ${
             locationTab === StorageType.Stand
               ? 'border-teal-500 text-teal-600'
               : 'border-transparent text-gray-500 dark:text-gray-400'
@@ -113,33 +116,33 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ location, on
         </button>
       </div>
 
-      <div className="pt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="pt-2 xl:pt-3 grid grid-cols-2 md:grid-cols-4 gap-2 xl:gap-4">
         {locationTab === StorageType.Kompakt ? (
           <>
-            <CustomSelect label="Ünite" name="unit" value={location.unit ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('unit', e.target.value)}>
+            <CustomSelect label="Ünite" name="unit" value={location.unit ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('unit', e.target.value)} required>
               <option value="">Seçiniz</option>
               {kompaktUnits.map((u) => <option key={u.unit} value={u.unit}>{u.unit}</option>)}
             </CustomSelect>
-            <CustomSelect label="Yüz" name="face" value={location.face ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('face', e.target.value)} disabled={!location.unit}>
+            <CustomSelect label="Yüz" name="face" value={location.face ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('face', e.target.value)} disabled={!location.unit} required>
               <option value="">Seçiniz</option>
               {faces?.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
             </CustomSelect>
-            <CustomSelect label="Bölüm" name="section" value={location.section ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('section', e.target.value)} disabled={!location.face}>
+            <CustomSelect label="Bölüm" name="section" value={location.section ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('section', e.target.value)} disabled={!location.face} required>
               <option value="">Seçiniz</option>
               {sections?.map((s) => <option key={s.section} value={s.section}>{s.section}</option>)}
             </CustomSelect>
-            <CustomSelect label="Raf" name="shelf" value={location.shelf ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('shelf', e.target.value)} disabled={!location.section}>
+            <CustomSelect label="Raf" name="shelf" value={location.shelf ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('shelf', e.target.value)} disabled={!location.section} required>
               <option value="">Seçiniz</option>
               {shelvesForSection.map((s) => <option key={s} value={s}>{s}</option>)}
             </CustomSelect>
           </>
         ) : (
           <>
-            <CustomSelect label="Stand" name="stand" value={location.stand ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('stand', e.target.value)}>
+            <CustomSelect label="Stand" name="stand" value={location.stand ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('stand', e.target.value)} required>
               <option value="">Seçiniz</option>
               {standUnits.map((s) => <option key={s.stand} value={s.stand}>{s.stand}</option>)}
             </CustomSelect>
-            <CustomSelect label="Raf" name="shelf" value={location.shelf ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('shelf', e.target.value)} disabled={!location.stand}>
+            <CustomSelect label="Raf" name="shelf" value={location.shelf ?? ''} onChange={(e: ChangeEvent<HTMLSelectElement>) => onLocationChange('shelf', e.target.value)} disabled={!location.stand} required>
               <option value="">Seçiniz</option>
               {shelvesForStand.map((shelf) => <option key={shelf} value={shelf}>{shelf}</option>)}
             </CustomSelect>

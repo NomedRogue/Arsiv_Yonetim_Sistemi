@@ -54,67 +54,67 @@ export const ProfileSettings: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-100 dark:border-teal-800">
-                <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-800 flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg font-bold text-teal-600 dark:text-teal-400">
+            <div className="flex items-center gap-2 xl:gap-3 p-2 xl:p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-100 dark:border-teal-800">
+                <div className="w-8 h-8 xl:w-10 xl:h-10 rounded-full bg-teal-100 dark:bg-teal-800 flex items-center justify-center flex-shrink-0">
+                    <span className="text-base xl:text-lg font-bold text-teal-600 dark:text-teal-400">
                         {user?.username?.charAt(0).toUpperCase()}
                     </span>
                 </div>
                 <div className="flex-1 flex items-center justify-between">
                     <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <h3 className="text-xs xl:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             {user?.username}
                             {user?.role === 'admin' && (
-                                <span className="px-1.5 py-0.5 text-[10px] uppercase font-bold tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full flex items-center gap-1">
-                                    <ShieldCheck size={10} /> Admin
+                                <span className="px-1.5 py-0.5 text-[10px] xl:text-xs uppercase font-bold tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full flex items-center gap-1">
+                                    <ShieldCheck className="w-2.5 h-2.5 xl:w-3 xl:h-3" /> Admin
                                 </span>
                             )}
                         </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">
                             Hesap durumu: Aktif
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <KeyRound size={16} />
+            <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 xl:p-4">
+                <h4 className="text-xs xl:text-sm font-semibold text-gray-900 dark:text-white mb-2 xl:mb-3 flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 xl:w-5 xl:h-5" />
                     Şifre Değiştir
                 </h4>
                 
                 <form onSubmit={handleChangePassword} className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 xl:gap-4">
                         <div className="md:col-span-2">
-                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Mevcut Şifre</label>
+                             <label className="block text-xs xl:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mevcut Şifre</label>
                              <input 
                                  type="password"
                                  required
-                                 className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-sm bg-white dark:bg-slate-700 dark:text-white"
+                                 className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-1.5 xl:p-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-xs xl:text-sm bg-white dark:bg-slate-700 dark:text-white"
                                  value={currentPassword}
                                  onChange={(e) => setCurrentPassword(e.target.value)}
                              />
                         </div>
                         
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Şifre</label>
+                            <label className="block text-xs xl:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Şifre</label>
                             <input 
                                 type="password"
                                 required
                                 minLength={6}
-                                className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-sm bg-white dark:bg-slate-700 dark:text-white"
+                                className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-1.5 xl:p-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-xs xl:text-sm bg-white dark:bg-slate-700 dark:text-white"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                             />
                         </div>
                         
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Şifre (Tekrar)</label>
+                            <label className="block text-xs xl:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Yeni Şifre (Tekrar)</label>
                             <input 
                                 type="password"
                                 required
                                 minLength={6}
-                                className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-sm bg-white dark:bg-slate-700 dark:text-white"
+                                className="block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-1.5 xl:p-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-xs xl:text-sm bg-white dark:bg-slate-700 dark:text-white"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
@@ -125,7 +125,7 @@ export const ProfileSettings: React.FC = () => {
                         <button 
                             type="submit"
                             disabled={isLoading}
-                            className="inline-flex justify-center py-1.5 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
+                            className="inline-flex justify-center py-1.5 px-3 xl:px-4 border border-transparent shadow-sm text-xs xl:text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
                         >
                             {isLoading ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
                         </button>

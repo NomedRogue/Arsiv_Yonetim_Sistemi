@@ -36,6 +36,11 @@ class AuthService {
             throw { status: 401, message: 'Kullanıcı adı veya şifre hatalı.' };
         }
 
+        if (!user.isApproved) {
+            logger.warn('[AUTH_SERVICE] Login failed: Account not approved', { username });
+            throw { status: 403, message: 'Hesabınız onay bekliyor. Lütfen yönetici ile iletişime geçin.' };
+        }
+
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             JWT_SECRET,
@@ -91,11 +96,29 @@ class AuthService {
             throw { status: 400, message: 'Bu kullanıcı adı zaten kullanımda.' };
         }
 
+        // Approval Logic
+        // 1. If it is the first user, auto-approve (Admin)
+        // 2. If created by an existing admin (creatorUsername != 'public_registration'), auto-approve
+        // 3. Otherwise (public registration), set to pending (false)
+        
+        let isApproved = false;
+        
+        // Simple check for first user
+        // Note: getAll() for count is okay for low user volume. For high volume, use count() helper if available or direct DB.
+        const allUsers = this.repos.user.getAll();
+        if (allUsers.length === 0) {
+            isApproved = true;
+            role = 'admin'; // Force admin for first user
+        } else if (creatorUsername && creatorUsername !== 'public_registration') {
+            isApproved = true;
+        }
+
         const newUser = await this.repos.user.create({
             id: uuidv4(),
             username,
             password,
-            role: role || 'user'
+            role: role || 'user',
+            isApproved: isApproved ? 1 : 0
         });
 
         logger.info('[AUTH_SERVICE] User created', { username, createdBy: creatorUsername });
@@ -104,8 +127,24 @@ class AuthService {
             id: newUser.id,
             username: newUser.username,
             role: newUser.role,
+            isApproved: newUser.isApproved === 1,
             createdAt: newUser.createdAt
         };
+    }
+
+    /**
+     * Approve user (Admin only)
+     */
+    async approveUser(targetUserId, adminUsername) {
+        const user = this.repos.user.getById(targetUserId);
+        if (!user) {
+            throw { status: 404, message: 'Kullanıcı bulunamadı.' };
+        }
+
+        await this.repos.user.updateStatus(targetUserId, true);
+        logger.info('[AUTH_SERVICE] User approved', { targetUser: user.username, admin: adminUsername });
+
+        return { success: true };
     }
 
     /**

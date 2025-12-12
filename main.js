@@ -295,24 +295,28 @@ function createSplashWindow() {
 
 // App Ready Handler
 // App Ready Handler
+// App Ready Handler
 ipcMain.on('app-ready', () => {
-  logger.info('[APP] Frontend hazır sinyali alındı. Splash 3sn bekletiliyor...');
+  logger.info('[APP] Frontend hazır sinyali alındı. Hızlı geçiş yapılıyor...');
   
-  setTimeout(() => {
-    // Önce Splash'i kapat
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-    }
+  // Önce ana pencereyi hazırla ve göster
+  if (mainWindow) {
+    if (!mainWindow.isMaximized()) mainWindow.maximize();
+    mainWindow.show(); // Pencereyi göster (Splash'in arkasında kalabilir alwaysOnTop yüzünden)
+    mainWindow.focus();
+  }
 
-    // Kısa bir süre sonra ana pencereyi göster (akıcılık için)
-    setTimeout(() => {
-      if (mainWindow) {
-        mainWindow.maximize();
-        mainWindow.show();
-      }
-    }, 500);
-    
-  }, 3000); // 3 saniye bekle
+  // Çok kısa bir süre sonra Splash'i yok et
+  // Bu küçük gecikme (100-200ms), ana pencerenin render edilmesi için güvenli bir aralıktır
+  setTimeout(() => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close(); // Splash kapanınca arkadaki hazır pencere görünür
+    }
+    // Son bir odaklama garantisi
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.focus();
+    }
+  }, 200);
 });
 
 // Uygulama hazır olduğunda
