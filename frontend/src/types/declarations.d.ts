@@ -48,6 +48,12 @@ interface ElectronAPI {
   paths?: {
     userData: string;
   };
+
+  db?: {
+    close: () => Promise<{ success: boolean; error?: string }>;
+    reconnect: () => Promise<{ success: boolean; error?: string }>;
+    saveGithubToken: (token: string) => Promise<boolean>;
+  };
   
   signalAppReady: () => void;
 }

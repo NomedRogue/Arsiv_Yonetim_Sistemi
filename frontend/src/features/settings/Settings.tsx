@@ -117,13 +117,28 @@ export const Settings: React.FC = () => {
   };
 
   const handleSave = async () => {
-    await updateSettings(currentSettings);
+    try {
+      await updateSettings(currentSettings);
+      
+      // Token'ı Main Process için JSON dosyasına kaydet
+      if (currentSettings.githubToken) {
+         const api = (window as any).electronAPI;
+         if (api?.db?.saveGithubToken) {
+            await api.db.saveGithubToken(currentSettings.githubToken);
+         }
+      }
+      
+      // Eski toast mesajı updateSettings içinden geliyorsa tekrar etme, ama gelmiyorsa:
+      // Genelde backend service toast fırlatmaz, component fırlatmalı. 
+      // Ancak burada apiErrorHandler kullanılıyor.
+    } catch (e) {
+      console.error('Ayarlar kaydedilirken hata:', e);
+    }
   };
 
   // Platform based default paths
   useEffect(() => {
-    // Cast to any to avoid type checking issues with the updated interface
-    const api = window.electronAPI as any;
+    const api = (window as any).electronAPI;
     if (api?.paths?.userData) {
       const userData = api.paths.userData;
       // Default path fallback logic for display

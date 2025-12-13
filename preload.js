@@ -30,7 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Database Control
   db: {
     close: () => ipcRenderer.invoke('db:close'),
-    reconnect: () => ipcRenderer.invoke('db:reconnect')
+    reconnect: () => ipcRenderer.invoke('db:reconnect'),
+    saveGithubToken: (token) => ipcRenderer.invoke('db:save-token', token)
   },
   
   // System Params
