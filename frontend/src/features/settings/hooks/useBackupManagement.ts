@@ -33,12 +33,31 @@ export const useBackupManagement = () => {
 
   const handleRestoreBackup = async () => {
     try {
+      // Main process veritabanı bağlantısını kapat (Dosya kilitlerini kaldırmak için)
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.db?.close) {
+        await electronAPI.db.close();
+      }
+
       await restoreDbFromBackup(restoreFilename);
       toast.success('Veritabanı başarıyla geri yüklendi! Uygulama yeniden başlatılıyor...');
       setRestoreModalOpen(false);
+
+      // Başarılı olursa reconnect yapmaya gerek yok çünkü sayfa yenilenecek
+      // Ama yine de iyi pratik:
+      if (electronAPI?.db?.reconnect) {
+         try { await electronAPI.db.reconnect(); } catch (e) { console.error(e); }
+      }
+
       // Reload page after restore
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: any) {
+      // Hata durumunda veritabanını tekrar bağla
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.db?.reconnect) {
+         try { await electronAPI.db.reconnect(); } catch (recErr) { console.error(recErr); }
+      }
+
       toast.error(`Geri yükleme başarısız: ${e.message}`);
     }
   };

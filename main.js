@@ -646,6 +646,31 @@ ipcMain.handle('updater:install', () => {
   autoUpdater.quitAndInstall(false, true);
 });
 
+// Database Control Handlers (for Backup/Restore)
+ipcMain.handle('db:close', async () => {
+  try {
+    const { closeDb } = require('./backend/src/database/connection');
+    logger.info('[MAIN] Closing DB connection manually (requested by renderer)...');
+    closeDb();
+    return { success: true };
+  } catch (err) {
+    logger.error('[MAIN] Close DB error:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('db:reconnect', async () => {
+  try {
+    const { reconnectDb } = require('./backend/src/database/connection');
+    logger.info('[MAIN] Reconnecting DB connection manually...');
+    reconnectDb();
+    return { success: true };
+  } catch (err) {
+    logger.error('[MAIN] Reconnect DB error:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('updater:getVersion', () => {
   return app.getVersion();
 });

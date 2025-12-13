@@ -27,6 +27,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   
+  // Database Control
+  db: {
+    close: () => ipcRenderer.invoke('db:close'),
+    reconnect: () => ipcRenderer.invoke('db:reconnect')
+  },
+  
   // System Params
   paths: {
     userData: ipcRenderer.sendSync('get-user-data-path') 
