@@ -32,6 +32,7 @@ export const Settings: React.FC = () => {
   } = useArchive();
 
   const [currentSettings, setCurrentSettings] = useState<SettingsType>(settings);
+  const [isTokenEditable, setIsTokenEditable] = useState(false);
 
   useEffect(() => {
     setCurrentSettings(settings);
@@ -623,11 +624,15 @@ export const Settings: React.FC = () => {
         {isAdmin && (
           <div className="mb-6 border-b pb-6 dark:border-gray-700">
             <SettingInput 
-              label="GitHub Access Token" 
+              label={`GitHub Access Token ${!isTokenEditable ? '(Korumalı - Düzenlemek için Çift Tıklayın)' : ''}`}
               id="githubToken" 
               type="text"
               value={currentSettings.githubToken || ''} 
-              onChange={handleChange} 
+              onChange={handleChange}
+              readOnly={!isTokenEditable}
+              onDoubleClick={() => setIsTokenEditable(true)}
+              onBlur={() => setIsTokenEditable(false)}
+              className={!isTokenEditable ? "opacity-60 cursor-pointer bg-gray-50 select-none" : ""}
             />
             <p className="mt-2 text-xs xl:text-sm text-gray-500 dark:text-gray-400">
               <strong>Not:</strong> Eğer uygulamanız özel bir (private) GitHub deposunda barınıyorsa, güncellemeleri alabilmek için buraya bir "Personal Access Token" girmelisiniz.
