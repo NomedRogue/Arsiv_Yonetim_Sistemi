@@ -108,11 +108,10 @@ class BackupService {
       // Create backup using WAL checkpoint
       const checkpointBackupPath = path.join(backupFolder, `${backupName}.db`);
       
-      // Checkpoint the database to ensure all changes are in main file
-      db.pragma('wal_checkpoint(TRUNCATE)');
-      
-      // Copy database file
-      await fsPromises.copyFile(dbPath, checkpointBackupPath);
+      // Use SQLite Online Backup API for consistency and safety
+      // This ensures the backup is valid even if the database is being written to
+      logger.info('[BACKUP_SERVICE] Performing online backup...');
+      await db.backup(checkpointBackupPath);
 
       // Create zip archive
       const output = fs.createWriteStream(backupPath);

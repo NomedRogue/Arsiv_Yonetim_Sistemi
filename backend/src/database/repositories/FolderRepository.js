@@ -52,7 +52,7 @@ class FolderRepository extends BaseRepository {
    */
   deserialize(row) {
     return {
-      id: row.id,
+      id: String(row.id),
       category: row.category,
       departmentId: row.departmentId,
       clinic: row.clinic,
