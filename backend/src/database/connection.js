@@ -159,6 +159,49 @@ function getDbInstance() {
   
   logger.info(`[DB] Veritabanı bağlantısı kuruluyor: ${DB_FILE}`);
   
+  // --- INTEGRITY CHECK START ---
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      // Check integrity (readonly connection)
+      const checkDb = new Database(DB_FILE, { readonly: true, fileMustExist: true });
+      const integrity = checkDb.prepare('PRAGMA integrity_check').get();
+      checkDb.close();
+      
+      if (integrity && integrity.integrity_check !== 'ok') {
+        logger.error('[DB] BÜTÜNLÜK HATASI: Veritabanı bozuk!', integrity);
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const corruptPath = `${DB_FILE}.corrupt.${timestamp}`;
+        
+        logger.warn(`[DB] Bozuk veritabanı taşınıyor: ${corruptPath}`);
+        
+        try {
+          fs.renameSync(DB_FILE, corruptPath);
+          if (fs.existsSync(`${DB_FILE}-wal`)) fs.renameSync(`${DB_FILE}-wal`, `${corruptPath}-wal`);
+          if (fs.existsSync(`${DB_FILE}-shm`)) fs.renameSync(`${DB_FILE}-shm`, `${corruptPath}-shm`);
+          logger.info('[DB] Bozuk dosya taşındı, yeni bir veritabanı oluşturulacak.');
+        } catch (renameErr) {
+          logger.error('[DB] Bozuk veritabanı taşınamadı:', renameErr);
+        }
+      }
+    } catch (err) {
+      logger.error('[DB] Bütünlük kontrolü sırasında hata (muhtemelen bozuk):', err.message);
+      // Hata durumunda da taşıma yapabiliriz ama şimdilik manuel müdahale beklesin veya:
+      // safeIntegers vb. hatalar olabilir, o yüzden çok agresif olmayalım.
+      // Sadece 'malformed' hatasıysa taşıma yapabiliriz.
+      if (err.message.includes('malformed') || err.message.includes('corrupt')) {
+        try {
+           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+           fs.renameSync(DB_FILE, `${DB_FILE}.corrupt.${timestamp}`);
+           logger.warn('[DB] "Malformed" veritabanı taşındı.');
+        } catch (e) {
+           // ignore
+        }
+      }
+    }
+  }
+  // --- INTEGRITY CHECK END ---
+
   try {
     dbInstance = new Database(DB_FILE, {
       verbose: process.env.NODE_ENV !== 'production' ? console.log : null
