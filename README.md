@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/electron-28.3.3-47848F.svg" alt="Electron">
   <img src="https://img.shields.io/badge/react-18.2.0-61DAFB.svg" alt="React">
   <img src="https://img.shields.io/badge/typescript-5.1.6-3178C6.svg" alt="TypeScript">
@@ -77,6 +77,7 @@ Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı - Yataklı ve Yataksız Teda
   - Excel dosyası yükleme (.xlsx, .xls)
   - Excel içerik arama (tüm hücrelerde arama)
   - Eşleşen satırları listeleme
+  - Arama sonuçlarında ayrı saklama süresi ve kodu gösterimi
 - **Gelişmiş Arama ve Filtreleme**:
   - Klasör adı, dosya kodu, konu bazlı arama
   - Departman, yıl, durum filtreleme
@@ -119,7 +120,13 @@ Bu sistem, **Sağlık Bakanlığı Arşiv Mevzuatı - Yataklı ve Yataksız Teda
 - **PDF Rapor Oluşturma** (3 farklı rapor):
   1. **İmha Edilecek Klasörler Raporu**: Belirli yıl için imha listesi
   2. **İmha Süresi Geçmiş Klasörler Raporu**: Gecikmiş imhalar
-  3. **İmha Edilmiş Klasörler Raporu**: Tamamlanan imhalar
+  3. **Süresiz Saklananlar Raporu**: Süresiz saklama listesi
+- **Gelişmiş PDF Özellikleri**:
+  - 📄 Landscape (yatay) mod - tüm sütunlar görünür
+  - 📊 Otomatik sütun genişlik ayarları
+  - ✍️ Tek satırda başlıklar (kırılma yok)
+  - 🔤 Optimize edilmiş font boyutu (5pt)
+  - 📏 A4 landscape format (297mm x 210mm)
 - **Onay Mekanizması**:
   - İmha onayı ve tarih kaydı
   - Onaylayan kişi bilgisi
@@ -320,7 +327,7 @@ npm run dev
 # Frontend build ve Electron package
 npm run package
 
-# Çıktı: release/Arşiv Yönetim Sistemi Setup 1.0.0.exe
+# Çıktı: release/Arşiv Yönetim Sistemi Setup 1.2.1.exe
 ```
 
 ### 5️⃣ Production Test
@@ -835,8 +842,8 @@ npm run package
 
 ```
 release/
-├── Arşiv Yönetim Sistemi Setup 1.0.0.exe    # Windows NSIS installer
-├── Arşiv Yönetim Sistemi Setup 1.0.0.exe.blockmap
+├── Arşiv Yönetim Sistemi Setup 1.2.1.exe    # Windows NSIS installer
+├── Arşiv Yönetim Sistemi Setup 1.2.1.exe.blockmap
 ├── latest.yml                                # Auto-update manifest
 ├── builder-debug.yml
 ├── builder-effective-config.yaml
@@ -1162,7 +1169,7 @@ Bu proje aşağıdaki açık kaynak projelerden faydalanmaktadır:
 ---
 
 <p align="center">
-  <strong>Sürüm:</strong> 1.0.0 &nbsp;|&nbsp;
+  <strong>Sürüm:</strong> 1.2.1 &nbsp;|&nbsp;
   <strong>Son Güncelleme:</strong> Aralık 2025 &nbsp;|&nbsp;
   <strong>Durum:</strong> ✅ Production Ready
 </p>

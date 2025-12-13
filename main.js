@@ -509,7 +509,7 @@ function configureUpdaterToken() {
         'Authorization': `token ${settings.githubToken}`,
         'Accept': 'application/octet-stream' // İndirme işlemleri için gerekli olabilir
       };
-      logger.info('[UPDATER] GitHub Token yapılandırıldı ve headerlara eklendi.');
+      logger.info(`[UPDATER] GitHub Token yapılandırıldı. (İlk 4 hane: ${settings.githubToken.substring(0, 4)}***)`);
     } else {
       logger.warn('[UPDATER] GitHub Token bulunamadı! Özel repolardan güncelleme yapılamaz.');
     }
@@ -590,9 +590,12 @@ autoUpdater.on('error', (err) => {
 
   if (mainWindow) {
     if (is404) {
-      // Treat 404 as "No update available" (System is up to date)
-      logger.info('[UPDATER] 404 hatası bulundu, "güncel" olarak işaretleniyor.');
-      mainWindow.webContents.send('update-status', { status: 'not-available' });
+      // 404 HATASINI GİZLEME - Kullanıcıya bildir
+      logger.warn('[UPDATER] 404 Hatası: Release bulunamadı veya erişim reddedildi.');
+      mainWindow.webContents.send('update-status', { 
+        status: 'error', 
+        message: 'Güncelleme sunucusuna erişilemedi (404). Lütfen GitHub Release\'in "Published" olduğundan ve Token\'ın doğru olduğundan emin olun.' 
+      });
     } else {
       mainWindow.webContents.send('update-status', { 
         status: 'error', 
