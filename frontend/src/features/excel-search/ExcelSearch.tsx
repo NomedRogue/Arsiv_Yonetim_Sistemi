@@ -160,7 +160,8 @@ export default function ExcelSearch() {
                         <span><strong>Dosya Kodu:</strong> {result.fileCode}</span>
                         <span><strong>Dosya Yılı:</strong> {result.fileYear}</span>
                         <span><strong>Dosya Sayısı:</strong> {result.fileCount}</span>
-                        <span><strong>Saklama:</strong> {result.retentionPeriod}-{result.retentionCode}</span>
+                        <span><strong>Saklama Süresi:</strong> {result.retentionPeriod}</span>
+                        <span><strong>Saklama Kodu:</strong> {result.retentionCode}</span>
                         {result.clinic && <span><strong>Klinik:</strong> {result.clinic}</span>}
                         <span><strong>Klasör Tipi:</strong> {result.folderType}</span>
                         {result.specialInfo && <span><strong>Özel Bilgi:</strong> {result.specialInfo}</span>}
