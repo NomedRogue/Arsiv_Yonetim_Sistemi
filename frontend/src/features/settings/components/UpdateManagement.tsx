@@ -51,11 +51,15 @@ export const UpdateManagement: React.FC = () => {
           const is404 = data.message && (data.message.includes('404') || data.message.includes('no published versions'));
           
           if (is404) {
-            // 404 durumunda error status gösterme, sadece bilgilendirme yap
-            setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
+            // 404 durumunu da HATA olarak göster (Token/Repo sorunu olabilir)
+            setUpdateStatus(prev => ({
+              status: 'error',
+              message: data.message, // Backend'den gelen detaylı mesaj
+              currentVersion: prev.currentVersion
+            }));
             setIsChecking(false);
             setIsDownloading(false);
-            toast.info('Uygulamanız güncel. Yeni güncelleme bulunmamaktadır.');
+            toast.error(`Erişim Hatası: ${data.message}`);
           } else {
             // Gerçek hata durumunda error göster
             setUpdateStatus(prev => ({
@@ -94,11 +98,8 @@ export const UpdateManagement: React.FC = () => {
         );
         
         if (is404) {
-          // 404 durumunda idle status'e dön
-          setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
-          setIsChecking(false);
-          // Event listener zaten toast gösterecek, burada gösterme (çift toast önleme)
-          return;
+          // 404'ü HATA olarak fırlat
+          throw new Error(result.error || 'Erişim reddedildi (404)');
         } else {
           // Gerçek hata
           throw new Error(result.error || 'Güncelleme kontrolü başarısız');
@@ -122,7 +123,14 @@ export const UpdateManagement: React.FC = () => {
         // Sadece gerçek hatalar için toast göster
         toast.error(`Güncelleme kontrolü başarısız: ${error.message}`);
       } else {
+        // 404 ise de göster
+        setUpdateStatus(prev => ({
+          status: 'error',
+          message: error.message,
+          currentVersion: prev.currentVersion
+        }));
         setIsChecking(false);
+        toast.error(`Erişim Hatası (404): ${error.message}`);
       }
     }
   };
