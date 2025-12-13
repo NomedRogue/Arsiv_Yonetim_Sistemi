@@ -26,6 +26,7 @@
   "build": {
     "appId": "com.arsivyonetim.sistemi",
     "productName": "Arşiv Yönetim Sistemi",
+    "artifactName": "${name}-setup-${version}.${ext}",
     "files": [
       "main.js",
       "preload.js",
