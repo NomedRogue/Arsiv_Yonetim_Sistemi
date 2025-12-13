@@ -4,10 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { FolderList } from '@/features/folders/components/FolderList';
 import { ArchiveProvider } from '@/context/ArchiveProvider';
-import { Folder, FolderStatus, Category } from '@/types';
+import { AuthProvider } from '@/context/AuthContext';
+import { Folder, FolderStatus, Category, FolderType } from '@/types';
 
 const mockFoldersPage1: Folder[] = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
+  id: String(i + 1),
   subject: `Test Folder ${i + 1}`,
   status: FolderStatus.Arsivde,
   departmentId: 1,
@@ -16,15 +17,15 @@ const mockFoldersPage1: Folder[] = Array.from({ length: 20 }, (_, i) => ({
   fileCount: 1,
   retentionPeriod: 5,
   retentionCode: 'A',
-  category: 'İdari',
+  category: Category.Idari,
   location: { storageType: 'Kompakt', unit: 1, face: 'A', section: 1, shelf: 1 },
   createdAt: new Date(),
   updatedAt: new Date(),
-  folderType: 'Dar'
-} as Folder));
+  folderType: FolderType.Dar
+} as unknown as Folder));
 
 const mockFoldersPage2: Folder[] = [{
-  id: 21,
+  id: '21',
   subject: 'Test Folder 21',
   status: FolderStatus.Arsivde,
   departmentId: 1,
@@ -33,12 +34,12 @@ const mockFoldersPage2: Folder[] = [{
   fileCount: 1,
   retentionPeriod: 5,
   retentionCode: 'A',
-  category: 'İdari',
+  category: Category.Idari,
   location: { storageType: 'Kompakt', unit: 1, face: 'A', section: 1, shelf: 1 },
   createdAt: new Date(),
   updatedAt: new Date(),
-  folderType: 'Dar'
-} as Folder];
+  folderType: FolderType.Dar
+} as unknown as Folder];
 
 // This is a more complete mock for the initial data fetch by the provider
 const mockAllData = {
@@ -81,7 +82,13 @@ const mockAllData = {
 });
 
 const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <ArchiveProvider>{children}</ArchiveProvider>;
+  return (
+    <AuthProvider>
+      <ArchiveProvider>
+        {children}
+      </ArchiveProvider>
+    </AuthProvider>
+  );
 };
 
 describe('FolderList Sayfası', () => {
@@ -93,6 +100,10 @@ describe('FolderList Sayfası', () => {
   it('klasör ekleme smoke test', async () => {
     render(<FolderList onEditFolder={jest.fn()} />, { wrapper: AllTheProviders });
     await waitFor(() => {
+      // Assuming "Arşiv" text is present in the component, e.g. title
+      // If FolderList doesn't have "Arşiv" text, this might fail, but checking presence.
+      // Adjust expectation based on actual component content if needed.
+      // Since the original test checked for /Arşiv/ we keep it.
       expect(screen.getByText(/Arşiv/)).toBeTruthy();
     });
   });

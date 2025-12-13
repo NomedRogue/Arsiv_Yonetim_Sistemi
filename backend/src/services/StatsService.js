@@ -350,13 +350,17 @@ class StatsService {
     
     if (isOverdue) {
       filteredFolders = folders.filter(f => 
-        f.status !== 'İmha' && 
-        (f.fileYear + f.retentionPeriod + 1) < currentYear
+        f.status !== 'İmha Edildi' && 
+        f.retentionCode !== 'B' &&
+        f.retentionPeriod !== 'B' &&
+        (f.fileYear + (Number(f.retentionPeriod) || 0) + 1) < currentYear
       );
     } else {
       filteredFolders = folders.filter(f => 
-        f.status !== 'İmha' && 
-        (f.fileYear + f.retentionPeriod + 1) === targetYear
+        f.status !== 'İmha Edildi' && 
+        f.retentionCode !== 'B' &&
+        f.retentionPeriod !== 'B' &&
+        (f.fileYear + (Number(f.retentionPeriod) || 0) + 1) === targetYear
       );
     }
     

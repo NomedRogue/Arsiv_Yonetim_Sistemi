@@ -198,7 +198,24 @@ if (process.env.NODE_ENV === 'production') {
   } else {
     logger.warn('[STATIC] No static path found. Tried:', staticPaths);
   }
+} else {
+    // Development mode static file serving
+    // Note: getUserDataPath might return different paths in dev vs prod, but we use the one from fileHelper
+    try {
+      const pdfPath = getUserDataPath('PDFs');
+      const excelPath = getUserDataPath('Excels');
+      
+      // Serve user uploads
+      // Use /uploads/ prefix to match frontend expectation
+      app.use('/uploads/PDFs', express.static(pdfPath));
+      app.use('/uploads/Excels', express.static(excelPath));
+      
+      logger.info('[STATIC] Development mode: Serving uploads', { pdf: pdfPath, excel: excelPath });
+    } catch(err) {
+       logger.error('[STATIC] Failed to setup dev static paths', err);
+    }
 }
+
 
 // Otomatik Yedekleme Zamanlayıcısı
 initAutoBackupState();

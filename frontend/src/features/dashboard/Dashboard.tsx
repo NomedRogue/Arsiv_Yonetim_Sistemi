@@ -351,7 +351,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               
               {/* Center Text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in duration-1000">
-                <div className={`text-xl xl:text-2xl font-bold leading-none mb-1 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
+                <div className={`text-base xl:text-lg font-bold leading-none mb-1 ${getOccupancyTextClass(theme, stats.overallOccupancy)}`}>
                   {animatedOccupancy}%
                 </div>
                 <div className={`text-[10px] xl:text-xs font-medium uppercase tracking-wider ${

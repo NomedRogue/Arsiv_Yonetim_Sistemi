@@ -346,20 +346,12 @@ export const FolderForm: React.FC<{
       toast.success('Klasör güncellendi.');
     } else {
       await addFolder(payload);
-      // Yeni kayıt eklendiğinde sayfada kal ve akıllı sıfırlama yap
-      // Birim ve Lokasyon bilgilerini koru, dosya bilgilerini temizle
-      setFormData(prev => ({
-        ...prev,
-        fileCode: '', // Sıfırla
-        subject: '', // Sıfırla
-        specialInfo: '', // Sıfırla
-        fileCount: 1, // Varsayılana dön
-        pdfPath: undefined,
-        // Diğerleri (kategori, birim, lokasyon, yıl, retention vb.) korunsun
-      }));
+      // Kullanıcı isteği üzerine tam temizleme (Akıllı sıfırlama yerine)
+      setFormData(initialFormData);
       setPdfFile(null);
       setExcelFile(null);
-      toast.success('Kayıt oluşturuldu. Yeni kayıt ekleyebilirsiniz.');
+      
+      toast.success('Kayıt oluşturuldu ve form temizlendi.');
     }
 
     setIsSubmitting(false);

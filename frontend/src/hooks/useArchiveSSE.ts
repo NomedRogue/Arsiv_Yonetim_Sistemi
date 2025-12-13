@@ -102,8 +102,8 @@ export const useArchiveSSE = (dispatch: Dispatch<ArchiveAction>, refresh: () => 
     });
 
     sse.addEventListener('folder_deleted', (e) => {
-      // Disposal (imha) creates this event
-      toast.info('Dosya imha edildi/silindi');
+      // Sadece veriyi refresh et, toast gösterme (useArchiveActions'da zaten gösteriliyor)
+
       refresh();
     });
 

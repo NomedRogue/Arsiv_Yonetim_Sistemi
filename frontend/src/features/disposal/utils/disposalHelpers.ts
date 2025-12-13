@@ -6,11 +6,21 @@ import type { DisposalStatus } from '../types';
  * Disposal occurs 1 year after retention period ends
  */
 export const getDisposalStatus = (folder: Folder): DisposalStatus => {
+  // B kodu (Süresiz) kontrolü
+  if (folder.retentionCode === 'B') {
+    return { text: 'Kurumunda Saklanır', color: 'gray' }; // Rengi gri veya uygun bir renk seçebilirsiniz
+  }
+
   const currentYear = new Date().getFullYear();
   // DOĞRU: İmha, saklama süresi tamamlandıktan sonraki yıl yapılır.
   // Saklama süresi bitiminden 1 yıl sonra imha edilir
-  const disposalYear = folder.fileYear + folder.retentionPeriod + 1;
+  const retentionPeriod = Number(folder.retentionPeriod) || 0;
+  const disposalYear = folder.fileYear + retentionPeriod + 1;
   const yearsRemaining = disposalYear - currentYear;
+
+  if (Number.isNaN(yearsRemaining)) {
+      return { text: 'Belirsiz', color: 'gray' };
+  }
 
   if (yearsRemaining < 0) {
     return { text: `Gecikti (${-yearsRemaining} Yıl)`, color: 'red' };

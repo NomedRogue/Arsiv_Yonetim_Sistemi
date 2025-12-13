@@ -336,11 +336,14 @@ class FolderRepository extends BaseRepository {
 
       // 5. Disposal Statistics (Grouping by Disposal Year)
       // Disposal Year = fileYear + retentionPeriod + 1
+      // Exclude B code folders (indefinite storage)
       const currentYear = new Date().getFullYear();
       const disposalQuery = `
         SELECT (fileYear + retentionPeriod + 1) as disposalYear, COUNT(*) as count
         FROM ${this.tableName}
-        WHERE status != 'İmha Edildi'
+        WHERE status != 'İmha Edildi' 
+          AND retentionCode != 'B' 
+          AND retentionPeriod != 'B'
         GROUP BY disposalYear
       `;
       const disposalStats = db.prepare(disposalQuery).all();
@@ -531,21 +534,25 @@ class FolderRepository extends BaseRepository {
     try {
       const currentYear = new Date().getFullYear();
       const db = this.getDb();
-      let whereClause = "status = 'Arşivde'";
+      // Allow both Arşivde and Çıkışta status, only exclude İmha Edildi
+      let whereClause = "status != 'İmha Edildi'";
       let params = [];
 
       // Disposal Year = fileYear + retentionPeriod + 1
       // We can use SQL expression: (fileYear + retentionPeriod + 1)
 
       if (filter === 'thisYear') {
-        whereClause += " AND (fileYear + retentionPeriod + 1) = ?";
+        whereClause += " AND (fileYear + retentionPeriod + 1) = ? AND retentionCode != 'B' AND retentionPeriod != 'B'";
         params.push(currentYear);
       } else if (filter === 'nextYear') {
-        whereClause += " AND (fileYear + retentionPeriod + 1) = ?";
+        whereClause += " AND (fileYear + retentionPeriod + 1) = ? AND retentionCode != 'B' AND retentionPeriod != 'B'";
         params.push(currentYear + 1);
       } else if (filter === 'overdue') {
-        whereClause += " AND (fileYear + retentionPeriod + 1) < ?";
+        whereClause += " AND (fileYear + retentionPeriod + 1) < ? AND retentionCode != 'B' AND retentionPeriod != 'B'";
         params.push(currentYear);
+      } else if (filter === 'indefinite') {
+        // Süresiz saklananlar (retentionPeriod veya retentionCode'da B olanlar)
+        whereClause += " AND (retentionCode = 'B' OR retentionPeriod = 'B' OR retentionPeriod = 'Süresiz')";
       }
 
       const query = `SELECT * FROM ${this.tableName} WHERE ${whereClause}`;

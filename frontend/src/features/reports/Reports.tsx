@@ -11,7 +11,9 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+
   Archive,
+  Infinity,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -35,36 +37,17 @@ interface DisposalYearData {
   isCurrentYear?: boolean;
 }
 
-interface ReportFolder {
-  id: string | number;
-  category: string;
-  departmentId: number;
-  departmentName?: string;
-  subject: string;
-  fileCode: string;
-  fileYear: number;
-  fileCount?: number;
-  clinic?: string;
-  specialInfo?: string;
-  retentionPeriod: number;
-  retentionCode: string;
+// Use shared types
+import { Folder, Disposal, FolderStatus } from '@/types';
+
+// Extend Folder for report specific fields if any (disposalYear is calculated or comes from API)
+interface ReportFolder extends Folder {
   disposalYear?: number;
-  location?: {
-    storageType: string;
-    unit?: number | string;
-    face?: string;
-    section?: number | string;
-    shelf?: number | string;
-    stand?: number | string;
-  };
-  status?: string;
 }
 
-interface DisposalRecord {
-  id: string;
-  folderId: string | number;
-  disposalDate: string;
-  originalFolderData: ReportFolder;
+interface DisposalRecord extends Disposal {
+    // Override if necessary, but Disposal from types has originalFolderData as Folder
+    // We can cast if needed
 }
 
 // Lokasyon bilgisini tam formatta döndür
@@ -79,11 +62,12 @@ const getFullLocationString = (location: any): string => {
 
 export const Reports: React.FC = () => {
   const { settings, getDepartmentName } = useArchive();
-  const [activeTab, setActiveTab] = useState<'overdue' | 'toDispose' | 'disposed'>('overdue');
+  const [activeTab, setActiveTab] = useState<'overdue' | 'toDispose' | 'disposed' | 'indefinite'>('overdue');
   const [disposalSchedule, setDisposalSchedule] = useState<DisposalYearData[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | string | null>(null);
   const [yearFolders, setYearFolders] = useState<ReportFolder[]>([]);
   const [disposedFolders, setDisposedFolders] = useState<DisposalRecord[]>([]);
+  const [indefiniteFolders, setIndefiniteFolders] = useState<ReportFolder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedYear, setExpandedYear] = useState<number | string | null>(null);
@@ -94,7 +78,7 @@ export const Reports: React.FC = () => {
     try {
       setIsLoading(true);
       const folders = await api.getDisposalYearFolders('overdue');
-      setOverdueFolders(folders);
+      setOverdueFolders(folders as unknown as ReportFolder[]);
     } catch (error: any) {
       toast.error('Süresi geçmiş klasörler yüklenemedi: ' + error.message);
     } finally {
@@ -122,7 +106,7 @@ export const Reports: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await api.getDisposals();
-      setDisposedFolders(data);
+      setDisposedFolders(data as unknown as DisposalRecord[]);
     } catch (error: any) {
       if (error.message && !error.message.includes('Failed to fetch')) {
         toast.error('İmha edilmiş klasörler yüklenemedi: ' + error.message);
@@ -133,15 +117,31 @@ export const Reports: React.FC = () => {
     }
   }, []);
 
+  // Süresiz saklanan klasörleri yükle
+  const loadIndefiniteFolders = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      // Backend'de getDisposableFolders('indefinite') çağrısı yapıyoruz
+      const folders = await api.getDisposableFolders('indefinite');
+      setIndefiniteFolders(folders as unknown as ReportFolder[]);
+    } catch (error: any) {
+      toast.error('Süresiz saklanan klasörler yüklenemedi: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'overdue') {
       loadOverdueFolders();
     } else if (activeTab === 'toDispose') {
       loadDisposalSchedule();
+    } else if (activeTab === 'indefinite') {
+      loadIndefiniteFolders();
     } else {
       loadDisposedFolders();
     }
-  }, [activeTab, loadOverdueFolders, loadDisposalSchedule, loadDisposedFolders]);
+  }, [activeTab, loadOverdueFolders, loadDisposalSchedule, loadDisposedFolders, loadIndefiniteFolders]);
 
   // Belirli yıl için klasörleri yükle
   const loadYearFolders = async (year: number | string) => {
@@ -149,7 +149,8 @@ export const Reports: React.FC = () => {
       setIsLoading(true);
       const yearParam = year === 'Gecikmiş' ? 'overdue' : year;
       const folders = await api.getDisposalYearFolders(yearParam);
-      setYearFolders(folders);
+      // API returns Folder[], we can cast to ReportFolder[] if we are sure
+      setYearFolders(folders as unknown as ReportFolder[]);
       setSelectedYear(year);
       setExpandedYear(year);
     } catch (error: any) {
@@ -176,14 +177,14 @@ export const Reports: React.FC = () => {
       const today = new Date().toLocaleDateString('tr-TR');
       const fileName = isOverdue ? `imha_suresi_gecmis_${Date.now()}.pdf` : `imha_edilecek_${year}_${Date.now()}.pdf`;
 
-      // jsPDF ile PDF oluştur - A4 Dikey
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      // jsPDF ile PDF oluştur - A4 Yatay (Landscape)
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       
       // Türkçe font ekle
       addTurkishFont(doc);
       
-      const pageWidth = 210;
-      const pageHeight = 297;
+      const pageWidth = 297;  // A4 landscape width
+      const pageHeight = 210; // A4 landscape height
       
       // Kurumsal Header - Üst çizgi
       doc.setFillColor(isOverdue ? 185 : 30, isOverdue ? 28 : 58, isOverdue ? 28 : 138);
@@ -221,7 +222,8 @@ export const Reports: React.FC = () => {
       // Tablo verisi - A4 dikey için optimize edilmiş (UI ile aynı başlıklar)
       const tableData = folders.map((f, i) => {
         const locationStr = getFullLocationString(f.location);
-        const disposalYear = f.disposalYear || (f.fileYear + f.retentionPeriod + 1);
+        const retPeriod = typeof f.retentionPeriod === 'number' ? f.retentionPeriod : 0;
+        const disposalYear = f.disposalYear || (f.fileYear + retPeriod + 1);
         return [
           (i + 1).toString(),
           f.category || '-',
@@ -229,7 +231,11 @@ export const Reports: React.FC = () => {
           f.subject || '-',
           f.fileCode || '-',
           f.fileYear?.toString() || '-',
-          f.retentionPeriod ? `${f.retentionPeriod} yıl` : '-',
+          f.retentionPeriod === 'B' 
+            ? 'Sürekli (B)' 
+            : f.retentionPeriod 
+              ? `${f.retentionPeriod} Yıl` 
+              : '-',
           f.retentionCode || '-',
           disposalYear.toString(),
           f.clinic || '-',
@@ -260,7 +266,7 @@ export const Reports: React.FC = () => {
         body: tableData,
         styles: { 
           font: 'DejaVu',
-          fontSize: 6, 
+          fontSize: 5, 
           cellPadding: 1.5, 
           overflow: 'linebreak',
           lineColor: [220, 220, 220],
@@ -271,25 +277,26 @@ export const Reports: React.FC = () => {
           fillColor: isOverdue ? [185, 28, 28] : [30, 58, 138], 
           textColor: 255, 
           fontStyle: 'normal', 
-          fontSize: 6,
+          fontSize: 5,
           halign: 'center',
-          minCellHeight: 5
+          minCellHeight: 5,
+          overflow: 'visible'
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         columnStyles: {
-          0: { cellWidth: 6, halign: 'center' },   // #
-          1: { cellWidth: 12 },                     // Kategori
-          2: { cellWidth: 18 },                     // Departman
-          3: { cellWidth: 'auto', minCellWidth: 30 },  // Konu - otomatik genişlik
-          4: { cellWidth: 12 },                     // Dosya Kodu
-          5: { cellWidth: 10, halign: 'center' },   // Dosya Yılı
-          6: { cellWidth: 14, halign: 'center' },   // Saklama Süresi
-          7: { cellWidth: 12, halign: 'center' },   // Saklama Kodu
-          8: { cellWidth: 10, halign: 'center' },   // İmha Yılı
-          9: { cellWidth: 14 },                     // Klinik
-          10: { cellWidth: 'auto', minCellWidth: 20 }, // Özel Bilgi - otomatik genişlik
-          11: { cellWidth: 'auto', minCellWidth: 30 }, // Lokasyon - otomatik genişlik
-          12: { cellWidth: 12, halign: 'center' }   // Durum
+          0: { cellWidth: 'auto', minCellWidth: 5, halign: 'center' },
+          1: { cellWidth: 'auto', minCellWidth: 13 },
+          2: { cellWidth: 'auto', minCellWidth: 18 },
+          3: { cellWidth: 'auto', minCellWidth: 20 },
+          4: { cellWidth: 'auto', minCellWidth: 15 },
+          5: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' },
+          6: { cellWidth: 'auto', minCellWidth: 18, halign: 'center' },
+          7: { cellWidth: 'auto', minCellWidth: 15, halign: 'center' },
+          8: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' },
+          9: { cellWidth: 'auto', minCellWidth: 12 },
+          10: { cellWidth: 'auto', minCellWidth: 15 },
+          11: { cellWidth: 'auto', minCellWidth: 35, overflow: 'ellipsize' },
+          12: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' }
         },
         margin: { left: 6, right: 6 },
         tableWidth: 'auto',
@@ -349,19 +356,22 @@ export const Reports: React.FC = () => {
       const fileName = `imha_edilmis_${Date.now()}.pdf`;
 
       // jsPDF ile PDF oluştur - Portrait A4
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       
       // Türkçe font ekle
       addTurkishFont(doc);
       
+      const pageWidth = 297;  // A4 landscape width
+      const pageHeight = 210; // A4 landscape height
+      
       // Kurumsal Header - Üst çizgi
       doc.setFillColor(22, 128, 58);
-      doc.rect(0, 0, 210, 8, 'F');
+      doc.rect(0, 0, pageWidth, 8, 'F');
       
       // Başlık
       doc.setFontSize(14);
       doc.setTextColor(33, 33, 33);
-      doc.text(title, 105, 18, { align: 'center' });
+      doc.text(title, pageWidth / 2, 18, { align: 'center' });
       
       // Alt çizgi - tablo ile aynı margin
       doc.setDrawColor(200, 200, 200);
@@ -371,7 +381,7 @@ export const Reports: React.FC = () => {
       // Meta bilgi - tablo ile aynı margin (6mm)
       const marginLeft = 6;
       const marginRight = 6;
-      const pageWidth = 210;
+
       const contentWidth = pageWidth - marginLeft - marginRight;
       
       doc.setFontSize(8);
@@ -399,7 +409,11 @@ export const Reports: React.FC = () => {
           f?.subject || '-',
           f?.fileCode || '-',
           f?.fileYear?.toString() || '-',
-          f?.retentionPeriod ? `${f.retentionPeriod} yıl` : '-',
+          f?.retentionPeriod === 'B' 
+            ? 'Sürekli (B)' 
+            : f?.retentionPeriod 
+              ? `${f.retentionPeriod} Yıl (${f.retentionCode || ''})` 
+              : '-',
           f?.retentionCode || '-',
           new Date(d.disposalDate).toLocaleDateString('tr-TR'),
           locationStr
@@ -424,7 +438,7 @@ export const Reports: React.FC = () => {
         body: tableData,
         styles: { 
           font: 'DejaVu',
-          fontSize: 6, 
+          fontSize: 5, 
           cellPadding: 1.5, 
           overflow: 'linebreak',
           lineColor: [220, 220, 220],
@@ -435,22 +449,23 @@ export const Reports: React.FC = () => {
           fillColor: [22, 128, 58], 
           textColor: 255, 
           fontStyle: 'normal', 
-          fontSize: 6,
+          fontSize: 5,
           halign: 'center',
-          minCellHeight: 5
+          minCellHeight: 5,
+          overflow: 'visible'
         },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         columnStyles: {
-          0: { cellWidth: 6, halign: 'center' },   // #
-          1: { cellWidth: 12 },                     // Kategori
-          2: { cellWidth: 20 },                     // Departman
-          3: { cellWidth: 'auto', minCellWidth: 35 },  // Konu - otomatik genişlik
-          4: { cellWidth: 12 },                     // Dosya Kodu
-          5: { cellWidth: 12, halign: 'center' },   // Dosya Yılı
-          6: { cellWidth: 16, halign: 'center' },   // Saklama Süresi
-          7: { cellWidth: 14, halign: 'center' },   // Saklama Kodu
-          8: { cellWidth: 18, halign: 'center' },   // İmha Tarihi
-          9: { cellWidth: 'auto', minCellWidth: 40 }   // Lokasyon - otomatik genişlik
+          0: { cellWidth: 'auto', minCellWidth: 5, halign: 'center' },
+          1: { cellWidth: 'auto', minCellWidth: 13 },
+          2: { cellWidth: 'auto', minCellWidth: 18 },
+          3: { cellWidth: 'auto', minCellWidth: 25 },
+          4: { cellWidth: 'auto', minCellWidth: 15 },
+          5: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' },
+          6: { cellWidth: 'auto', minCellWidth: 18, halign: 'center' },
+          7: { cellWidth: 'auto', minCellWidth: 15, halign: 'center' },
+          8: { cellWidth: 'auto', minCellWidth: 16, halign: 'center' },
+          9: { cellWidth: 'auto', minCellWidth: 40, overflow: 'ellipsize' }
         },
         margin: { left: 6, right: 6 },
         tableWidth: 'auto',
@@ -495,6 +510,150 @@ export const Reports: React.FC = () => {
     }
   };
 
+  // PDF Rapor oluştur - Süresiz Saklananlar
+  const generateIndefinitePdfReport = async () => {
+    if (indefiniteFolders.length === 0) {
+      toast.info('Klasör bulunmuyor.');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const title = 'Süresiz Saklanan Klasörler Raporu';
+      const today = new Date().toLocaleDateString('tr-TR');
+      const fileName = `suresiz_saklanan_${Date.now()}.pdf`;
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      addTurkishFont(doc);
+      
+      const pageWidth = 297;  // A4 landscape width
+      const pageHeight = 210; // A4 landscape height
+      
+      // Header
+      doc.setFillColor(79, 70, 229); // Indigo
+      doc.rect(0, 0, pageWidth, 8, 'F');
+      
+      doc.setFontSize(14);
+      doc.setTextColor(33, 33, 33);
+      doc.text(title, pageWidth / 2, 18, { align: 'center' });
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(6, 22, pageWidth - 6, 22);
+      
+      const marginLeft = 6;
+      const marginRight = 6;
+      const contentWidth = pageWidth - marginLeft - marginRight;
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Rapor Tarihi: ${today}`, marginLeft, 28);
+      doc.text(`Toplam: ${indefiniteFolders.length} klasör`, pageWidth - marginRight, 28, { align: 'right' });
+
+      // Tablo verisi
+      const tableData = indefiniteFolders.map((f, i) => {
+        const locationStr = getFullLocationString(f.location);
+        return [
+          (i + 1).toString(),
+          f.category || '-',
+          getDepartmentName(f.departmentId),
+          f.subject || '-',
+          f.fileCode || '-',
+          f.fileYear?.toString() || '-',
+          f.retentionPeriod || '-',
+          f.retentionCode || '-',
+          'Kurumunda Saklanır',
+          f.clinic || '-',
+          f.specialInfo || '-',
+          locationStr,
+          f.status || 'Arşivde'
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 32,
+        head: [[
+          '#', 
+          'Kategori', 
+          'Departman', 
+          'Konu', 
+          'Dosya Kodu', 
+          'Dosya Yılı', 
+          'Saklama Süresi', 
+          'Saklama Kodu',
+          'İmha Yılı',
+          'Klinik', 
+          'Özel Bilgi', 
+          'Lokasyon', 
+          'Durum'
+        ]],
+        body: tableData,
+        styles: { 
+          font: 'DejaVu',
+          fontSize: 5, 
+          cellPadding: 1.5, 
+          overflow: 'linebreak',
+          lineColor: [220, 220, 220],
+          lineWidth: 0.1,
+          minCellHeight: 4
+        },
+        headStyles: { 
+          fillColor: [79, 70, 229], 
+          textColor: 255, 
+          fontStyle: 'normal', 
+          fontSize: 5,
+          halign: 'center',
+          minCellHeight: 5,
+          overflow: 'visible'
+        },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        // Column styles for better fit
+        columnStyles: {
+            0: { cellWidth: 'auto', minCellWidth: 5, halign: 'center' },
+            1: { cellWidth: 'auto', minCellWidth: 13 },
+            2: { cellWidth: 'auto', minCellWidth: 18 },
+            3: { cellWidth: 'auto', minCellWidth: 20 },
+            4: { cellWidth: 'auto', minCellWidth: 15 },
+            5: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' },
+            6: { cellWidth: 'auto', minCellWidth: 18, halign: 'center' },
+            7: { cellWidth: 'auto', minCellWidth: 15, halign: 'center' },
+            8: { cellWidth: 'auto', minCellWidth: 22 },
+            9: { cellWidth: 'auto', minCellWidth: 12 },
+            10: { cellWidth: 'auto', minCellWidth: 15 },
+            11: { cellWidth: 'auto', minCellWidth: 35, overflow: 'ellipsize' },
+            12: { cellWidth: 'auto', minCellWidth: 12, halign: 'center' }
+        },
+        margin: { left: 6, right: 6 },
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1) {
+            doc.setFillColor(79, 70, 229);
+            doc.rect(0, 0, 210, 5, 'F');
+          }
+          const pageCount = doc.getNumberOfPages();
+          doc.setFontSize(7);
+          doc.setTextColor(130, 130, 130);
+          doc.text('Arşiv Yönetim Sistemi', 15, 287);
+          doc.text(`Sayfa ${data.pageNumber} / ${pageCount}`, 195, 287, { align: 'right' });
+          doc.line(0, 292, 210, 292);
+        }
+      });
+
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      if (window.electronAPI?.savePdfToDownloads) {
+        await window.electronAPI.savePdfToDownloads(fileName, pdfBase64);
+        toast.success('PDF raporu başarıyla oluşturuldu');
+      } else {
+        doc.save(fileName);
+        toast.success('PDF raporu başarıyla oluşturuldu');
+      }
+    } catch (error: any) {
+      toast.error('Rapor oluşturulamadı: ' + error.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Yıl satırını toggle et
   const toggleYear = (year: number | string) => {
     if (expandedYear === year) {
@@ -513,18 +672,10 @@ export const Reports: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden p-4 xl:p-6">
       {/* Compact Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 xl:px-4 xl:py-2 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 xl:w-9 xl:h-9 flex items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-            <FileText className="w-4 h-4 xl:w-5 xl:h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xs xl:text-sm font-bold text-gray-800 dark:text-white">Raporlar</h1>
-            <p className="text-[10px] xl:text-xs text-gray-500 dark:text-gray-400">İmha raporları</p>
-          </div>
-        </div>
+      <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 xl:px-4 xl:py-2 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 rounded-t-lg">
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">İmha raporları</h2>
         <button
           onClick={() => {
             if (activeTab === 'overdue') loadOverdueFolders();
@@ -564,6 +715,17 @@ export const Reports: React.FC = () => {
           İmha Edilecekler
         </button>
         <button
+          onClick={() => setActiveTab('indefinite')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'indefinite'
+              ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+          }`}
+        >
+          <Infinity className="w-3.5 h-3.5" />
+          Süresiz Saklananlar
+        </button>
+        <button
           onClick={() => setActiveTab('disposed')}
           className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'disposed'
@@ -577,7 +739,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto p-2 xl:p-3">
+      <div className="flex-1 overflow-auto p-2 xl:p-3 bg-white dark:bg-slate-800 rounded-b-lg">
         {/* İmha Süresi Geçenler Tab */}
         {activeTab === 'overdue' && (
           <div className="space-y-2">
@@ -630,7 +792,8 @@ export const Reports: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-red-100 dark:divide-red-900/30 bg-white dark:bg-slate-800">
                     {overdueFolders.map((folder, index) => {
-                      const disposalYear = folder.disposalYear || (folder.fileYear + folder.retentionPeriod + 1);
+                      const retPeriod = Number(folder.retentionPeriod) || 0;
+                      const disposalYear = folder.disposalYear || (folder.fileYear + retPeriod + 1);
                       const locationStr = getFullLocationString(folder.location);
                       return (
                         <tr key={folder.id} className="hover:bg-red-50 dark:hover:bg-red-900/10">
@@ -648,23 +811,127 @@ export const Reports: React.FC = () => {
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
-                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">
+                             {folder.retentionPeriod === 'B' ? 'Süresiz' : folder.retentionPeriod}
+                          </td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
                             <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                               {folder.retentionCode}
                             </span>
                           </td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 text-[10px] xl:text-xs font-bold">
-                              {disposalYear}
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs font-bold ${
+                              (folder.retentionCode === 'B' || folder.retentionPeriod === 'B')
+                                ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                            }`}>
+                              {(folder.retentionCode === 'B' || folder.retentionPeriod === 'B') ? 'Kurumunda Saklanır' : disposalYear}
                             </span>
                           </td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
-                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{folder.specialInfo || '-'}</td>
-                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{locationStr}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.specialInfo || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{locationStr}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
-                              folder.status === 'Çıkış' 
+                              folder.status === FolderStatus.Cikista
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
+                                : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                            }`}>
+                              {folder.status || 'Arşivde'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Süresiz Saklananlar Tab */}
+        {activeTab === 'indefinite' && (
+          <div className="space-y-2">
+            {/* Actions Bar */}
+            {indefiniteFolders.length > 0 && (
+              <div className="flex items-center justify-between p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center gap-2">
+                  <Infinity className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[10px] xl:text-xs text-indigo-700 dark:text-indigo-400 font-medium">{indefiniteFolders.length} klasör süresiz olarak saklanıyor</span>
+                </div>
+                <button
+                  onClick={generateIndefinitePdfReport}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] xl:text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors disabled:opacity-50"
+                >
+                  {isGenerating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                  PDF
+                </button>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            ) : indefiniteFolders.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Infinity className="w-10 h-10 mx-auto mb-2 opacity-50 text-indigo-500" />
+                <p className="text-xs xl:text-sm">Süresiz saklanan klasör bulunmuyor.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <table className="w-full text-[10px] xl:text-xs">
+                  <thead className="bg-indigo-100 dark:bg-indigo-900/30">
+                    <tr>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300 w-8">#</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Kategori</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Departman</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Konu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Dosya Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Dosya Yılı</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Saklama Süresi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Saklama Kodu</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">İmha Yılı</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Klinik</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Özel Bilgi</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Lokasyon</th>
+                      <th className="px-1.5 py-1.5 xl:px-2 xl:py-1.5 text-left text-indigo-700 dark:text-indigo-300">Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-indigo-100 dark:divide-indigo-900/30 bg-white dark:bg-slate-800">
+                    {indefiniteFolders.map((folder, index) => {
+                      const locationStr = getFullLocationString(folder.location);
+                      return (
+                        <tr key={folder.id} className="hover:bg-indigo-50 dark:hover:bg-indigo-900/10">
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-400">{index + 1}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
+                              folder.category === 'Tıbbi' 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                            }`}>
+                              {folder.category}
+                            </span>
+                          </td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.departmentName || getDepartmentName(folder.departmentId)}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionCode}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] xl:text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-medium">
+                              Kurumunda Saklanır
+                            </span>
+                          </td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.specialInfo || '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{locationStr}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
+                              folder.status === FolderStatus.Cikista
                                 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
                                 : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                             }`}>
@@ -774,7 +1041,8 @@ export const Reports: React.FC = () => {
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                             {yearFolders.map((folder, index) => {
-                              const disposalYear = folder.disposalYear || (folder.fileYear + folder.retentionPeriod + 1);
+                              const retPeriod = typeof folder.retentionPeriod === 'number' ? folder.retentionPeriod : 0;
+                              const disposalYear = folder.disposalYear || (folder.fileYear + retPeriod + 1);
                               const locationStr = getFullLocationString(folder.location);
                               return (
                                 <tr key={folder.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30">
@@ -792,7 +1060,7 @@ export const Reports: React.FC = () => {
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.subject}</td>
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.fileCode}</td>
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.fileYear}</td>
-                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod} yıl</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder.retentionPeriod}</td>
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
                                     <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                                       {folder.retentionCode}
@@ -808,11 +1076,11 @@ export const Reports: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.clinic || '-'}</td>
-                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{folder.specialInfo || '-'}</td>
-                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400 text-[10px]">{locationStr}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder.specialInfo || '-'}</td>
+                                  <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{locationStr}</td>
                                   <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] xl:text-xs ${
-                                      folder.status === 'Çıkış' 
+                                      folder.status === FolderStatus.Cikista
                                         ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
                                         : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                                     }`}>
@@ -902,7 +1170,7 @@ export const Reports: React.FC = () => {
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.subject || '-'}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-600 dark:text-gray-400">{folder?.fileCode || '-'}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.fileYear || '-'}</td>
-                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.retentionPeriod ? `${folder.retentionPeriod} yıl` : '-'}</td>
+                          <td className="px-1.5 py-1 xl:px-2 xl:py-1.5 text-gray-700 dark:text-gray-300">{folder?.retentionPeriod ? `${folder.retentionPeriod}` : '-'}</td>
                           <td className="px-1.5 py-1 xl:px-2 xl:py-1.5">
                             <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-gray-300 text-[10px] xl:text-xs">
                               {folder?.retentionCode || '-'}

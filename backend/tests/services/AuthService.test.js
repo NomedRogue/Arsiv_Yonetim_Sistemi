@@ -71,7 +71,7 @@ describe('AuthService Unit Tests', () => {
         });
 
         it('should return token and user info on success', async () => {
-            const user = { id: '1', username: 'admin', role: 'admin' };
+            const user = { id: '1', username: 'admin', role: 'admin', isApproved: 1 };
             findByUsername.mockReturnValue(user);
             verifyPassword.mockReturnValue(Promise.resolve(true));
 

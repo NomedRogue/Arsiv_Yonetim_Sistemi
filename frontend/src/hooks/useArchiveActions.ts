@@ -61,12 +61,12 @@ export const useArchiveActions = (
 
 
   const getFolderById = useCallback(
-    (id: number) => (state.folders || []).find((f) => f.id === id),
+    (id: string) => (state.folders || []).find((f) => f.id === id),
     [state.folders]
   );
 
   const getCheckoutsForFolder = useCallback(
-    (folderId: number) =>
+    (folderId: string) =>
       state.checkouts.filter((c) => c.folderId === folderId),
     [state.checkouts]
   );
@@ -77,8 +77,7 @@ export const useArchiveActions = (
 
   const addLog = useCallback(
     (log: Omit<Log, 'id' | 'timestamp'>) => {
-      // Loglama kritik olduğu için revert yapmıyoruz, sadece state'i güncelliyoruz ve kaydetmeyi deniyoruz.
-      const newLog: Log = { ...log, id: Date.now(), timestamp: new Date() };
+      const newLog: Log = { ...log, id: String(Date.now()), timestamp: new Date() };
       dispatch({ type: 'SET_LOGS', payload: [newLog, ...state.logs] });
       api.addLogEntry(log).catch(e => {
         console.error("Log save failed:", e.message);
@@ -92,7 +91,7 @@ export const useArchiveActions = (
     async (folderData: Omit<Folder, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
       const newFolder: Folder = {
         ...folderData,
-        id: Date.now(),
+        id: String(Date.now()),
         createdAt: new Date(),
         updatedAt: new Date(),
         status: FolderStatus.Arsivde,
@@ -103,8 +102,9 @@ export const useArchiveActions = (
       
       try {
         await api.createFolder(newFolder);
-        toast.success('Klasör başarıyla kaydedildi!');
-        addLog({ type: 'create', folderId: newFolder.id, details: `Yeni klasör eklendi: ${getFolderLogDetails(newFolder)}` });
+        // Toast handled in component to avoid duplicates
+        // toast.success('Klasör başarıyla kaydedildi!');
+        addLog({ type: 'create', folderId: Number(newFolder.id), details: `Yeni klasör eklendi: ${getFolderLogDetails(newFolder)}` });
       } catch (e: any) {
         toast.error(`Klasör kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousFolders });
@@ -123,7 +123,7 @@ export const useArchiveActions = (
       try {
         await api.updateFolder(folderWithTimestamp);
         toast.success('Klasör başarıyla güncellendi!');
-        addLog({ type: 'update', folderId: updatedFolder.id, details: `Klasör güncellendi: ${getFolderLogDetails(updatedFolder)}` });
+        addLog({ type: 'update', folderId: Number(updatedFolder.id), details: `Klasör güncellendi: ${getFolderLogDetails(updatedFolder)}` });
       } catch (e: any) {
         toast.error(`Klasör güncellenemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousFolders });
@@ -133,7 +133,7 @@ export const useArchiveActions = (
   );
 
   const deleteFolder = useCallback(
-    async (folderId: number) => {
+    async (folderId: string) => {
       const folder = getFolderById(folderId) ?? (state.folders || []).find(f => f.id === folderId);
       if (!folder) return;
       if (folder.status === FolderStatus.Cikista) {
@@ -147,11 +147,10 @@ export const useArchiveActions = (
       dispatch({ type: 'SET_DISPOSALS', payload: (state.disposals || []).filter((d) => d.folderId !== folderId) });
 
       try {
-        await api.removeFolder(folderId);
+        await api.removeFolder(folderId); // ID should be passed as string or number depending on API, but type says string.
         toast.success('Klasör ve ilişkili kayıtlar silindi.');
-        addLog({ type: 'delete', folderId, details: `Klasör kalıcı olarak silindi: ${getFolderLogDetails(folder)}` });
+        addLog({ type: 'delete', folderId: Number(folderId), details: `Klasör kalıcı olarak silindi: ${getFolderLogDetails(folder)}` });
       } catch (e: any) {
-        // Extract clean error message from API response
         let errorMessage = 'Klasör silinemedi';
         if (e.response?.data?.error) {
           errorMessage = e.response.data.error;
@@ -169,7 +168,7 @@ export const useArchiveActions = (
 
   const addCheckout = useCallback(
     async (checkoutData: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => {
-      const newCheckout: Checkout = { ...checkoutData, id: Date.now(), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
+      const newCheckout: Checkout = { ...checkoutData, id: String(Date.now()), checkoutDate: new Date(), status: CheckoutStatus.Cikista };
       const previousState = { folders: state.folders || [], checkouts: state.checkouts || [] };
       
       const folderToUpdate = (state.folders || []).find(f => f.id === checkoutData.folderId);
@@ -186,7 +185,7 @@ export const useArchiveActions = (
         await api.createCheckout(newCheckout);
         await api.updateFolder(updatedFolder);
         toast.success('Çıkış verildi.');
-        addLog({ type: 'checkout', folderId: checkoutData.folderId, details: `Klasör çıkışı yapıldı: ${getFolderLogDetails(folderToUpdate)}. Alan: ${checkoutData.personName} ${checkoutData.personSurname}` });
+        addLog({ type: 'checkout', folderId: Number(checkoutData.folderId), details: `Klasör çıkışı yapıldı: ${getFolderLogDetails(folderToUpdate)}. Alan: ${checkoutData.personName} ${checkoutData.personSurname}` });
       } catch(e: any) {
         toast.error(`Çıkış işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_CHECKOUTS', payload: previousState.checkouts });
@@ -208,9 +207,9 @@ export const useArchiveActions = (
         // Log için klasör bilgilerini API'den alıyoruz çünkü context'teki folder listesi güncel olmayabilir.
         const folder = await api.getFolder(updatedCheckout.folderId);
         if (folder) {
-          addLog({ type: 'checkout_update', folderId: folder.id, details: `Çıkış bilgileri güncellendi: ${getFolderLogDetails(folder)}` });
+          addLog({ type: 'checkout_update', folderId: Number(folder.id), details: `Çıkış bilgileri güncellendi: ${getFolderLogDetails(folder)}` });
         } else {
-           addLog({ type: 'checkout_update', folderId: updatedCheckout.folderId, details: `ID'si ${updatedCheckout.folderId} olan klasörün çıkış bilgileri güncellendi.` });
+           addLog({ type: 'checkout_update', folderId: Number(updatedCheckout.folderId), details: `ID'si ${updatedCheckout.folderId} olan klasörün çıkış bilgileri güncellendi.` });
         }
       } catch (e: any) {
         toast.error(`Çıkış güncellenemedi: ${e.message}`);
@@ -221,19 +220,30 @@ export const useArchiveActions = (
   );
 
   const returnCheckout = useCallback(
-    async (checkoutId: number) => {
+    async (checkoutId: string) => {
       const checkout = state.checkouts.find((c) => c.id === checkoutId);
       if (!checkout) return;
       
       const updatedCheckout = { ...checkout, status: CheckoutStatus.IadeEdildi, actualReturnDate: new Date() };
       const previousState = { folders: state.folders || [], checkouts: state.checkouts || [] };
 
-      const folderToUpdate = (state.folders || []).find(f => f.id === checkout.folderId);
+      // Try to find folder in state first, then fetch from API if not found
+      let folderToUpdate = (state.folders || []).find(f => f.id === checkout.folderId);
+      
+      if (!folderToUpdate) {
+        try {
+          folderToUpdate = await api.getFolder(checkout.folderId);
+        } catch (e: any) {
+          toast.error('İade edilecek klasör bulunamadı.');
+          return;
+        }
+      }
+      
       if (!folderToUpdate) {
         toast.error('İade edilecek klasör bulunamadı.');
-        dispatch({ type: 'SET_CHECKOUTS', payload: previousState.checkouts });
         return;
       }
+      
       const updatedFolder = { ...folderToUpdate, status: FolderStatus.Arsivde };
 
       dispatch({ type: 'SET_CHECKOUTS', payload: (state.checkouts || []).map(c => c.id === checkoutId ? updatedCheckout : c) });
@@ -243,7 +253,7 @@ export const useArchiveActions = (
         await api.updateCheckout(updatedCheckout);
         await api.updateFolder(updatedFolder);
         toast.success('Klasör iade alındı.');
-        addLog({ type: 'return', folderId: checkout.folderId, details: `Klasör iade alındı: ${getFolderLogDetails(folderToUpdate)}` });
+        addLog({ type: 'return', folderId: Number(checkout.folderId), details: `Klasör iade alındı: ${getFolderLogDetails(folderToUpdate)}` });
       } catch(e: any) {
         toast.error(`İade işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_CHECKOUTS', payload: previousState.checkouts });
@@ -254,9 +264,9 @@ export const useArchiveActions = (
   );
   
   const disposeFolders = useCallback(
-    async (folderIds: number[]) => {
+    async (folderIds: string[]) => {
       const foldersToDispose = (state.folders || []).filter((f) => 
-        folderIds.some(id => String(f.id) === String(id) || f.id === id || Number(f.id) === Number(id))
+        folderIds.includes(f.id)
       );
       
       if (foldersToDispose.some((f) => f.status === FolderStatus.Cikista)) {
@@ -274,34 +284,17 @@ export const useArchiveActions = (
         originalFolderData: f 
       }));
       
-      if (process.env.NODE_ENV === 'development') {
-        if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] New disposals to create:', JSON.stringify(newDisposals, null, 2));
-      }
-      
-      // Klasörleri state'den SİL (sadece status güncelleme değil)
-      const remainingFolders = state.folders.filter(f => 
-        !folderIds.some(id => String(f.id) === String(id) || f.id === id || Number(f.id) === Number(id))
-      );
+      const remainingFolders = state.folders.filter(f => !folderIds.includes(f.id));
       dispatch({ type: 'SET_FOLDERS', payload: remainingFolders });
       dispatch({ type: 'SET_DISPOSALS', payload: [...newDisposals, ...state.disposals] });
       
       try {
-        if (process.env.NODE_ENV === 'development') {
-          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] Creating disposals (folder will be deleted on backend)...');
-        }
-        // Backend'de disposal oluşturulurken klasör otomatik silinecek
         await Promise.all(newDisposals.map(api.createDisposal));
-        if (process.env.NODE_ENV === 'development') {
-          if (import.meta.env.DEV) console.log('[DISPOSE DEBUG] All API calls successful!');
-        }
         toast.success(`${folderIds.length} klasör imha edildi.`);
         
         const details = `${folderIds.length} klasör imha edildi. Detaylar: ${foldersToDispose.map(f => getFolderLogDetails(f)).join(' | ')}`;
         addLog({ type: 'dispose', details });
       } catch (e: any) {
-        if (process.env.NODE_ENV === 'development') {
-          if (import.meta.env.DEV) console.log('[DISPOSE ERROR] Error during disposal:', e);
-        }
         toast.error(`İmha işlemi kaydedilemedi: ${e.message}`);
         dispatch({ type: 'SET_FOLDERS', payload: previousState.folders });
         dispatch({ type: 'SET_DISPOSALS', payload: previousState.disposals });
@@ -332,7 +325,8 @@ export const useArchiveActions = (
           iadeUyarisiGun: 'İade Uyarısı',
           backupFrequency: 'Oto. Yedekleme Sıklığı',
           backupTime: 'Oto. Yedekleme Saati',
-          backupRetention: 'Oto. Yedekleme Sayısı'
+          backupRetention: 'Oto. Yedekleme Sayısı',
+          githubToken: 'Github Token'
         };
 
         (Object.keys(keyLabels) as Array<keyof Settings>).forEach(key => {
@@ -393,9 +387,6 @@ export const useArchiveActions = (
       try {
         await api.saveConfigs({ departments: nextDepts });
         toast.success('Birim güncellendi.');
-        // FIX: The incoming `dept` object might be partial. Use `updatedDept` which is the
-        // result of merging the original department with the update data, ensuring all
-        // properties are available for the log message.
         addLog({ type: 'department_update', details: `Birim güncellendi: "${updatedDept.name}" (${updatedDept.category})` });
       } catch (e: any) {
         toast.error(`Birim güncellenemedi: ${e.message}`);
@@ -433,7 +424,6 @@ export const useArchiveActions = (
   const addStorageUnit = useCallback(
     async (type: StorageType, config?: KompaktUnitConfig) => {
       const previousStructure = state.storageStructure;
-      // Defensive: storageStructure null/undefined kontrolü
       const safeStructure = {
         kompakt: previousStructure?.kompakt || [],
         stand: previousStructure?.stand || [],

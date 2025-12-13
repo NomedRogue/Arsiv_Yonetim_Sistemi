@@ -15,7 +15,8 @@ function getUserDataPath(...segments) {
   const baseDir = process.env.APPDATA || path.join(os.homedir(), '.arsiv-yonetim-sistemi');
   
   // If in dev, we might still want cwd/backend/data but for safety let's stick to a writable path
-  return path.join(baseDir, 'ArsivYonetimSistemi', ...segments);
+  // IMPORTANT: Must match package.json name for consistency with Electron
+  return path.join(baseDir, 'arsiv-yonetim-sistemi', ...segments);
 }
 
 function ensureDirExists(dirPath) {

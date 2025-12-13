@@ -44,8 +44,11 @@ const createFolderValidation = [
     .withMessage('Klasör tipi Dar veya Geniş olmalı'),
   
   body('retentionPeriod')
-    .isInt({ min: 0 })
-    .withMessage('Saklama süresi 0 veya pozitif olmalı'),
+    .custom((value) => {
+      if (value === 'B') return true;
+      if (!isNaN(value) && parseInt(value) >= 0) return true;
+      throw new Error('Saklama süresi 0, pozitif veya B olmalı');
+    }),
   
   body('retentionCode')
     .isIn(['A', 'A1', 'A2', 'A3', 'B', 'C', 'D', 'E'])

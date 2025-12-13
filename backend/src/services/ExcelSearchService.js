@@ -44,8 +44,7 @@ class ExcelSearchService {
   parseExcelContent(excelPath) {
     try {
       const workbook = xlsx.readFile(excelPath);
-      let data = null;
-      let usedSheetName = null;
+      let allData = [];
       
       // Target sheet name (case-insensitive matching)
       const targetSheetName = 'DOSYA MUHTEVİYATI DÖKÜM FORMU';
@@ -56,7 +55,9 @@ class ExcelSearchService {
       
       const normalizedTarget = normalizeSheetName(targetSheetName);
       
-      // Reorder sheets: target sheet first, then others
+      // Sheet sıralaması: Hedef sayfa en başa, diğerleri sonra. 
+      // Ancak tüm sayfaları tarayacağımız için sıralama sadece loglama/öncelik hissi için önemli olabilir, 
+      // yine de hedef sayfanın kesinlikle taranmasını garantiler.
       const orderedSheets = [...workbook.SheetNames].sort((a, b) => {
         const aMatch = normalizeSheetName(a) === normalizedTarget;
         const bMatch = normalizeSheetName(b) === normalizedTarget;
@@ -65,15 +66,18 @@ class ExcelSearchService {
         return 0;
       });
       
-      logger.info('[EXCEL_SEARCH_SERVICE] Sheet order:', {
+      logger.info('[EXCEL_SEARCH_SERVICE] Scanning sheets:', {
         file: path.basename(excelPath),
-        sheets: orderedSheets,
-        targetSheet: targetSheetName
+        sheets: orderedSheets
       });
       
-      // Find sheet with SAYI and AÇIKLAMALAR columns
+      // Tüm sayfaları gez
       for (const sheetName of orderedSheets) {
         const worksheet = workbook.Sheets[sheetName];
+        
+        // Sheet boşsa veya range yoksa atla
+        if (!worksheet['!ref']) continue;
+
         const sheetData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
         
         // Find header row index
@@ -82,7 +86,8 @@ class ExcelSearchService {
         let sayiColIndex = -1;
         let aciklamalarColIndex = -1;
         
-        for (let i = 0; i < Math.min(sheetData.length, 20); i++) {
+        // İlk 30 satırı tara
+        for (let i = 0; i < Math.min(sheetData.length, 30); i++) {
           const row = sheetData[i];
           if (!row || row.length === 0) continue;
           
@@ -92,38 +97,56 @@ class ExcelSearchService {
           
           for (let j = 0; j < row.length; j++) {
             if (!row[j]) continue;
-            const normalized = row[j].toString().toUpperCase()
+            const cellVal = row[j].toString().trim();
+            const normalized = cellVal.toUpperCase()
               .replace(/İ/g, 'I').replace(/Ş/g, 'S').replace(/Ğ/g, 'G')
               .replace(/Ü/g, 'U').replace(/Ö/g, 'O').replace(/Ç/g, 'C');
             
-            if (normalized === 'SIRA') {
-              foundSira = j;
+            // SIRA NO Tespiti
+            if (normalized === 'SIRA' || normalized === 'SIRA NO' || normalized === 'NO') {
+                // 'NO' başlığı bazen 'SAYI' yerine de kullanılıyor olabilir dikkat.
+                // Genelde SIRA NO sol baştadır.
+                foundSira = j;
             }
             
+            // SAYI (DOSYA NO) Tespiti
+            // Kullanıcı isteği: "SAYI başlığında hasta dosya numarası"
             if (normalized === 'SAYI' || 
-                (normalized.includes('SAYI') && 
-                 !normalized.includes('SAYFA') && 
-                 !normalized.includes('SAYISI'))) {
+                normalized === 'DOSYA NO' || 
+                normalized === 'DOSYA NUMARASI' ||
+                normalized === 'PROTOKOL NO' ||
+                (normalized.includes('SAYI') && !normalized.includes('SAYFA'))) {
               foundSayi = j;
             }
             
-            if (normalized.includes('ACIKLAMA')) {
+            // AÇIKLAMALAR (HASTA ADI) Tespiti
+            // Kullanıcı isteği: "AÇIKLAMALAR kısmında hasta adı soyadı"
+            if (normalized === 'AÇIKLAMALAR' || 
+                normalized === 'ACIKLAMALAR' || 
+                normalized === 'ACIKLAMA' ||
+                normalized === 'AÇIKLAMA' ||
+                normalized === 'HASTA ADI' || 
+                normalized === 'HASTA ADI SOYADI' ||
+                normalized === 'ADI SOYADI' ||
+                normalized.includes('AD SOYAD')) {
               foundAciklama = j;
             }
           }
           
+          // SAYI ve AÇIKLAMA (veya HASTA ADI) bulunduysa bu satırı başlık satırı kabul et
           if (foundSayi >= 0 && foundAciklama >= 0) {
             headerRowIndex = i;
             siraColIndex = foundSira;
             sayiColIndex = foundSayi;
             aciklamalarColIndex = foundAciklama;
-            break;
+            break; 
           }
         }
         
         if (headerRowIndex >= 0) {
-          // Convert raw data to objects with proper columns
-          data = [];
+          logger.info(`[EXCEL_SEARCH_SERVICE] Headers found in sheet "${sheetName}": Row ${headerRowIndex}, SayiCol: ${sayiColIndex}, AciklamaCol: ${aciklamalarColIndex}`);
+          
+          // Verileri çek
           for (let i = headerRowIndex + 1; i < sheetData.length; i++) {
             const row = sheetData[i];
             if (!row || row.length === 0) continue;
@@ -132,35 +155,35 @@ class ExcelSearchService {
             const sayi = row[sayiColIndex];
             const aciklamalar = row[aciklamalarColIndex];
             
-            // Skip empty rows
+            // İkisi de boşsa atla
             if (!sayi && !aciklamalar) continue;
             
-            data.push({
+            allData.push({
               SIRA: sira,
               SAYI: sayi,
               AÇIKLAMALAR: aciklamalar,
+              _sheetName: sheetName,
               _rowIndex: i,
               _rawRow: row
             });
           }
-          
-          usedSheetName = sheetName;
-          break;
+        } else {
+            // Sadece debug için logla
+            // logger.debug(`[EXCEL_SEARCH_SERVICE] No headers found in sheet "${sheetName}"`);
         }
       }
       
-      if (!data) {
-        logger.warn('[EXCEL_SEARCH_SERVICE] No SAYI/AÇIKLAMALAR columns found:', excelPath);
+      if (allData.length === 0) {
+        logger.warn('[EXCEL_SEARCH_SERVICE] No matching data found in any sheet:', excelPath);
         return [];
       }
       
-      logger.info('[EXCEL_SEARCH_SERVICE] Parsed sheet:', {
-        sheet: usedSheetName,
-        rows: data.length,
-        file: path.basename(excelPath)
+      logger.info('[EXCEL_SEARCH_SERVICE] Total parsed rows from all sheets:', {
+        file: path.basename(excelPath),
+        count: allData.length
       });
       
-      return data;
+      return allData;
     } catch (error) {
       logger.error('[EXCEL_SEARCH_SERVICE] Parse error:', { error, file: excelPath });
       return [];

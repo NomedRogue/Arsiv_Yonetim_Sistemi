@@ -25,7 +25,19 @@ export default function ExcelSearch() {
     try {
       setIsLoading(true);
       const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/search/excel?q=${encodeURIComponent(searchTerm)}`);
+      
+      // Get token from localStorage or sessionStorage
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${baseUrl}/search/excel?q=${encodeURIComponent(searchTerm)}`, {
+        headers
+      });
       
       if (!response.ok) {
         throw new Error('Arama başarısız');
@@ -34,7 +46,7 @@ export default function ExcelSearch() {
       const data = await response.json();
       
       // Enrich with department names
-      const allDataResponse = await fetch(`${baseUrl}/all-data`);
+      const allDataResponse = await fetch(`${baseUrl}/all-data`, { headers });
       if (allDataResponse.ok) {
         const { departments } = await allDataResponse.json();
         const enrichedData = data.map((result: any) => ({

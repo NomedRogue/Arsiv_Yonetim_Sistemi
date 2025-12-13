@@ -52,7 +52,8 @@ const FolderRow = React.memo<FolderRowProps>(({
             <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
             <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
             <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
-            <span><strong>Saklama:</strong> {folder.retentionPeriod}-{folder.retentionCode}</span>
+            <span><strong>Saklama Süresi:</strong> {folder.retentionPeriod}</span>
+            <span><strong>Saklama Kodu:</strong> {folder.retentionCode}</span>
             {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
             {folder.specialInfo && <span><strong>Özel Bilgi:</strong> {folder.specialInfo}</span>}
           </div>
@@ -346,7 +347,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
       </Modal>
 
       <div className="flex flex-col h-full bg-white dark:bg-archive-dark-panel p-3 xl:p-4 rounded-xl shadow-lg transition-colors duration-300">
-        <h2 className="text-sm xl:text-lg font-bold mb-2 xl:mb-3">Arşiv</h2>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2 xl:mb-3">Arşiv</h2>
 
         {/* Gelişmiş Arama Formu */}
         <form

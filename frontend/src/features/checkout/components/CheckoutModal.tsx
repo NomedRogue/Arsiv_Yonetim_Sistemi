@@ -58,7 +58,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name === 'personPhone') {
-      const numericValue = value.replace(/\D/g, '');
+      // Remove non-digits and limit to 10 digits
+      let numericValue = value.replace(/\D/g, '');
+      // Remove leading 0 if present
+      if (numericValue.startsWith('0')) {
+        numericValue = numericValue.substring(1);
+      }
+      // Limit to 10 digits
+      numericValue = numericValue.substring(0, 10);
       setFormData((prev) => ({ ...prev, personPhone: numericValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -72,6 +79,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleConfirm = () => {
     if (!formData.personName.trim() || !formData.personSurname.trim() || !formData.plannedReturnDate) {
       toast.warning('Lütfen zorunlu alanları doldurun: Ad, Soyad ve Planlanan İade Tarihi.');
+      return;
+    }
+    if (!formData.reason.trim()) {
+      toast.warning('Çıkış Nedeni zorunludur.');
       return;
     }
     if (formData.checkoutType === CheckoutType.Kismi && !formData.documentDescription.trim()) {
@@ -198,7 +209,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               name="personPhone"
               value={formData.personPhone}
               onChange={handleChange}
-              placeholder="05XX XXX XX XX"
+              placeholder="5XX XXX XX XX"
+              maxLength={10}
               className="block w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -217,14 +229,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         {/* Çıkış Nedeni */}
         <div>
-          <label htmlFor="reason" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Çıkış Nedeni</label>
+          <label htmlFor="reason" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Çıkış Nedeni *</label>
           <input
             id="reason"
             type="text"
             name="reason"
             value={formData.reason}
             onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
-            placeholder="Opsiyonel"
+            placeholder="Çıkış nedenini giriniz"
             className="block w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500"
           />
         </div>

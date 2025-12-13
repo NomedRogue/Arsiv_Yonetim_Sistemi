@@ -4,7 +4,7 @@ import { Modal } from '@/components/Modal';
 import { Badge } from '@/components/Badge';
 import * as api from '@/api';
 import { toast } from '@/lib/toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Clock, Calendar, Infinity as InfinityIcon } from 'lucide-react';
 import { Category, Folder, FolderStatus } from './types';
 import type { DisposalViewType, DisposalTabType } from './types';
 import { getDisposalStatus, getStatusBadgeColor } from './utils';
@@ -135,13 +135,54 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
                 </div>
             </Modal>
             <div className="flex space-x-2 border-b dark:border-gray-600 mb-4 transition-colors duration-300">
-                <button onClick={() => setSelectedView('thisYear')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${selectedView === 'thisYear' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>Bu Yıl İmha Edilecekler</button>
-                <button onClick={() => setSelectedView('nextYear')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${selectedView === 'nextYear' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>Gelecek Yıl İmha Edilecekler</button>
-                <button onClick={() => setSelectedView('overdue')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${selectedView === 'overdue' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Süresi Geçenler</button>
+                <button 
+                    onClick={() => setSelectedView('overdue')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
+                        selectedView === 'overdue' 
+                            ? 'border-red-500 text-red-600 dark:text-red-400' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                    }`}
+                >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    İmha Süresi Geçenler
+                </button>
+                <button 
+                    onClick={() => setSelectedView('thisYear')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
+                        selectedView === 'thisYear' 
+                            ? 'border-orange-500 text-orange-600 dark:text-orange-400' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                    }`}
+                >
+                    <Clock className="w-3.5 h-3.5" />
+                    Bu Yıl İmha Edilecekler
+                </button>
+                <button 
+                    onClick={() => setSelectedView('nextYear')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
+                        selectedView === 'nextYear' 
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                    }`}
+                >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Gelecek Yıl İmha Edilecekler
+                </button>
+                <button 
+                    onClick={() => setSelectedView('indefinite')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors border-b-2 -mb-px ${
+                        selectedView === 'indefinite' 
+                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                    }`}
+                >
+                    <InfinityIcon className="w-3.5 h-3.5" />
+                    Süresiz Saklananlar
+                </button>
             </div>
             <div className="flex justify-between items-center mb-4">
                  <p className="text-xs xl:text-sm text-gray-700 dark:text-gray-400 transition-colors duration-300">{disposableFolders.length} klasör bulundu.</p>
-                 {selectedFolderIds.length > 0 && (
+                 {selectedFolderIds.length > 0 && selectedView !== 'indefinite' && (
                      <button 
                          onClick={() => setIsModalOpen(true)}
                          className="px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-300">
@@ -192,7 +233,8 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
                                             <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
                                             <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
                                             <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
-                                            <span><strong>Saklama:</strong> {folder.retentionPeriod}-{folder.retentionCode}</span>
+                                            <span><strong>Saklama Süresi:</strong> {folder.retentionPeriod}</span>
+                                            <span><strong>Saklama Kodu:</strong> {folder.retentionCode}</span>
                                             {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
                                             {folder.specialInfo && <span><strong>Özel Bilgi:</strong> {folder.specialInfo}</span>}
                                         </div>
@@ -204,7 +246,7 @@ const DisposableFoldersView: React.FC<{ initialFilter?: DisposalViewType }> = ({
                                         </div>
                                         <div className="mt-1.5 flex items-center gap-3 text-[10px] xl:text-xs">
                                             <span className="flex items-center gap-1"><strong>Durum:</strong> <Badge text={folder.status} color={getStatusBadgeColor(folder.status)} /></span>
-                                            <span className="flex items-center gap-1"><strong>İmhaya:</strong> <Badge text={disposalStatus.text} color={disposalStatus.color} /></span>
+                                            <span className="flex items-center gap-1"><strong>İmha:</strong> <Badge text={(folder.retentionCode === 'B' || folder.retentionPeriod === 'B') ? 'Kurumunda Saklanır' : disposalStatus.text} color={disposalStatus.color} /></span>
                                         </div>
                                     </div>
                                 </div>
@@ -273,7 +315,8 @@ const DisposedFoldersView: React.FC = () => {
                                     <span><strong>Dosya Kodu:</strong> {folder.fileCode}</span>
                                     <span><strong>Dosya Yılı:</strong> {folder.fileYear}</span>
                                     <span><strong>Dosya Sayısı:</strong> {folder.fileCount}</span>
-                                    <span><strong>Saklama:</strong> {folder.retentionPeriod}-{folder.retentionCode}</span>
+                                    <span><strong>Saklama Süresi:</strong> {folder.retentionPeriod}</span>
+                                    <span><strong>Saklama Kodu:</strong> {folder.retentionCode}</span>
                                     {folder.clinic && <span><strong>Klinik:</strong> {folder.clinic}</span>}
                                     {folder.specialInfo && <span><strong>Özel Bilgi:</strong> {folder.specialInfo}</span>}
                                 </div>
@@ -313,8 +356,8 @@ export const Disposal: React.FC<{ initialTab?: DisposalTabType, initialFilter?: 
                 </div>
 
                 <div className="flex space-x-1 border-b dark:border-gray-600 mb-3 transition-colors duration-300">
-                    <button onClick={() => setActiveTab('disposable')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${activeTab === 'disposable' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Bekleyenler</button>
-                    <button onClick={() => setActiveTab('disposed')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${activeTab === 'disposed' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Edilenler</button>
+                    <button onClick={() => setActiveTab('disposable')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors duration-300 ${activeTab === 'disposable' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Bekleyenler</button>
+                    <button onClick={() => setActiveTab('disposed')} className={`px-3 py-1.5 xl:px-4 xl:py-2 text-[10px] xl:text-xs font-medium transition-colors duration-300 ${activeTab === 'disposed' ? 'border-b-2 border-teal-600 text-teal-600' : 'text-gray-500 dark:text-gray-400'}`}>İmha Edilenler</button>
                 </div>
                 
                 {activeTab === 'disposable' ? <DisposableFoldersView initialFilter={initialFilter} /> : <DisposedFoldersView />}

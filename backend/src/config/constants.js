@@ -9,14 +9,14 @@ const Category = {
 };
 
 const IDARI_BIRIMLER = [
-  { name: 'Memur Maaş Mutemetliği' }, { name: 'İşçi Maaş Mutemetliği' },
-  { name: 'Gelir Tahakkuk Birimi' }, { name: 'Gider Tahakkuk Birimi' },
-  { name: 'Kalite Birimi' }, { name: 'Eğitim Birimi' }, { name: 'Bilgi İşlem' },
-  { name: 'Personel Birimi' }, { name: 'Arşiv Birimi' }, { name: 'Biomedikal Birimi' },
-  { name: 'Ayniyat Birimi' }, { name: 'Tıbbi Sart Birimi' }, { name: 'Disiplin Birimi' },
-  { name: 'Satın Alma Birimi' }, { name: 'İstatistik Birimi' }, { name: 'Temizlik Birimi' },
-  { name: 'Protez Birimi' }, { name: 'Hasta Hakları Birimi' }, { name: 'Vezne' },
-  { name: 'İş Sağlığı ve Güvenliği Birimi' }
+  { name: 'Memur Maaş Mutemetliği', code: '39489614' }, { name: 'İşçi Maaş Mutemetliği', code: '39489614' },
+  { name: 'Gelir Tahakkuk Birimi', code: '39489614' }, { name: 'Gider Tahakkuk Birimi', code: '39489614' },
+  { name: 'Kalite Birimi', code: '39489614' }, { name: 'Eğitim Birimi', code: '39489614' }, { name: 'Bilgi İşlem', code: '39489614' },
+  { name: 'Personel Birimi', code: '39489614' }, { name: 'Arşiv Birimi', code: '39489614' }, { name: 'Biomedikal Birimi', code: '39489614' },
+  { name: 'Ayniyat Birimi', code: '39489614' }, { name: 'Tıbbi Sart Birimi', code: '39489614' }, { name: 'Disiplin Birimi', code: '39489614' },
+  { name: 'Satın Alma Birimi', code: '39489614' }, { name: 'İstatistik Birimi', code: '39489614' }, { name: 'Temizlik Birimi', code: '39489614' },
+  { name: 'Protez Birimi', code: '39489614' }, { name: 'Hasta Hakları Birimi', code: '39489614' }, { name: 'Vezne', code: '39489614' },
+  { name: 'İş Sağlığı ve Güvenliği Birimi', code: '39489614' }
 ];
 
 const TIBBI_BIRIMLER = [

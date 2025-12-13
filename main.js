@@ -234,7 +234,7 @@ async function createWindow() {
 
   if (isDev) {
     await mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   } else {
     // Production'da dist klasörü doğrudan ana dizinde
     const indexPath = path.join(__dirname, 'dist', 'index.html');
@@ -400,6 +400,14 @@ ipcMain.handle('file:openExternal', async (event, filePath) => {
       app.getPath('downloads')
     ];
     
+    // In development mode, also allow backend/PDFs and backend/Excels
+    if (isDev) {
+      allowedDirs.push(
+        path.join(__dirname, 'backend', 'PDFs'),
+        path.join(__dirname, 'backend', 'Excels')
+      );
+    }
+    
     const resolvedPath = path.resolve(filePath);
     const isAllowed = allowedDirs.some(dir => {
       const resolvedDir = path.resolve(dir);
@@ -408,6 +416,7 @@ ipcMain.handle('file:openExternal', async (event, filePath) => {
     
     if (!isAllowed) {
       logger.warn('[SECURITY] Unauthorized file access attempt:', filePath);
+      logger.warn('[SECURITY] Allowed directories:', allowedDirs);
       return { success: false, error: 'Bu dosyaya erişim izni yok' };
     }
     

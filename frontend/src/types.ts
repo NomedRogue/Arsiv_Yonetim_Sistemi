@@ -245,7 +245,7 @@ export type ArchiveAction =
 export interface ArchiveContextType extends ArchiveState {
   refresh: () => Promise<void>;
   getDepartmentName: (id: number) => string;
-  getFolderById: (id: number) => Folder | undefined;
+  getFolderById: (id: string) => Folder | undefined;
   getOccupancy: (location: Location) => OccupancyInfo;
   getLocationOccupancySummary: () => {
     kompakt: Record<string, number>;
@@ -253,14 +253,14 @@ export interface ArchiveContextType extends ArchiveState {
   };
   getDetailedOccupancy: (type: StorageType, id: number) => DetailedOccupancyItem[];
   getShelfDetailsForSection: (unitId: number, faceName: string, sectionId: number) => DetailedOccupancyItem[];
-  getCheckoutsForFolder: (folderId: number) => Checkout[];
+  getCheckoutsForFolder: (folderId: string) => Checkout[];
   addFolder: (folder: Omit<Folder, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => void;
   updateFolder: (folder: Folder) => void;
-  deleteFolder: (folderId: number) => void;
+  deleteFolder: (folderId: string) => void;
   addCheckout: (checkout: Omit<Checkout, 'id' | 'status' | 'checkoutDate'>) => void;
   updateCheckout: (checkout: Checkout) => void;
-  returnCheckout: (checkoutId: number) => void;
-  disposeFolders: (folderIds: number[]) => void;
+  returnCheckout: (checkoutId: string) => void;
+  disposeFolders: (folderIds: string[]) => void;
   updateSettings: (newSettings: Settings) => void;
   addLog: (log: Omit<Log, 'id' | 'timestamp'>) => void;
   addDepartment: (department: Omit<Department, 'id'>) => void;
