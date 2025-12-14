@@ -101,10 +101,22 @@ function configureUpdaterToken() {
 
         if (token) {
             process.env.GH_TOKEN = token;
-            autoUpdater.requestHeaders = { 
-                'Authorization': `token ${token}`,
-                'Accept': 'application/octet-stream' 
-            };
+            // GitHub requires 'token <TOKEN>' or 'Bearer <TOKEN>' depending on endpoint, 
+            // but 'token' is standard for personal access tokens in raw headers for some libs.
+            // However, Electron-Updater handles auth internally if 'GH_TOKEN' env var is set.
+            // Explicitly setting requestHeaders might conflict or be malformed if not careful.
+            
+            // Re-setting GH_TOKEN env var is usually enough for electron-updater.
+            // But if we must set headers, let's try standard format without 'octet-stream' for metadata check.
+            process.env.GH_TOKEN = token;
+            
+            // Clear explicit headers to let electron-updater handle it naturally with the env var,
+            // OR use standard Authorization header if overriding.
+            // autoUpdater.requestHeaders = { 'Authorization': `token ${token}` }; 
+            
+            // IMPORTANT: For private repos, electron-updater needs the token in feedURL or Env.
+            // Let's rely on the env var predominantly.
+            logger.info('[UPDATER] Token configured via Env.');
             logger.info('[UPDATER] Token configured.');
         } else {
             logger.warn('[UPDATER] No token found.');
