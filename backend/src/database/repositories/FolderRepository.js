@@ -395,22 +395,16 @@ class FolderRepository extends BaseRepository {
   getAllForAnalysis() {
     try {
       const db = this.getDb();
+      // Optimized query: Only select fields required for occupancy calculation
       const query = `
-        SELECT id, category, departmentId, clinic, fileYear, fileCount, 
-               folderType, locationStorageType, locationUnit, locationFace, 
-               locationSection, locationShelf, locationStand, status, retentionPeriod, retentionCode
+        SELECT folderType, locationStorageType, locationUnit, locationFace,
+               locationSection, locationShelf, locationStand, status
         FROM ${this.tableName}
         WHERE status != 'İmha Edildi'
       `;
       
       const rows = db.prepare(query).all();
       return rows.map(row => ({
-        id: row.id,
-        category: row.category,
-        departmentId: row.departmentId,
-        clinic: row.clinic,
-        fileYear: row.fileYear,
-        fileCount: row.fileCount,
         folderType: row.folderType,
         location: {
           storageType: row.locationStorageType,
@@ -420,9 +414,7 @@ class FolderRepository extends BaseRepository {
           shelf: row.locationShelf,
           stand: row.locationStand
         },
-        status: row.status,
-        retentionPeriod: row.retentionPeriod,
-        retentionCode: row.retentionCode
+        status: row.status
       }));
     } catch (error) {
       logger.error('[FOLDER_REPO] getAllForAnalysis error:', { error });
