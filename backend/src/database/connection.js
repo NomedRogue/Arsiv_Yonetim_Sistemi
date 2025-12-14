@@ -32,6 +32,14 @@ function ensureTables(db) {
     CREATE TABLE IF NOT EXISTS checkouts ( id  TEXT PRIMARY KEY, data  TEXT );
     CREATE TABLE IF NOT EXISTS disposals ( id  TEXT PRIMARY KEY, data  TEXT );
     CREATE TABLE IF NOT EXISTS logs      ( id  TEXT PRIMARY KEY, data  TEXT );
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      username TEXT,
+      ip TEXT,
+      details TEXT, -- JSON string
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
@@ -46,6 +54,7 @@ function ensureTables(db) {
   // Index'ler oluştur - performans için kritik
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_folders_category ON folders(category);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_folders_status ON folders(status);
     CREATE INDEX IF NOT EXISTS idx_folders_departmentId ON folders(departmentId);
     CREATE INDEX IF NOT EXISTS idx_folders_fileYear ON folders(fileYear);

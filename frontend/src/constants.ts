@@ -4,17 +4,39 @@ import { Department, Category, StorageStructure, Settings } from './types';
 const isElectron = typeof window !== 'undefined' && 
   (window.location.protocol === 'file:' || navigator.userAgent.includes('Electron'));
 
-// Port dynamic discovery via URL params (injected by main process)
+// Port determination helper
+let dynamicPort = '3001';
+
+// Initial fetch of port (async but we need a sync value for initial const)
+// We rely on Main process providing it if available, or fetch it early.
+// In our architecture, `window.electronAPI.getBackendPort` is available if isElectron.
+// But we can't await it in a top-level const.
+// Solution: We will use a getter function for API_BASE_URL in the app, or rely on localhost:3001 as fallback
+// and update it if we can.
+// BETTER: The app should load config before making requests.
+// HOWEVER: For this refactor, we will try to fetch it synchronously if possible (not possible with invoke)
+// OR assume the frontend is reloaded/redirected with ?port=X if needed.
+// Main process can load the window with `?port=X` query param!
+
 const getPort = () => {
   if (typeof window === 'undefined') return '3001';
   const params = new URLSearchParams(window.location.search);
-  return params.get('port') || '3001';
+  if (params.get('port')) return params.get('port')!;
+
+  // Fallback: If we are in Electron but no port in URL, we might want to check
+  // if we can get it from sessionStorage (if we stored it previously)
+  // or default to 3001.
+  return '3001';
 };
 
 // API URL - Production (Electron) veya Development için
-export const API_BASE_URL: string = isElectron
-  ? `http://localhost:${getPort()}/api`  // Electron'dan çalışıyorsa direkt backend'e bağlan
-  : '/api';  // Browser'dan çalışıyorsa Vite proxy kullan
+// Note: This is now a getter or a base variable.
+// Ideally, we should use a function `getApiBaseUrl()` instead of a constant.
+export const API_BASE_URL_PREFIX = isElectron
+  ? `http://localhost:${getPort()}`
+  : '';
+
+export const API_BASE_URL = `${API_BASE_URL_PREFIX}/api`;
 
 // Timeout and interval settings
 export const TIMEOUTS = {

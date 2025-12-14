@@ -1,4 +1,5 @@
 const { AuthService } = require('../services/AuthService');
+const AuditService = require('../services/AuditService');
 const logger = require('../utils/logger');
 const { getRepositories } = require('../database/repositories');
 
@@ -11,8 +12,17 @@ class AuthController {
     try {
       const { username, password } = req.body;
       const result = await authService.login(username, password);
+
+      // Audit Log
+      AuditService.log('USER_LOGIN', username, { success: true }, req.ip);
+
       res.json(result);
     } catch (error) {
+      // Audit Log Failure
+      const { username } = req.body;
+      if (username) {
+        AuditService.log('USER_LOGIN_FAILED', username, { error: error.message }, req.ip);
+      }
       // Handle known service errors
       if (error.status) {
         return res.status(error.status).json({ error: error.message });

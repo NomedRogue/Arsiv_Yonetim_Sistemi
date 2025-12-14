@@ -1,5 +1,6 @@
-﻿const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session } = require('electron');
 const path = require('path');
+const net = require('net');
 const { fork } = require('child_process');
 const logger = require('./backend/src/utils/logger');
 const { setupAutoUpdater } = require('./main-process/updater-handler');
@@ -19,6 +20,7 @@ if (!gotTheLock) {
 let mainWindow = null;
 let splashWindow = null;
 let backendProcess = null;
+let backendPort = 3001; // Default port
 
 const isDev = !app.isPackaged && 
   process.env.NODE_ENV !== 'production' && 
@@ -35,17 +37,57 @@ process.env.NODE_ENV = isDev ? 'development' : 'production';
 // ----------------------------------------------------------------
 // BACKEND MANAGEMENT
 // ----------------------------------------------------------------
-function startBackendServer() {
+
+// Helper to find a free port
+function findFreePort(startPort) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.listen(startPort, () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        // Try next port (or 0 for random if we want, but let's increment)
+        // If startPort is 3001, try 0 (random) next to be quick
+        findFreePort(0).then(resolve, reject);
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
+async function startBackendServer() {
   const backendPath = path.join(__dirname, 'backend', 'server.js');
   
-  // Basitleştirilmiş Fork
-  backendProcess = fork(backendPath, [], {
-    env: { ...process.env, PORT: 3001 }
+  // Determine port before starting
+  let targetPort = 3001;
+  try {
+    targetPort = await findFreePort(3001);
+    logger.info(`[MAIN] Found free port for backend: ${targetPort}`);
+  } catch (err) {
+    logger.error(`[MAIN] Failed to find free port, defaulting to 3001. Error: ${err.message}`);
+  }
+
+  backendProcess = fork(backendPath, ['--subprocess'], {
+    env: {
+      ...process.env,
+      PORT: targetPort,
+      USER_DATA_PATH: userDataPath, // Explicitly pass userDataPath
+      DB_PATH: dbPath
+    }
   });
 
   backendProcess.on('message', (msg) => {
     if (msg === 'ready' || msg?.type === 'backend-ready') {
-      logger.info('[BACKEND] Server Ready');
+      if (msg.port) {
+        backendPort = msg.port;
+        logger.info(`[BACKEND] Server running on port: ${backendPort}`);
+      } else {
+        // Fallback if backend doesn't report port (shouldn't happen)
+        backendPort = targetPort;
+      }
       createWindow();
     }
   });
@@ -82,7 +124,10 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    // Pass port to the frontend via query parameter
+    // This allows the frontend to know which port the backend is running on
+    const startUrl = path.join(__dirname, 'dist', 'index.html');
+    mainWindow.loadFile(startUrl, { search: `?port=${backendPort}` });
   }
 
   // External links
@@ -99,6 +144,18 @@ function createWindow() {
 // APP LIFECYCLE
 // ----------------------------------------------------------------
 app.whenReady().then(() => {
+  // CSP (Content Security Policy)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self' http://localhost:* ws://localhost:*"
+        ]
+      }
+    });
+  });
+
   setupIpcHandlers();
   createSplashWindow();
   
@@ -138,6 +195,11 @@ ipcMain.on('app-ready', () => {
         mainWindow.maximize();
         if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
     }
+});
+
+// Provide backend port to renderer
+ipcMain.handle('get-backend-port', () => {
+    return backendPort;
 });
 
 app.on('window-all-closed', () => {

@@ -1,7 +1,19 @@
 // Simple logger to avoid console.log in production and structure logs.
-// In a real app, use a library like Winston or Pino.
+// Using electron-log for file logging and rotation.
+const logElectron = require('electron-log');
+const path = require('path');
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// Configure electron-log
+logElectron.transports.file.level = 'info';
+logElectron.transports.console.level = isDev ? 'debug' : 'info';
+
+// Rotation: Max 10MB, Keep 7 days
+logElectron.transports.file.maxSize = 10 * 1024 * 1024;
+logElectron.transports.file.resolvePathFn = (variables) => {
+  return path.join(process.env.USER_DATA_PATH || __dirname, 'logs', 'app.log');
+};
 
 // Sensitive field names that should be masked in logs
 const SENSITIVE_FIELDS = [
@@ -45,26 +57,15 @@ const log = (level, message, meta) => {
   // Mask sensitive data in meta before logging
   const safeMeta = meta ? maskSensitiveData(meta) : undefined;
   
-  const logEntry = {
-    level,
-    timestamp: new Date().toISOString(),
-    message,
-    ...(safeMeta && { meta: safeMeta }),
-  };
-  
-  const output = JSON.stringify(logEntry);
-  
+  // Use electron-log
   if (level === 'error') {
-    console.error(output);
+    logElectron.error(message, safeMeta || '');
   } else if (level === 'warn') {
-    console.warn(output);
-  } else {
-    // In dev, log plain text for readability
-    if (isDev) {
-      console.log(`[${level.toUpperCase()}] ${message}`, safeMeta || '');
-    } else {
-      console.log(output);
-    }
+    logElectron.warn(message, safeMeta || '');
+  } else if (level === 'info') {
+    logElectron.info(message, safeMeta || '');
+  } else if (level === 'debug') {
+    logElectron.debug(message, safeMeta || '');
   }
 };
 

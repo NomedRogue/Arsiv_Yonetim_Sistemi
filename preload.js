@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     userData: ipcRenderer.sendSync('get-user-data-path') 
   },
   
+  // Backend Info
+  getBackendPort: () => ipcRenderer.invoke('get-backend-port'),
+
   // App Ready Signal
   signalAppReady: () => ipcRenderer.send('app-ready')
 });

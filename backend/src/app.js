@@ -6,6 +6,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { initSse } = require('./utils/sse');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -14,6 +15,12 @@ const logger = require('./utils/logger');
 
 function createApp() {
   const app = express();
+
+  // Security Headers
+  app.use(helmet({
+    contentSecurityPolicy: false, // CSP is handled by Electron
+    crossOriginResourcePolicy: { policy: "cross-origin" } // Allow resources to be loaded
+  }));
 
   // CORS
   app.use(cors(corsOptions));
