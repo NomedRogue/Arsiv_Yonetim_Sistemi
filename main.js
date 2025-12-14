@@ -1,7 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell, session } = require('electron');
 const path = require('path');
-const net = require('net');
-const { fork } = require('child_process');
 const logger = require('./backend/src/utils/logger');
 const { setupAutoUpdater } = require('./main-process/updater-handler');
 const { setupIpcHandlers } = require('./main-process/ipc-handler');
@@ -19,7 +17,6 @@ if (!gotTheLock) {
 // Global References
 let mainWindow = null;
 let splashWindow = null;
-let backendProcess = null;
 let backendPort = 3001; // Default port
 
 const isDev = !app.isPackaged && 
@@ -34,65 +31,37 @@ process.env.DB_PATH = dbPath;
 process.env.USER_DATA_PATH = userDataPath;
 process.env.NODE_ENV = isDev ? 'development' : 'production';
 
+// Ensure JWT_SECRET is set for production
+if (!process.env.JWT_SECRET) {
+  // In a desktop app context, we can use a fixed internal secret or generate one.
+  // Using a fixed one ensures tokens remain valid across restarts if they persist.
+  process.env.JWT_SECRET = 'arsiv-yonetim-sistemi-s3cr3t-k3y-2024-v1';
+  logger.info('[MAIN] JWT_SECRET not found, using default internal secret.');
+}
+
 // ----------------------------------------------------------------
 // BACKEND MANAGEMENT
 // ----------------------------------------------------------------
-
-// Helper to find a free port
-function findFreePort(startPort) {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.listen(startPort, () => {
-      const port = server.address().port;
-      server.close(() => resolve(port));
-    });
-    server.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        // Try next port (or 0 for random if we want, but let's increment)
-        // If startPort is 3001, try 0 (random) next to be quick
-        findFreePort(0).then(resolve, reject);
-      } else {
-        reject(err);
-      }
-    });
-  });
-}
-
 async function startBackendServer() {
-  const backendPath = path.join(__dirname, 'backend', 'server.js');
-  
-  // Determine port before starting
-  let targetPort = 3001;
   try {
-    targetPort = await findFreePort(3001);
-    logger.info(`[MAIN] Found free port for backend: ${targetPort}`);
+    logger.info('[MAIN] Starting backend in-process...');
+    
+    // Dynamically require to avoid top-level await issues if any
+    const { startServer } = require('./backend/server');
+    
+    // Start the server
+    const server = await startServer();
+    const address = server.address();
+    backendPort = address.port;
+    logger.info(`[MAIN] Backend Server started on port ${backendPort}`);
+    
+    createWindow();
   } catch (err) {
-    logger.error(`[MAIN] Failed to find free port, defaulting to 3001. Error: ${err.message}`);
+    logger.error(`[MAIN] Failed to start backend: ${err.message}`);
+    const { dialog } = require('electron');
+    dialog.showErrorBox('Başlatma Hatası', 'Sunucu başlatılamadı:\n' + err.message);
+    app.quit();
   }
-
-  backendProcess = fork(backendPath, ['--subprocess'], {
-    env: {
-      ...process.env,
-      PORT: targetPort,
-      USER_DATA_PATH: userDataPath, // Explicitly pass userDataPath
-      DB_PATH: dbPath
-    }
-  });
-
-  backendProcess.on('message', (msg) => {
-    if (msg === 'ready' || msg?.type === 'backend-ready') {
-      if (msg.port) {
-        backendPort = msg.port;
-        logger.info(`[BACKEND] Server running on port: ${backendPort}`);
-      } else {
-        // Fallback if backend doesn't report port (shouldn't happen)
-        backendPort = targetPort;
-      }
-      createWindow();
-    }
-  });
-
-  backendProcess.on('error', (err) => logger.error(`[BACKEND ERROR] ${err}`));
 }
 
 // ----------------------------------------------------------------
@@ -113,6 +82,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 900,
     show: false, // Wait for ready-to-show
+    backgroundColor: '#111827', // Set dark background to prevent white flash
+    frame: false, // Use custom title bar
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -121,22 +92,29 @@ function createWindow() {
     title: "Arşiv Yönetim Sistemi"
   });
 
+  // Remove menu bar
+  mainWindow.setMenu(null);
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    // Pass port to the frontend via query parameter
-    // This allows the frontend to know which port the backend is running on
-    const startUrl = path.join(__dirname, 'dist', 'index.html');
-    mainWindow.loadFile(startUrl, { search: `?port=${backendPort}` });
+    // Pass port to frontend via query param if needed (though backend hardcoded to 3001 mostly)
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'), { search: `?port=${backendPort}` });
   }
 
   // External links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWidth('https:')) {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
         shell.openExternal(url);
         return { action: 'deny' };
     }
     return { action: 'allow' };
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.maximize();
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
   });
 }
 
@@ -144,7 +122,7 @@ function createWindow() {
 // APP LIFECYCLE
 // ----------------------------------------------------------------
 app.whenReady().then(() => {
-  // CSP (Content Security Policy)
+  // CSP
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -159,27 +137,10 @@ app.whenReady().then(() => {
   setupIpcHandlers();
   createSplashWindow();
   
-  // Geliştirme modunda backend'i 'npm run dev' başlatır.
-  // Production'da ise biz başlatırız.
   if (!isDev) {
       startBackendServer();
-      
-      // Fallback: Eğer backend 5 saniye içinde 'ready' demezse pencereyi aç
-      // Fallback: Eğer backend 3 saniye içinde 'ready' demezse
-      setTimeout(() => {
-        logger.warn('[MAIN] Backend signal timeout. Forcing UI...');
-        
-        if (!mainWindow) createWindow();
-        
-        if (mainWindow) {
-            mainWindow.show();
-            mainWindow.maximize();
-            if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
-        }
-      }, 3000);
   } else {
       logger.info('[MAIN] Dev mod: Backend harici başlatıldı, internal server atlanıyor.');
-      // Backend 'ready' sinyali göndermeyeceği için pencereyi manuel aç
       setTimeout(() => createWindow(), 1000);
   }
   
@@ -187,6 +148,7 @@ app.whenReady().then(() => {
       if (mainWindow) setupAutoUpdater(mainWindow);
   }, 5000);
 });
+
 
 // Splash -> Main Transition
 ipcMain.on('app-ready', () => {
@@ -207,7 +169,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (backendProcess) backendProcess.kill();
+  // Database and server cleanup is handled by process exit
 });
 
 // Second Instance Focus

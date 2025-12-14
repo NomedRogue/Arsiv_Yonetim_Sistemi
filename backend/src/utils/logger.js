@@ -12,7 +12,10 @@ logElectron.transports.console.level = isDev ? 'debug' : 'info';
 // Rotation: Max 10MB, Keep 7 days
 logElectron.transports.file.maxSize = 10 * 1024 * 1024;
 logElectron.transports.file.resolvePathFn = (variables) => {
-  return path.join(process.env.USER_DATA_PATH || __dirname, 'logs', 'app.log');
+  // Use passed env var or default to backend dir (fallback)
+  // In production, process.env.USER_DATA_PATH is set by main.js
+  const basePath = process.env.USER_DATA_PATH || path.join(__dirname, '..', '..', '..');
+  return path.join(basePath, 'logs', 'app.log');
 };
 
 // Sensitive field names that should be masked in logs

@@ -92,12 +92,16 @@ export const Login = () => {
             <header>
                 <nav className="navigation" style={{ marginTop: '30px' }}> {/* Adjust for TitleBar */}
                     <a href="#" className="logo">
-                       <img src="/logo-5.png" alt="Arşiv Yönetim Sistemi" />
+                       <img src="./logo-5.png" alt="Arşiv Yönetim Sistemi" />
                     </a>
                     
                     <ul className="nav-links">
                         <li><a href="#about" onClick={(e) => { e.preventDefault(); setShowAboutModal(true); }}>Hakkında</a></li>
-                        <li><a href="mailto:bekir.yildiz1@outlook.com">İletişim</a></li>
+                        <li><a href="#" onClick={(e) => {
+                            e.preventDefault();
+                            navigator.clipboard.writeText('bekir.yildiz1@outlook.com');
+                            toast.success('Mail adresi kopyalandı: bekir.yildiz1@outlook.com');
+                        }}>İletişim</a></li>
                     </ul>
                     
                     <button 

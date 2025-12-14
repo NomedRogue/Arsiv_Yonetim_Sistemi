@@ -57,6 +57,26 @@ function setupIpcHandlers() {
         return win ? win.isMaximized() : false;
     });
 
+    ipcMain.handle('window:minimize', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) win.minimize();
+    });
+
+    ipcMain.handle('window:maximize', () => {
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) {
+            if (win.isMaximized()) win.unmaximize();
+            else win.maximize();
+        }
+        return win ? win.isMaximized() : false;
+    });
+
+    ipcMain.handle('window:close', () => {
+        // App termination logic is handled by 'window-all-closed'
+        const win = BrowserWindow.getFocusedWindow();
+        if (win) win.close();
+    });
+
     ipcMain.handle('window:resizeForApp', () => {
         const win = BrowserWindow.getFocusedWindow();
         if (win) {
