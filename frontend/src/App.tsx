@@ -8,7 +8,7 @@ import { Header } from '@/components/Header';
 import { TitleBar } from '@/components/TitleBar';
 import { ToastHost } from '@/components/Toast';
 import { EnhancedErrorBoundary } from '@/components/EnhancedErrorBoundary';
-import UpdateNotification from '@/components/UpdateNotification';
+
 import { Category } from './types';
 import '@/lib/errorLogger'; // Initialize global error handlers
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -218,7 +218,7 @@ const AuthWrapper: React.FC = () => {
         <ToastHost />
         
         {/* Auto-update notification */}
-        <UpdateNotification />
+
       </ArchiveProvider>
 
   );

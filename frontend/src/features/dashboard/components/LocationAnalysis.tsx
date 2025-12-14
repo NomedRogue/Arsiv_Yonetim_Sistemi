@@ -131,7 +131,7 @@ const ExpandedShelfView: React.FC<{
                             )}
                         </div>
                         <div className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">
-                            Dolu: {(usedSpace || 0).toFixed(1)}cm / {shelfWidth}cm ({(((usedSpace || 0)/(shelfWidth || 1))*100).toFixed(0)}%)
+                            Dolu: {(usedSpace || 0).toFixed(1)}cm / {shelfWidth}cm ({shelfWidth > 0 ? (((usedSpace || 0)/shelfWidth)*100).toFixed(0) : '0'}%)
                         </div>
                     </>
                 )}
@@ -344,7 +344,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                       </span>
                     </div>
                     <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
-                      <div className={`${getOccupancyColor(item.occupancy as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${item.occupancy}%` }} />
+                      <div className={`${getOccupancyColor(item.occupancy as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${Math.min(Number(item.occupancy) || 0, 100)}%` }} />
                     </div>
                   </button>
                   {isExpanded && location && (
@@ -380,11 +380,11 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {((percentage as number) || 0).toFixed(0)}%
+                    {(Number(percentage) || 0).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
-                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${percentage}%` }} />
+                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${Math.min(Number(percentage) || 0, 100)}%` }} />
                 </div>
               </button>
             ))}
@@ -403,11 +403,11 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {((percentage as number) || 0).toFixed(0)}%
+                    {(Number(percentage) || 0).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
-                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${percentage}%` }} />
+                  <div className={`${getOccupancyColor(percentage as number, theme === 'dark')} h-3 rounded-full shadow-sm transition-all duration-300`} style={{ width: `${Math.min(Number(percentage) || 0, 100)}%` }} />
                 </div>
               </button>
             ))}

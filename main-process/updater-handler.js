@@ -56,11 +56,18 @@ function setupAutoUpdater(mainWindow) {
     
     ipcMain.handle('updater:check', () => {
         configureUpdaterToken();
+        // Explicitly set headers for private repo access
+        if (process.env.GH_TOKEN) {
+            autoUpdater.requestHeaders = { "Authorization": `token ${process.env.GH_TOKEN}` };
+        }
         return autoUpdater.checkForUpdates();
     });
 
     ipcMain.handle('updater:download', () => {
         configureUpdaterToken();
+        if (process.env.GH_TOKEN) {
+            autoUpdater.requestHeaders = { "Authorization": `token ${process.env.GH_TOKEN}` };
+        }
         return autoUpdater.downloadUpdate();
     });
 
@@ -78,6 +85,9 @@ function setupAutoUpdater(mainWindow) {
     setTimeout(() => {
         if (!process.env.skipUpdateCheck) {
             configureUpdaterToken();
+            if (process.env.GH_TOKEN) {
+                autoUpdater.requestHeaders = { "Authorization": `token ${process.env.GH_TOKEN}` };
+            }
             autoUpdater.checkForUpdates().catch(e => logger.error('[UPDATER] Check failed:', e));
         }
     }, 5000);
