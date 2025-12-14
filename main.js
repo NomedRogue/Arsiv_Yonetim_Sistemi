@@ -38,19 +38,19 @@ process.env.NODE_ENV = isDev ? 'development' : 'production';
 function startBackendServer() {
   const backendPath = path.join(__dirname, 'backend', 'server.js');
   
+  // Basitleştirilmiş Fork
   backendProcess = fork(backendPath, [], {
-    env: { ...process.env, PORT: 3001 },
-    stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+    env: { ...process.env, PORT: 3001 }
   });
 
   backendProcess.on('message', (msg) => {
-    if (msg === 'ready') {
+    if (msg === 'ready' || msg?.type === 'backend-ready') {
       logger.info('[BACKEND] Server Ready');
       createWindow();
     }
   });
 
-  backendProcess.stderr.on('data', (data) => logger.error(`[BACKEND ERROR] ${data}`));
+  backendProcess.on('error', (err) => logger.error(`[BACKEND ERROR] ${err}`));
 }
 
 // ----------------------------------------------------------------
@@ -79,11 +79,11 @@ function createWindow() {
     title: "Arşiv Yönetim Sistemi"
   });
 
-  const startUrl = isDev 
-    ? 'http://localhost:5173' 
-    : `file://${path.join(__dirname, 'dist', 'index.html')}`;
-
-  mainWindow.loadURL(startUrl);
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+  }
 
   // External links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -99,11 +99,33 @@ function createWindow() {
 // APP LIFECYCLE
 // ----------------------------------------------------------------
 app.whenReady().then(() => {
-  setupIpcHandlers(); // Initialize IPC Handlers
+  setupIpcHandlers();
   createSplashWindow();
-  startBackendServer();
   
-  // Setup Updater (Wait a bit for window)
+  // Geliştirme modunda backend'i 'npm run dev' başlatır.
+  // Production'da ise biz başlatırız.
+  if (!isDev) {
+      startBackendServer();
+      
+      // Fallback: Eğer backend 5 saniye içinde 'ready' demezse pencereyi aç
+      // Fallback: Eğer backend 3 saniye içinde 'ready' demezse
+      setTimeout(() => {
+        logger.warn('[MAIN] Backend signal timeout. Forcing UI...');
+        
+        if (!mainWindow) createWindow();
+        
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.maximize();
+            if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+        }
+      }, 3000);
+  } else {
+      logger.info('[MAIN] Dev mod: Backend harici başlatıldı, internal server atlanıyor.');
+      // Backend 'ready' sinyali göndermeyeceği için pencereyi manuel aç
+      setTimeout(() => createWindow(), 1000);
+  }
+  
   setTimeout(() => {
       if (mainWindow) setupAutoUpdater(mainWindow);
   }, 5000);

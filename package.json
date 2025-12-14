@@ -30,6 +30,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "main-process/**/*",
       "splash.html",
       "assets/**/*",
       "dist/**/*",

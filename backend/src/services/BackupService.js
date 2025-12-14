@@ -222,7 +222,7 @@ class BackupService {
         })
       );
 
-      return backups.filter((b) => b !== null).sort((a, b) => b.created - a.created);
+      return backups.filter((b) => b !== null).sort((a, b) => b.created.getTime() - a.created.getTime());
     } catch (error) {
       logger.error('[BACKUP_SERVICE] List backups error:', { error });
       throw error;

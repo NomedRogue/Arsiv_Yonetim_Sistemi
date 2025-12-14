@@ -164,21 +164,21 @@ class AuthController {
 
   // Initialization helper
   async ensureAdminUser() {
-      // Kept as-is or moved to service? 
-      // It's a startup routine, can stay here or move to service.
-      // Logic is minimal.
       try {
         const repos = getRepositories();
-        const db = repos.user.getDb();
-        const count = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+        // Check if admin exists directly via repo
+        const existingAdmin = repos.user.findByUsername('admin');
 
-        if (count === 0) {
-            logger.info('[AUTH] Creating default admin user via Service');
+        if (!existingAdmin) {
+            // Create if not exists
+            logger.info('[AUTH] Creating default admin user (admin/admin123)');
             await authService.createUser('admin', 'admin123', 'admin', 'system');
-            logger.warn('----------------------------------------------------');
-            logger.warn('[SECURITY WARNING] Default admin account created!');
-            logger.warn('Username: admin / Password: admin123');
-            logger.warn('----------------------------------------------------');
+        } else {
+            // If exists, ensure it is APPROVED
+            if (!existingAdmin.isApproved) {
+                 logger.warn('[AUTH] Existing admin user was not approved. Auto-approving now.');
+                 repos.user.updateStatus(existingAdmin.id, true);
+            }
         }
       } catch (error) {
           logger.error('[AUTH] Ensure admin error', { error });
