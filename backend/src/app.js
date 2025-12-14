@@ -10,6 +10,7 @@ const helmet = require('helmet');
 const { initSse } = require('./utils/sse');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { verifyToken } = require('./middleware/authMiddleware');
 const corsOptions = require('./config/corsOptions');
 const logger = require('./utils/logger');
 
@@ -55,7 +56,8 @@ function createApp() {
   // API Routes - NEW HYBRID SYSTEM
   // Supports both legacy and new refactored routes
   const apiRoutes = require('./routes');
-  app.use('/api', apiRoutes);
+  // verifyToken middleware handles public routes exclusion internally (whitelist)
+  app.use('/api', verifyToken, apiRoutes);
 
   // Production static file serving
   if (process.env.NODE_ENV === 'production') {
