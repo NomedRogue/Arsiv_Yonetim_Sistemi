@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as api from '@/api';
 import { useArchive } from '@/context/ArchiveContext';
-import { DashboardStats } from '@/types';
+import { DashboardStats, Folder } from '@/types';
 import { toast } from '@/lib/toast';
 
 const initialStats: DashboardStats = {
@@ -44,14 +44,21 @@ export const useDashboardStats = (
     lastBackupCleanupEvent,
   } = useArchive();
 
+  // State for silent loading (background updates)
+  const [isInitialized, setIsInitialized] = useState(false);
+
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [analysisFolders, setAnalysisFolders] = useState<any[]>([]);
+  const [analysisFolders, setAnalysisFolders] = useState<Partial<Folder>[]>([]);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
-    setIsLoading(true);
+    // Only show full page loader on the very first load to prevent flickering
+    if (!isInitialized) {
+        setIsLoading(true);
+    }
+
     try {
       const data = await api.getDashboardStats(treemapFilter, String(yearFilter));
       setStats(safeStats(data || {}));
@@ -59,27 +66,37 @@ export const useDashboardStats = (
       if (error.message && !error.message.includes('Failed to fetch')) {
         toast.error(error.message || 'İstatistikler alınamadı');
       }
-      setStats(initialStats);
+      // Keep existing stats on error if possible, or reset if critical
+      if (!isInitialized) {
+          setStats(initialStats);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [treemapFilter, yearFilter]);
+  }, [treemapFilter, yearFilter, isInitialized]);
 
   const fetchAnalysisData = useCallback(async () => {
-    setIsAnalysisLoading(true);
+    // Only show loading for analysis if we don't have data yet
+    if (analysisFolders.length === 0) {
+        setIsAnalysisLoading(true);
+    }
+    
     try {
       const folders = await api.getAllFoldersForAnalysis();
       setAnalysisFolders(folders);
     } catch (error: any) {
-        // Sadece gerçek hataları logla
       if (error.message && !error.message.includes('Failed to fetch')) {
          console.error('Analiz verileri hatası:', error);
       }
-      setAnalysisFolders([]);
+      if (analysisFolders.length === 0) {
+          setAnalysisFolders([]);
+      }
     } finally {
       setIsAnalysisLoading(false);
+      // Mark as initialized after both fetches are likely done or underway
+      setIsInitialized(true); 
     }
-  }, []);
+  }, [analysisFolders.length]);
 
   // Initial Data Fetch
   useEffect(() => {

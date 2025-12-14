@@ -382,7 +382,7 @@ export const FolderForm: React.FC<{
                   name="category"
                   checked={formData.category === Category.Tibbi}
                   onChange={handleCategoryChange}
-                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-0 focus:ring-offset-0 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="cat-tibbi">Tıbbi</label>
                 <input
@@ -392,7 +392,7 @@ export const FolderForm: React.FC<{
                   name="category"
                   checked={formData.category === Category.Idari}
                   onChange={handleCategoryChange}
-                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-0 focus:ring-offset-0 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="cat-idari">İdari</label>
               </div>
@@ -535,7 +535,7 @@ export const FolderForm: React.FC<{
                   name="folderType"
                   checked={formData.folderType === FolderType.Dar}
                   onChange={handleInputChange}
-                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-0 focus:ring-offset-0 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="type-dar">Dar</label>
                 <input
@@ -545,7 +545,7 @@ export const FolderForm: React.FC<{
                   name="folderType"
                   checked={formData.folderType === FolderType.Genis}
                   onChange={handleInputChange}
-                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-teal-500 dark:focus:ring-teal-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="w-3 h-3 text-teal-600 bg-gray-100 border-gray-300 focus:ring-0 focus:ring-offset-0 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <label htmlFor="type-genis">Geniş</label>
               </div>

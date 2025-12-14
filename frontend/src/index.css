@@ -13,6 +13,12 @@
     --color-archive-accent: #0d9488; /* Teal-600 */
   }
 
+  /* Accessibility: Focus indicators */
+  :focus-visible {
+    outline: 2px solid var(--color-archive-primary);
+    outline-offset: 2px;
+  }
+
   /* Anlık tema geçişi için geçişleri geçici olarak devre dışı bırak */
   .theme-changing *,
   .theme-changing *::before,

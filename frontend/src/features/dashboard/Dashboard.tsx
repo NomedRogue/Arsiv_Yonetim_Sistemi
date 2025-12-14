@@ -250,7 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       <div className="dashboard-card">
         <h3 className="text-sm xl:text-base font-bold text-gray-800 dark:text-white mb-2 transition-colors duration-300">Arşiv Dağılımı</h3>
-        <div className="flex space-x-2 border-b dark:border-gray-700 mb-4 transition-colors duration-300">
+        <div className="flex space-x-2 border-b border-gray-200 dark:border-slate-600 mb-4 transition-colors duration-300">
           <button
             onClick={() => setTreemapFilter('all')}
             className={`px-3 py-2 text-xs xl:text-sm font-medium transition-colors duration-300 ${

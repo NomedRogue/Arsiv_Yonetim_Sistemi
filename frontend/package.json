@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "arsiv-yonetim-sistemi": "file:..",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.263.1",
@@ -20,7 +22,8 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.10.1",
     "recharts": "^2.7.3",
-    "swr": "^2.2.0"
+    "swr": "^2.2.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.5",
