@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Download, RefreshCw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from '@/lib/toast';
 
 interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
   version?: string;
   message?: string;
   currentVersion?: string;
+  progress?: {
+    percent: number;
+    transferred: number;
+    total: number;
+    bytesPerSecond: number;
+  };
 }
 
 export const UpdateManagement: React.FC = () => {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' });
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
 
   useEffect(() => {
     // Mevcut versiyonu al
@@ -23,6 +29,8 @@ export const UpdateManagement: React.FC = () => {
 
       // Güncelleme durumu dinleyicisi
       const cleanup = window.electronAPI.updater.onUpdateStatus((data: any) => {
+        console.log('[UpdateStatus]', data);
+        
         if (data.status === 'available') {
           setUpdateStatus(prev => ({
             status: 'available',
@@ -30,14 +38,17 @@ export const UpdateManagement: React.FC = () => {
             currentVersion: prev.currentVersion
           }));
           setIsChecking(false);
-          toast.info(`Yeni sürüm mevcut: ${data.version}`);
         } else if (data.status === 'not-available') {
           setUpdateStatus(prev => ({ ...prev, status: 'idle' }));
           setIsChecking(false);
-          toast.info('Uygulamanız güncel. Yeni güncelleme bulunmamaktadır.');
         } else if (data.status === 'downloading') {
-          setUpdateStatus(prev => ({ ...prev, status: 'downloading' }));
+          setUpdateStatus(prev => ({ 
+            ...prev, 
+            status: 'downloading',
+            progress: data.progress 
+          }));
           setIsDownloading(true);
+          setShowProgressModal(true);
         } else if (data.status === 'downloaded') {
           setUpdateStatus(prev => ({
             status: 'downloaded',
@@ -45,229 +56,168 @@ export const UpdateManagement: React.FC = () => {
             currentVersion: prev.currentVersion
           }));
           setIsDownloading(false);
-          toast.success('Güncelleme indirildi! Yüklemek için butona tıklayın.');
+          setShowProgressModal(false);
         } else if (data.status === 'error') {
-          // 404 hatasını kullanıcı dostu bir mesajla göster
-          const is404 = data.message && (data.message.includes('404') || data.message.includes('no published versions'));
-          
-          if (is404) {
-            // 404 durumunu da HATA olarak göster (Token/Repo sorunu olabilir)
-            setUpdateStatus(prev => ({
-              status: 'error',
-              message: data.message, // Backend'den gelen detaylı mesaj
-              currentVersion: prev.currentVersion
-            }));
-            setIsChecking(false);
-            setIsDownloading(false);
-            toast.error(`Erişim Hatası: ${data.message}`);
-          } else {
-            // Gerçek hata durumunda error göster
-            setUpdateStatus(prev => ({
-              status: 'error',
-              message: data.message,
-              currentVersion: prev.currentVersion
-            }));
-            setIsChecking(false);
-            setIsDownloading(false);
-            toast.error(`Güncelleme hatası: ${data.message}`);
-          }
+          setUpdateStatus(prev => ({
+            status: 'error',
+            message: data.message,
+            currentVersion: prev.currentVersion
+          }));
+          setIsChecking(false);
+          setIsDownloading(false);
+          setShowProgressModal(false);
         }
       });
 
       return cleanup;
     }
-  }, []); // Boş dependency array - sonsuz döngüyü önler
+  }, []); 
 
   const handleCheckForUpdates = async () => {
-    if (!window.electronAPI?.updater) {
-      toast.error('Güncelleme servisi kullanılamıyor');
-      return;
-    }
+    if (!window.electronAPI?.updater) return;
 
     setIsChecking(true);
-    setUpdateStatus(prev => ({ ...prev, status: 'checking' }));
+    setUpdateStatus(prev => ({ ...prev, status: 'checking', message: undefined }));
 
     try {
       const result = await window.electronAPI.updater.checkForUpdates();
       if (!result.success) {
-        // 404 veya "no published versions" hatası mı kontrol et
-        const is404 = result.error && (
-          result.error.includes('404') || 
-          result.error.includes('no published versions') ||
-          result.error.includes('Yayınlanmış güncelleme bulunamadı')
-        );
-        
-        if (is404) {
-          // 404'ü HATA olarak fırlat
-          throw new Error(result.error || 'Erişim reddedildi (404)');
-        } else {
-          // Gerçek hata
-          throw new Error(result.error || 'Güncelleme kontrolü başarısız');
-        }
+         // Hata durumunda event listener zaten yakalayacak
       }
     } catch (error: any) {
-      // Sadece gerçek hatalar için error status göster
-      const is404 = error.message && (
-        error.message.includes('404') || 
-        error.message.includes('no published versions') ||
-        error.message.includes('Yayınlanmış güncelleme bulunamadı')
-      );
-      
-      if (!is404) {
-        setUpdateStatus(prev => ({
-          status: 'error',
-          message: error.message,
-          currentVersion: prev.currentVersion
-        }));
-        setIsChecking(false);
-        // Sadece gerçek hatalar için toast göster
-        toast.error(`Güncelleme kontrolü başarısız: ${error.message}`);
-      } else {
-        // 404 ise de göster
-        setUpdateStatus(prev => ({
-          status: 'error',
-          message: error.message,
-          currentVersion: prev.currentVersion
-        }));
-        setIsChecking(false);
-        toast.error(`Erişim Hatası (404): ${error.message}`);
-      }
+       // Hata durumunda event listener zaten yakalayacak
     }
   };
 
   const handleDownloadUpdate = async () => {
-    if (!window.electronAPI?.updater) {
-      toast.error('Güncelleme servisi kullanılamıyor');
-      return;
-    }
+    if (!window.electronAPI?.updater) return;
 
     setIsDownloading(true);
-    toast.info('Güncelleme indiriliyor...');
+    setUpdateStatus(prev => ({ ...prev, status: 'downloading' }));
 
     try {
-      const result = await window.electronAPI.updater.downloadUpdate();
-      if (!result.success) {
-        throw new Error(result.error || 'İndirme başarısız');
-      }
+      await window.electronAPI.updater.downloadUpdate();
     } catch (error: any) {
       setIsDownloading(false);
-      toast.error(`İndirme hatası: ${error.message}`);
     }
   };
 
   const handleInstallUpdate = () => {
-    if (!window.electronAPI?.updater) {
-      toast.error('Güncelleme servisi kullanılamıyor');
-      return;
-    }
-
-    toast.info('Uygulama yeniden başlatılıyor...');
+    if (!window.electronAPI?.updater) return;
     window.electronAPI.updater.installUpdate();
   };
 
+  // Byte cinsinden boyutu formatla
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
-    <div className="space-y-3 xl:space-y-4">
-      {/* Versiyon Bilgisi */}
-      <div className="p-3 xl:p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-200 dark:border-slate-600">
-        <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Versiyon Kartı */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-4 shadow-sm relative overflow-hidden">
+        {/* Arkaplan Deseni */}
+        <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 pointer-events-none">
+          <RefreshCw className="w-24 h-24" />
+        </div>
+
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h4 className="font-semibold text-xs xl:text-sm text-gray-800 dark:text-white mb-0.5 xl:mb-1">Mevcut Sürüm</h4>
-            <p className="text-base xl:text-lg font-bold text-teal-600 dark:text-teal-400">
+            <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Yüklü Sürüm</h4>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
               v{updateStatus.currentVersion || '...'}
-            </p>
-          </div>
-          {updateStatus.status === 'available' && (
-            <div className="text-right">
-              <p className="text-xs xl:text-sm text-gray-600 dark:text-gray-400 mb-0.5 xl:mb-1">Yeni Sürüm</p>
-              <p className="text-base xl:text-lg font-bold text-orange-600 dark:text-orange-400">
-                v{updateStatus.version}
-              </p>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="flex items-center gap-2 mt-2">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                updateStatus.status === 'available' 
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                  : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+              }`}>
+                {updateStatus.status === 'available' ? 'Güncelleme Mevcut' : 'Sistem Güncel'}
+              </span>
+            </div>
+          </div>
 
-      {/* Durum Mesajı */}
-      {updateStatus.status === 'checking' && (
-        <div className="flex items-center gap-2 p-2 xl:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <Loader2 className="w-4 h-4 xl:w-5 xl:h-5 text-blue-600 dark:text-blue-400 animate-spin" />
-          <span className="text-xs xl:text-sm text-blue-700 dark:text-blue-300">Güncellemeler kontrol ediliyor...</span>
-        </div>
-      )}
-
-      {updateStatus.status === 'downloading' && (
-        <div className="flex items-center gap-2 p-2 xl:p-3 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg">
-          <Loader2 className="w-4 h-4 xl:w-5 xl:h-5 text-teal-600 dark:text-teal-400 animate-spin" />
-          <span className="text-xs xl:text-sm text-teal-700 dark:text-teal-300">Güncelleme indiriliyor...</span>
-        </div>
-      )}
-
-      {updateStatus.status === 'downloaded' && (
-        <div className="flex items-center gap-2 p-2 xl:p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <CheckCircle className="w-4 h-4 xl:w-5 xl:h-5 text-green-600 dark:text-green-400" />
-          <span className="text-xs xl:text-sm text-green-700 dark:text-green-300">
-            Güncelleme hazır! Yüklemek için butona tıklayın.
-          </span>
-        </div>
-      )}
-
-      {updateStatus.status === 'error' && (
-        <div className="flex items-center gap-2 p-2 xl:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <AlertCircle className="w-4 h-4 xl:w-5 xl:h-5 text-red-600 dark:text-red-400" />
-          <span className="text-xs xl:text-sm text-red-700 dark:text-red-300">
-            Hata: {updateStatus.message || 'Bilinmeyen hata'}
-          </span>
-        </div>
-      )}
-
-      {/* Aksiyon Butonları */}
-      <div className="flex gap-2 xl:gap-3">
-        <button
-          onClick={handleCheckForUpdates}
-          disabled={isChecking || isDownloading}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 xl:px-4 xl:py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs xl:text-sm font-medium"
-        >
-          {isChecking ? (
-            <Loader2 className="w-4 h-4 xl:w-5 xl:h-5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 xl:w-5 xl:h-5" />
-          )}
-          Güncellemeleri Kontrol Et
-        </button>
-
-        {updateStatus.status === 'available' && (
-          <button
-            onClick={handleDownloadUpdate}
-            disabled={isDownloading}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 xl:px-4 xl:py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs xl:text-sm font-medium"
-          >
-            {isDownloading ? (
-              <Loader2 className="w-4 h-4 xl:w-5 xl:h-5 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 xl:w-5 xl:h-5" />
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleCheckForUpdates}
+              disabled={isChecking || isDownloading}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors text-sm font-medium min-w-[160px]"
+            >
+              {isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {isChecking ? 'Kontrol Ediliyor' : 'Kontrol Et'}
+            </button>
+            
+            {updateStatus.status === 'available' && (
+              <button
+                onClick={handleDownloadUpdate}
+                disabled={isDownloading}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors text-sm font-medium min-w-[160px]"
+              >
+                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Git & İndir (v{updateStatus.version})
+              </button>
             )}
-            Güncellemeyi İndir
-          </button>
-        )}
 
-        {updateStatus.status === 'downloaded' && (
-          <button
-            onClick={handleInstallUpdate}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 xl:px-4 xl:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs xl:text-sm font-medium"
-          >
-            <CheckCircle className="w-4 h-4 xl:w-5 xl:h-5" />
-            Güncellemeyi Yükle ve Yeniden Başlat
-          </button>
+            {updateStatus.status === 'downloaded' && (
+              <button
+                onClick={handleInstallUpdate}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-w-[160px]"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Yükle & Başlat
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Hata Mesajı */}
+        {updateStatus.status === 'error' && (
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+             <div>
+               <h5 className="text-sm font-semibold text-red-800 dark:text-red-300">Güncelleme Hatası</h5>
+               <p className="text-xs text-red-700 dark:text-red-400 mt-1">{updateStatus.message}</p>
+             </div>
+          </div>
         )}
       </div>
 
-      {/* Bilgilendirme */}
-      <div className="p-2 xl:p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-lg">
-        <p className="text-[10px] xl:text-xs text-blue-700 dark:text-blue-300">
-          <strong>Not:</strong> Güncelleme yüklendiğinde uygulama otomatik olarak yeniden başlatılacaktır. 
-          Lütfen tüm işlemlerinizi kaydettiğinizden emin olun.
-        </p>
-      </div>
+      {/* İndirme İlerleme Modalı */}
+      {showProgressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md border dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Download className="w-5 h-5 text-teal-600" />
+              Güncelleme İndiriliyor
+            </h3>
+            
+            <div className="space-y-4">
+               {/* Progress Bar */}
+               <div className="relative h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                 <div 
+                    className="absolute top-0 left-0 h-full bg-teal-600 transition-all duration-300 ease-out"
+                    style={{ width: `${updateStatus.progress?.percent || 0}%` }}
+                 />
+               </div>
+               
+               {/* Stats */}
+               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                 <span>{formatBytes(updateStatus.progress?.transferred || 0)} / {formatBytes(updateStatus.progress?.total || 0)}</span>
+                 <span>{updateStatus.progress?.percent.toFixed(1)}%</span>
+               </div>
+               
+               <div className="text-xs text-gray-400 text-center">
+                  Hız: {formatBytes(updateStatus.progress?.bytesPerSecond || 0)}/s
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
