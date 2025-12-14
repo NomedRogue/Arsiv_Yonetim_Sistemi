@@ -5,6 +5,13 @@
 
 const path = require('path');
 const fs = require('fs');
+// Mock logger
+jest.mock('../src/utils/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn()
+}));
 const { BackupService } = require('../src/services/BackupService');
 
 describe('BackupService', () => {

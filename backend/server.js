@@ -374,6 +374,7 @@ if (require.main === module || process.argv.includes('--subprocess')) {
 
     // Eğer Child Process ise, port bilgisini parent process'e (Main) bildir
     if (isSubprocess && process.send) {
+      // Critical for dynamic port discovery in Electron Main process
       process.send({ type: 'backend-ready', port });
     }
   }).catch((error) => {
