@@ -113,6 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onMouseEnter={(e) => handleMouseEnter(item.name, e)}
                   onMouseLeave={handleMouseLeave}
                   aria-current={isActive ? 'page' : undefined}
+                  aria-label={item.name}
                   className={`flex items-center w-full p-3 my-1 rounded-lg text-left transition-colors duration-300 ${
                     isActive
                       ? 'bg-archive-primary text-white shadow'
@@ -156,6 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 logout();
                 navigate('/');
             }}
+            aria-label="Çıkış Yap"
             className={`flex items-center w-full p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-300 ${!isOpen && 'justify-center'}`}
         >
              <LogOut className="flex-shrink-0" style={{ width: '1.25em', height: '1.25em' }} />
