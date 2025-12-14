@@ -15,7 +15,12 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, theme, toggleTheme, t
   return (
     <header className="layout-header bg-white dark:bg-slate-800 px-4 flex justify-between items-center shadow-md sticky top-0 z-20 transition-colors duration-300 border-b border-gray-200 dark:border-slate-700" style={{ height: '56px' }}>
       <div className="flex items-center">
-        <button onClick={toggleSidebar} className="text-gray-600 dark:text-gray-300 mr-3 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-300 group" title="Menüyü Aç/Kapat">
+        <button
+          onClick={toggleSidebar}
+          className="text-gray-600 dark:text-gray-300 mr-3 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-300 group"
+          title="Menüyü Aç/Kapat"
+          aria-label="Menüyü Aç/Kapat"
+        >
           <PanelLeft className="w-5 h-5 group-hover:scale-105 transition-transform" />
         </button>
         <h1 className="text-lg font-bold text-gray-800 dark:text-archive-dark-text transition-colors duration-300">{pageTitle}</h1>
@@ -38,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, theme, toggleTheme, t
           onClick={toggleTheme}
           className="p-2 rounded-full bg-archive-secondary hover:bg-teal-100 dark:bg-slate-600 dark:hover:bg-slate-500 text-archive-primary dark:text-yellow-300 transition-colors duration-300 shadow-sm"
           title={theme === 'light' ? 'Koyu Mod' : 'Açık Mod'}
+          aria-label={theme === 'light' ? 'Koyu Mod' : 'Açık Mod'}
         >
           {theme === 'light' ? <Moon style={{ width: '1.25em', height: '1.25em' }} /> : <Sun style={{ width: '1.25em', height: '1.25em' }} />}
         </button>
