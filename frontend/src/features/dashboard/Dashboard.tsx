@@ -3,7 +3,7 @@ import '@/styles/liquid-gauge.css';
 import { useArchive } from '@/context/ArchiveContext';
 import { LocationAnalysis } from './components/LocationAnalysis';
 import { RecentActivityList } from './components/RecentActivityList';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Treemap, Sector } from 'recharts';
 import { Folder, FileText, AlertTriangle, ChevronsRight, BookX, HardDrive, RotateCcw, Trash2, Loader2, Calendar, Clock } from 'lucide-react';
 import { StorageType } from '@/types';
 import { CustomPieTooltip, CustomTreemapTooltip, CustomizedTreemapContent } from './utils/chartHelpers';
@@ -140,15 +140,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   }, [lastBackupCleanupEvent, initialCleanupLog]);
   
   // Pie chart interaction logic
+  // Pie chart interaction logic
   useEffect(() => {
     if (isPieHovered) return;
     const interval = setInterval(() => {
-      setPieActiveIndex((prevIndex) => (prevIndex + 1) % 2);
-    }, 10000);
+      setPieActiveIndex((prevIndex) => {
+         const len = stats.clinicDistributionData.length || 1;
+         return (prevIndex + 1) % len;
+      });
+    }, 4000);
     return () => clearInterval(interval);
-  }, [isPieHovered]);
+  }, [isPieHovered, stats.clinicDistributionData.length]);
 
   const SUNBURST_COLORS = getChartColors('sunburst');
+
+  const renderActiveShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+        />
+        <Sector
+          cx={cx}
+          cy={cy}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          innerRadius={outerRadius + 6}
+          outerRadius={outerRadius + 10}
+          fill={fill}
+        />
+        <text x={cx} y={cy} dy={-10} textAnchor="middle" fill={theme === 'dark' ? '#fff' : '#333'} className="text-xl font-bold">
+            {value}
+        </text>
+        <text x={cx} y={cy} dy={15} textAnchor="middle" fill={theme === 'dark' ? '#aaa' : '#666'} className="text-xs">
+            {payload.name && payload.name.length > 15 ? payload.name.substring(0, 12) + '...' : payload.name}
+        </text>
+      </g>
+    );
+  };
 
   if (isLoading && stats.totalFolders === 0) {
     return (
@@ -277,8 +313,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </button>
         </div>
         <ResponsiveContainer width="100%" height={500}>
-          <Treemap data={stats.treemapData} dataKey="size" isAnimationActive={false} content={<CustomizedTreemapContent theme={theme} />}>
-            <Tooltip content={<CustomTreemapTooltip />} />
+          <Treemap 
+            data={stats.treemapData} 
+            dataKey="size" 
+            isAnimationActive={true} 
+            animationDuration={400}
+            content={<CustomizedTreemapContent theme={theme} />}
+          >
           </Treemap>
         </ResponsiveContainer>
       </div>
@@ -300,6 +341,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 outerRadius={110} 
                 fill="#8884d8" 
                 paddingAngle={2}
+                activeIndex={pieActiveIndex}
+                activeShape={renderActiveShape}
                 onMouseEnter={(_, index) => { setIsPieHovered(true); setPieActiveIndex(index); }}
                 onMouseLeave={() => setIsPieHovered(false)}
               >
@@ -307,7 +350,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <Cell key={`cell-clinic-${index}`} fill={SUNBURST_COLORS[index % SUNBURST_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomPieTooltip />} />
               <Legend iconSize={10} wrapperStyle={{ fontSize: '11px' }} />
             </PieChart>
           </ResponsiveContainer>

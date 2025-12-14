@@ -7,6 +7,14 @@ import * as api from '@/api';
 import { toast } from '@/lib/toast';
 import { useArchive } from '@/context/ArchiveContext';
 
+const safeNumber = (value: string | number | undefined): number => {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === 'number') return value;
+  const strVal = String(value).replace(',', '.');
+  const num = parseFloat(strVal);
+  return isNaN(num) ? 0 : num;
+};
+
 const getOccupancyColor = (percentage: number, isDark: boolean = false) => {
   if (percentage > 80) {
     return isDark ? 'bg-red-500' : 'bg-red-600';
@@ -72,8 +80,8 @@ const ExpandedShelfView: React.FC<{
         setDetailModalOpen(true);
     };
 
-    const shelfWidth = location?.storageType === 'Kompakt' ? settings.kompaktRafGenisligi : settings.standRafGenisligi;
-    const usedSpace = folders.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi), 0);
+    const shelfWidth = location?.storageType === 'Kompakt' ? safeNumber(settings.kompaktRafGenisligi) : safeNumber(settings.standRafGenisligi);
+    const usedSpace = folders.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi)), 0);
     const remainingSpace = shelfWidth - usedSpace;
 
     return (
@@ -93,8 +101,8 @@ const ExpandedShelfView: React.FC<{
                     <>
                         <div className="w-full h-28 bg-gray-200 dark:bg-slate-700 rounded-md flex items-end p-1 gap-px border border-gray-300 dark:border-slate-600">
                             {folders.map((folder) => {
-                                const folderWidth = folder.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi;
-                                const widthPercent = (folderWidth / shelfWidth) * 100;
+                                const folderWidth = folder.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi);
+                                const widthPercent = shelfWidth > 0 ? (folderWidth / shelfWidth) * 100 : 0;
                                 const colorClasses = folder.category === Category.Tibbi 
                                     ? 'bg-gradient-to-t from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 border-t-2 border-green-400' 
                                     : 'bg-gradient-to-t from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 border-t-2 border-blue-400';
@@ -123,7 +131,7 @@ const ExpandedShelfView: React.FC<{
                                     </div>
                                 );
                             })}
-                            {remainingSpace > 0 && (
+                            {remainingSpace > 0 && shelfWidth > 0 && (
                                 <div
                                     className="h-full bg-transparent flex-grow"
                                     style={{ flexBasis: `${(remainingSpace / shelfWidth) * 100}%` }}
@@ -131,7 +139,7 @@ const ExpandedShelfView: React.FC<{
                             )}
                         </div>
                         <div className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">
-                            Dolu: {(usedSpace || 0).toFixed(1)}cm / {shelfWidth}cm ({shelfWidth > 0 ? (((usedSpace || 0)/shelfWidth)*100).toFixed(0) : '0'}%)
+                            Dolu: {(usedSpace).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}cm / {shelfWidth.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}cm ({shelfWidth > 0 ? ((usedSpace/shelfWidth)*100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}%)
                         </div>
                     </>
                 )}
@@ -187,12 +195,20 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
           
           return false;
       });
-      const total = location.storageType === StorageType.Kompakt ? settings.kompaktRafGenisligi : settings.standRafGenisligi;
-      const used = foldersInLocation.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi), 0);
+      const total = location.storageType === StorageType.Kompakt ? safeNumber(settings.kompaktRafGenisligi) : safeNumber(settings.standRafGenisligi);
+      const used = foldersInLocation.reduce((acc, f) => acc + (f.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi)), 0);
       return { total, used, percentage: total > 0 ? (used / total) * 100 : 0, folders: foldersInLocation as Folder[] };
     },
     [folders, settings]
   );
+
+  // Sayı formatlama fonksiyonu (Türkçe formatı)
+  const formatNumber = (num: number, digits: number = 0) => {
+    return (num || 0).toLocaleString('tr-TR', { 
+      minimumFractionDigits: digits, 
+      maximumFractionDigits: digits 
+    });
+  };
 
   const summary = useMemo(() => {
     const kompakt: Record<string, number> = {};
@@ -205,14 +221,14 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
     
     storageStructure.kompakt.forEach(u => {
       const foldersInUnit = folders.filter(f => f.location?.unit === u.unit && f.status !== FolderStatus.Imha);
-      const totalSpace = u.faces.reduce((sum, face) => sum + face.sections.reduce((secSum, sec) => secSum + sec.shelves.length * settings.kompaktRafGenisligi, 0), 0);
-      const usedSpace = foldersInUnit.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi), 0);
+      const totalSpace = u.faces.reduce((sum, face) => sum + face.sections.reduce((secSum, sec) => secSum + sec.shelves.length * safeNumber(settings.kompaktRafGenisligi), 0), 0);
+      const usedSpace = foldersInUnit.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi)), 0);
       kompakt[`Ünite ${u.unit}`] = totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0;
     });
     storageStructure.stand.forEach(s => {
       const foldersInStand = folders.filter(f => f.location?.stand === s.stand && f.status !== FolderStatus.Imha);
-      const totalSpace = s.shelves.length * settings.standRafGenisligi;
-      const usedSpace = foldersInStand.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi), 0);
+      const totalSpace = s.shelves.length * safeNumber(settings.standRafGenisligi);
+      const usedSpace = foldersInStand.reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi)), 0);
       stand[`Stand ${s.stand}`] = totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0;
     });
     return { kompakt, stand };
@@ -229,9 +245,9 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
             const unit = storageStructure.kompakt.find(u => u.unit === view.id);
             if (!unit) return [];
             return unit.faces.flatMap(face => face.sections.map(section => {
-              const totalSpace = section.shelves.length * settings.kompaktRafGenisligi;
+              const totalSpace = section.shelves.length * safeNumber(settings.kompaktRafGenisligi);
               const usedSpace = folders.filter(f => f.status !== FolderStatus.Imha && f.location?.unit === view.id && f.location?.face === face.name && f.location?.section === section.section)
-                .reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? settings.darKlasorGenisligi : settings.genisKlasorGenisligi), 0);
+                .reduce((sum, f) => sum + (f.folderType === FolderType.Dar ? safeNumber(settings.darKlasorGenisligi) : safeNumber(settings.genisKlasorGenisligi)), 0);
               return { name: `${face.name} - ${section.section}. Bölüm`, occupancy: totalSpace > 0 ? (usedSpace / totalSpace) * 100 : 0, faceName: face.name, sectionId: section.section };
             }));
           } else {
@@ -340,7 +356,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                         {item.name}
                       </span>
                       <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                        {((item.occupancy as number) || 0).toFixed(0)}%
+                        {formatNumber(((item.occupancy as number) || 0), 0)}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
@@ -380,7 +396,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {(Number(percentage) || 0).toFixed(0)}%
+                    {formatNumber((Number(percentage) || 0), 0)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">
@@ -403,7 +419,7 @@ const LocationAnalysisInternal: React.FC<LocationAnalysisProps> = ({ folders, se
                 <div className="flex justify-between items-center text-sm mb-1">
                   <span className="font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{name}</span>
                   <span className="font-bold text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                    {(Number(percentage) || 0).toFixed(0)}%
+                    {formatNumber((Number(percentage) || 0), 0)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-400 dark:bg-slate-600 rounded-full h-3 shadow-inner transition-colors duration-300">

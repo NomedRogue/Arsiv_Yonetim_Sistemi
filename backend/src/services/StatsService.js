@@ -64,7 +64,14 @@ class StatsService {
       const occupancy = this.calculateOccupancy(dbStats.byStorageTypeType, storageStructure, settings);
       
       // Treemap data using aggregated stats
-      const treemapData = this.calculateTreemapData(dbStats.byDepartmentType, departmentMap, treemapFilter, storageStructure, settings);
+      // Filter logic: If we have specific storage filter, use byDepartmentAndStorageType
+      let treemapSourceStats = dbStats.byDepartmentType;
+      
+      if (treemapFilter !== 'all' && dbStats.byDepartmentAndStorageType) {
+        treemapSourceStats = dbStats.byDepartmentAndStorageType.filter(s => s.locationStorageType === treemapFilter);
+      }
+
+      const treemapData = this.calculateTreemapData(treemapSourceStats, departmentMap, treemapFilter, storageStructure, settings);
       
       // Clinic distribution from DB
       const clinicDistribution = dbStats.byClinic.map(c => ({ name: c.clinic, value: c.count }));

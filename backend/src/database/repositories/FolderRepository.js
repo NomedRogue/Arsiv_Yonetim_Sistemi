@@ -312,7 +312,6 @@ class FolderRepository extends BaseRepository {
       `;
       const storageTypeStats = db.prepare(storageTypeQuery).all();
 
-      // 3. Clinic Distribution
       const clinicQuery = `
         SELECT clinic, COUNT(*) as count
         FROM ${this.tableName}
@@ -321,6 +320,15 @@ class FolderRepository extends BaseRepository {
         ORDER BY count DESC
       `;
       const clinicStats = db.prepare(clinicQuery).all();
+
+      // 4. Group by Department AND StorageType AND FolderType (for Filtered Treemap)
+      const deptStorageQuery = `
+        SELECT departmentId, locationStorageType, folderType, COUNT(*) as count
+        FROM ${this.tableName}
+        WHERE status != 'İmha Edildi' AND locationStorageType IS NOT NULL
+        GROUP BY departmentId, locationStorageType, folderType
+      `;
+      const departmentStorageStats = db.prepare(deptStorageQuery).all();
 
       // 4. Monthly Trend (SQLite strftime)
       // Extracts 'YYYY-MM' from createdAt
@@ -376,6 +384,7 @@ class FolderRepository extends BaseRepository {
         }, {}),
         // New detailed stats
         byDepartmentType: departmentTypeStats,
+        byDepartmentAndStorageType: departmentStorageStats,
         byStorageTypeType: storageTypeStats,
         byClinic: clinicStats,
         byMonth: monthlyStats,

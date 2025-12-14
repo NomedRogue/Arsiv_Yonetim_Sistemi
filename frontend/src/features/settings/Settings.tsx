@@ -110,6 +110,16 @@ export const Settings: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
+
+    // Ölçü birimleri için virgül/nokta/metin girişine izin ver
+    if (['kompaktRafGenisligi', 'standRafGenisligi', 'darKlasorGenisligi', 'genisKlasorGenisligi'].includes(name)) {
+        setCurrentSettings((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        return;
+    }
+
     setCurrentSettings((prev) => ({
       ...prev,
       [name]: type === 'number' ? (value === '' ? 0 : Number(value)) : value,
@@ -118,19 +128,30 @@ export const Settings: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      await updateSettings(currentSettings);
+      const safeParse = (val: any) => {
+         if (typeof val === 'number') return val;
+         const str = String(val).replace(',', '.');
+         const num = parseFloat(str);
+         return isNaN(num) ? 0 : num;
+      };
+
+      const settingsToSave = {
+        ...currentSettings,
+        kompaktRafGenisligi: safeParse(currentSettings.kompaktRafGenisligi),
+        standRafGenisligi: safeParse(currentSettings.standRafGenisligi),
+        darKlasorGenisligi: safeParse(currentSettings.darKlasorGenisligi),
+        genisKlasorGenisligi: safeParse(currentSettings.genisKlasorGenisligi),
+      };
+
+      await updateSettings(settingsToSave);
       
       // Token'ı Main Process için JSON dosyasına kaydet
-      if (currentSettings.githubToken) {
+      if (settingsToSave.githubToken) {
          const api = (window as any).electronAPI;
          if (api?.db?.saveGithubToken) {
-            await api.db.saveGithubToken(currentSettings.githubToken);
+            await api.db.saveGithubToken(settingsToSave.githubToken);
          }
       }
-      
-      // Eski toast mesajı updateSettings içinden geliyorsa tekrar etme, ama gelmiyorsa:
-      // Genelde backend service toast fırlatmaz, component fırlatmalı. 
-      // Ancak burada apiErrorHandler kullanılıyor.
     } catch (e) {
       console.error('Ayarlar kaydedilirken hata:', e);
     }
