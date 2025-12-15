@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -41,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const [isPending, startTransition] = useTransition();
   
   const handleMouseEnter = (itemName: string, event: React.MouseEvent<HTMLButtonElement>) => {
     if (!isOpen) {
@@ -101,12 +102,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (item.name === 'Klasör Ekle') {
-                        onAddNewFolder(); 
-                        navigate(item.path);
-                    } else {
-                        navigate(item.path);
-                    }
+                    startTransition(() => {
+                        if (item.name === 'Klasör Ekle') {
+                            onAddNewFolder(); 
+                            navigate(item.path);
+                        } else {
+                            navigate(item.path);
+                        }
+                    });
                   }}
                   onMouseEnter={(e) => handleMouseEnter(item.name, e)}
                   onMouseLeave={handleMouseLeave}
@@ -117,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     isActive
                       ? "bg-archive-primary text-white shadow-md shadow-archive-primary/20 ring-1 ring-white/20"
                       : "text-gray-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50 hover:text-gray-900 dark:hover:text-white hover:shadow-sm"
-                    , !isOpen && 'justify-center'
+                    , !isOpen && 'justify-center', isPending && 'opacity-70 cursor-wait'
                   )}
                 >
                   <Icon className={cn("flex-shrink-0 transition-transform duration-300", isActive && "scale-110")} style={{ width: '1.25em', height: '1.25em' }} />
@@ -161,7 +164,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
             onClick={() => {
                 logout();
-                navigate('/');
+                startTransition(() => {
+                    navigate('/');
+                });
             }}
             aria-label="Çıkış Yap"
             className={cn(

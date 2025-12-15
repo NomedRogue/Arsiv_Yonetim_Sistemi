@@ -79,6 +79,7 @@ const cors = require('cors');
 
 // ADIM 7: Uygulama modüllerini yükle
 const { initSse, stopSse } = require('./src/utils/sse');
+const { getUserDataPath, ensureDirExists } = require('./src/utils/fileHelper');
 const apiRoutes = require('./src/routes');
 const { startAutoBackupScheduler, stopAutoBackupScheduler, initAutoBackupState } = require('./src/services/BackupSchedulerService');
 const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
@@ -109,7 +110,7 @@ newEnsureEnvDefaults();
 
 const app = express();
 
-if (process.env.NODE_ENV !== 'production') console.log('[SERVER] Setting up CORS...');
+if (process.env.NODE_ENV !== 'production') logger.info('[SERVER] Setting up CORS...');
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
@@ -222,7 +223,6 @@ initAutoBackupState();
 startAutoBackupScheduler();
 
 // PDF, Excel ve Backup klasörlerini startup'ta oluştur
-const { getUserDataPath, ensureDirExists } = require('./src/utils/fileHelper');
 const pdfPath = getUserDataPath('PDFs');
 const excelPath = getUserDataPath('Excels');
 const backupPath = getUserDataPath('Backups');
@@ -264,7 +264,7 @@ function startServer() {
           reject(altErr);
         });
       } else {
-        console.error('[SERVER] Server startup error:', err);
+        logger.error('[SERVER] Server startup error:', err);
         logger.error('Server başlatma hatası:', err);
         reject(err);
       }
@@ -364,13 +364,13 @@ module.exports = { startServer, app };
 if (require.main === module || process.argv.includes('--subprocess')) {
   const isSubprocess = process.argv.includes('--subprocess');
 
-  if (process.env.NODE_ENV !== 'production') console.log('[SERVER] About to call startServer()...');
+  if (process.env.NODE_ENV !== 'production') logger.info('[SERVER] About to call startServer()...');
   
   startServer().then((server) => {
     const address = server.address();
     const port = address ? address.port : null;
 
-    if (process.env.NODE_ENV !== 'production') console.log(`[SERVER] startServer() completed successfully, server is listening on port ${port}`);
+    if (process.env.NODE_ENV !== 'production') logger.info(`[SERVER] startServer() completed successfully, server is listening on port ${port}`);
 
     // Eğer Child Process ise, port bilgisini parent process'e (Main) bildir
     if (isSubprocess && process.send) {
@@ -378,7 +378,7 @@ if (require.main === module || process.argv.includes('--subprocess')) {
       process.send({ type: 'backend-ready', port });
     }
   }).catch((error) => {
-    console.error('[SERVER] startServer() failed with error:', error);
+    logger.error('[SERVER] startServer() failed with error:', error);
     logger.error('Server başlatma exception:', error);
     process.exit(1);
   });

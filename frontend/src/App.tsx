@@ -56,10 +56,13 @@ const AuthWrapper: React.FC = () => {
     React.useEffect(() => {
         if (!isAuthLoading && !isBackendLoading) {
             // Signal Electron that we are ready to show the UI
-            // This will close the Splash Screen and show the Main Window
-            if ((window.electronAPI as any)?.signalAppReady) {
-                (window.electronAPI as any).signalAppReady();
-            }
+            // Use double rAF to ensure paint is effectively done
+            // React hazır, sinyali gönder.
+            setTimeout(() => {
+                if ((window.electronAPI as any)?.signalAppReady) {
+                     (window.electronAPI as any).signalAppReady();
+                }
+            }, 300);
         }
     }, [isAuthLoading, isBackendLoading]);
 

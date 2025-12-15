@@ -42,26 +42,53 @@ if (!process.env.JWT_SECRET) {
 // ----------------------------------------------------------------
 // BACKEND MANAGEMENT
 // ----------------------------------------------------------------
+const { fork } = require('child_process');
+let backendProcess = null;
+
 async function startBackendServer() {
-  try {
-    logger.info('[MAIN] Starting backend in-process...');
+  return new Promise((resolve, reject) => {
+    logger.info('[MAIN] Starting backend as subprocess...');
     
-    // Dynamically require to avoid top-level await issues if any
-    const { startServer } = require('./backend/server');
+    const serverPath = path.join(__dirname, 'backend', 'server.js');
     
-    // Start the server
-    const server = await startServer();
-    const address = server.address();
-    backendPort = address.port;
-    logger.info(`[MAIN] Backend Server started on port ${backendPort}`);
+    backendProcess = fork(serverPath, ['--subprocess'], {
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+      env: { ...process.env, COMPONENT: 'backend' }
+    });
     
-    createWindow();
-  } catch (err) {
-    logger.error(`[MAIN] Failed to start backend: ${err.message}`);
-    const { dialog } = require('electron');
-    dialog.showErrorBox('Başlatma Hatası', 'Sunucu başlatılamadı:\n' + err.message);
-    app.quit();
-  }
+    // Handle logs from subprocess
+    backendProcess.stdout.on('data', (data) => {
+        const str = data.toString().trim();
+        // Forward backend stdout to main logger if needed, or just console
+        if (isDev) console.log(`[BACKEND] ${str}`);
+    });
+    
+    backendProcess.stderr.on('data', (data) => {
+        const str = data.toString().trim();
+        console.error(`[BACKEND ERR] ${str}`);
+    });
+
+    backendProcess.on('message', (msg) => {
+      if (msg.type === 'backend-ready') {
+        backendPort = msg.port;
+        logger.info(`[MAIN] Backend subprocess ready on port ${backendPort}`);
+        resolve();
+      }
+    });
+    
+    backendProcess.on('error', (err) => {
+        logger.error(`[MAIN] Backend subprocess failed: ${err.message}`);
+        reject(err);
+    });
+    
+    backendProcess.on('exit', (code) => {
+        if (code !== 0) {
+            logger.warn(`[MAIN] Backend subprocess exited with code ${code}`);
+            // If backend crashes early, reject
+            // But if it crashes later, we might want to restart or alert
+        }
+    });
+  });
 }
 
 // ----------------------------------------------------------------
@@ -112,16 +139,21 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.maximize();
-    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+    // DO NOT show/maximize here. Wait for 'app-ready' from frontend.
+    // This prevents the splash screen from lingering over the loaded login screen.
+    // mainWindow.show() or maximize() here causes the window to become visible behind the splash.
+    
+    // Sadece development modda hemen gösterilebilir debugger için, ama prod için bekletiyoruz
+    if (isDev) {
+       // mainWindow.maximize(); 
+    }
   });
 }
 
 // ----------------------------------------------------------------
 // APP LIFECYCLE
 // ----------------------------------------------------------------
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // CSP
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -138,7 +170,15 @@ app.whenReady().then(() => {
   createSplashWindow();
   
   if (!isDev) {
-      startBackendServer();
+      try {
+        await startBackendServer();
+        createWindow();
+      } catch (err) {
+        logger.error(`[MAIN] Failed to start backend: ${err.message}`);
+        const { dialog } = require('electron');
+        dialog.showErrorBox('Başlatma Hatası', 'Sunucu başlatılamadı:\n' + err.message);
+        app.quit();
+      }
   } else {
       logger.info('[MAIN] Dev mod: Backend harici başlatıldı, internal server atlanıyor.');
       setTimeout(() => createWindow(), 1000);
@@ -149,13 +189,31 @@ app.whenReady().then(() => {
   }, 5000);
 });
 
+// Clean up backend process on quit
+app.on('will-quit', () => {
+    if (backendProcess) {
+        logger.info('[MAIN] Killing backend subprocess...');
+        backendProcess.kill();
+    }
+});
+
 
 // Splash -> Main Transition
 ipcMain.on('app-ready', () => {
+    console.log('[MAIN] Received app-ready signal. Switching windows.');
+    
+    // 1. Önce Ana Pencereyi Hazırla ve Göster
     if (mainWindow) {
+        mainWindow.maximize(); // Bu komut pencereyi görünür yapacaktır (Windows'ta)
         mainWindow.show();
-        mainWindow.maximize();
-        if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
+        mainWindow.focus();
+    }
+
+    // 2. Splash'i yok et
+    // Küçük bir gecikme ekleyerek ana pencerenin tamamen çizilmesini bekleyebiliriz (opsiyonel)
+    // Ama React zaten hazır sinyali gönderdi.
+    if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.destroy();
     }
 });
 

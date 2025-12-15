@@ -174,8 +174,16 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedFolderToDelete, setSelectedFolderToDelete] = useState<Folder | null>(null);
 
-  // Debounce timer ref
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Fetch için active criteria (Debounced)
+  const [activeCriteria, setActiveCriteria] = useState(searchCriteria);
+
+  // Debounce Effect: sync searchCriteria -> activeCriteria with delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        setActiveCriteria(searchCriteria);
+    }, TIMEOUTS.SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchCriteria]);
 
   // Server-side pagination: API'den veri çek
   const fetchFolders = useCallback(async () => {
@@ -187,7 +195,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
       });
 
       // Arama kriterleri ekle
-      Object.entries(searchCriteria).forEach(([key, value]) => {
+      Object.entries(activeCriteria).forEach(([key, value]) => {
         if (value && value !== 'Tümü') {
           params.append(key, String(value));
         }
@@ -206,7 +214,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchCriteria]);
+  }, [currentPage, itemsPerPage, activeCriteria]);
 
   // Sayfa değiştiğinde veri çek
   useEffect(() => {
@@ -220,14 +228,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
     }
   }, [sseConnected, fetchFolders]);
 
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
+
 
   // Optimized memoized callbacks
   const handleOpenCheckoutModal = useCallback((folder: Folder) => {
@@ -351,7 +352,7 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
 
         {/* Gelişmiş Arama Formu */}
         <form
-          onSubmit={(e) => { e.preventDefault(); setCurrentPage(1); fetchFolders(); }}
+          onSubmit={(e) => { e.preventDefault(); setCurrentPage(1); setActiveCriteria(searchCriteria); }}
           className="space-y-3 xl:space-y-4 p-3 xl:p-4 mb-3 xl:mb-4 border rounded-lg dark:border-gray-600 transition-colors duration-300"
         >
           <div className="relative">
@@ -359,17 +360,8 @@ export const FolderList: React.FC<Props> = ({ onEditFolder }) => {
               type="text"
               value={searchCriteria.general}
               onChange={(e) => {
-                const value = e.target.value;
-                setSearchCriteria({ ...searchCriteria, general: value });
-                
-                // Debounced search
-                if (debounceTimerRef.current) {
-                  clearTimeout(debounceTimerRef.current);
-                }
-                debounceTimerRef.current = setTimeout(() => {
-                  setCurrentPage(1);
-                  fetchFolders();
-                }, TIMEOUTS.SEARCH_DEBOUNCE_MS);
+                setSearchCriteria({ ...searchCriteria, general: e.target.value });
+                setCurrentPage(1);
               }}
               placeholder="Tüm alanlarda ara..."
               className="w-full p-2.5 xl:p-3 pl-9 xl:pl-10 text-xs xl:text-sm bg-white dark:bg-slate-600 border border-gray-300 dark:border-gray-500 dark:text-white rounded-lg transition-colors duration-300"
