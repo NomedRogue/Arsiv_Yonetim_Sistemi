@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom']
+      include: ['react', 'react-dom', 'clsx', 'tailwind-merge', 'recharts']
     },
 
     esbuild: {

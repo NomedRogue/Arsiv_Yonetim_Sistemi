@@ -316,8 +316,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <Treemap 
             data={stats.treemapData} 
             dataKey="size" 
-            isAnimationActive={true} 
-            animationDuration={400}
+
+            isAnimationActive={false}
             content={<CustomizedTreemapContent theme={theme} />}
           >
           </Treemap>

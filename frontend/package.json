@@ -1,7 +1,7 @@
 {
   "name": "arsiv-yonetim-sistemi",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "description": "Arşiv Yönetim Sistemi frontend uygulaması.",
   "type": "module",
   "scripts": {
